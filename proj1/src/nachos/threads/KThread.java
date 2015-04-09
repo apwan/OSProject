@@ -187,9 +187,21 @@ public class KThread {
         Machine.interrupt().disable();
 
         Machine.autoGrader().finishingCurrentThread();
+        
+        //edited by WuYijie on 9/4/2015
+        ThreadQueue curWaitQueue = currentThread.waitQueue;
+        if(curWaitQueue != null){
+        	KThread nextThread = curWaitQueue.nextThread();
+            while(nextThread != null){
+            	nextThread.ready();
+            	nextThread = curWaitQueue.nextThread();
+            }
+        }
+        
 
         Lib.assertTrue(toBeDestroyed == null);
         toBeDestroyed = currentThread;
+        
 
 
         currentThread.status = statusFinished;
@@ -272,14 +284,27 @@ public class KThread {
      * call is not guaranteed to return. This thread must not be the current
      * thread.
      */
-    public void join() {
+    public void join() { //edited by WuYijie on 9/4/2015
         Lib.debug(dbgThread, "Joining to thread: " + toString());
 
         Lib.assertTrue(this != currentThread);
         
-        while(currentThread.status != statusFinished){
+        boolean interruptStatus  = Machine.interrupt().disable();
+        
+        if(currentThread.status != statusFinished){
+        	if(waitQueue == null){
+        		waitQueue = ThreadedKernel.scheduler.newThreadQueue(true);
+        		//transfer priority
+        		
+        		waitQueue.acquire(this);// acquire lock
+        	}
+        	//note that currentThread != this
+        	waitQueue.waitForAccess(currentThread);
+        	sleep();//static method cause currentThread to sleep
         	
         }
+        
+        Machine.interrupt().restore(interruptStatus);
         return;
         
         
@@ -448,6 +473,7 @@ public class KThread {
     private static int numCreated = 0;
 
     private static ThreadQueue readyQueue = null;
+    private ThreadQueue waitQueue = null;
     private static KThread currentThread = null;
     private static KThread toBeDestroyed = null;
     private static KThread idleThread = null;
