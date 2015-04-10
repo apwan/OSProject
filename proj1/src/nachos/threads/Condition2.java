@@ -22,6 +22,10 @@ public class Condition2 {
      */
     public Condition2(Lock conditionLock) {
         this.conditionLock = conditionLock;
+
+        //edited by KuLokSun on 10/4/2015
+        //  using the queue in scheduler to solve priority inversion problem
+        waitQueue = ThreadedKernel.scheduler.newThreadQueue(true);
     }
 
     /**
@@ -33,8 +37,16 @@ public class Condition2 {
     public void sleep() {
         Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
+        //edited by KuLokSun on 10/4/2015
+        // get this thread from the lock
+        KThread currentThread = KThread.currentThread();
         conditionLock.release();
-
+        Machine.interrupt().disable();
+        // add this thread to queue
+        waitQueue.waitForAccess(currentThread);
+        // this thread sleep
+        KThread.sleep();
+        Machine.interrupt().enable();
         conditionLock.acquire();
     }
 
@@ -44,6 +56,14 @@ public class Condition2 {
      */
     public void wake() {
         Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+
+        //edited by KuLokSun on 10/4/2015
+        Machine.interrupt().disable();
+        KThread nextThread = waitQueue.nextThread();
+        if(nextThread != null){
+            nextThread.ready();
+        }
+        Machine.interrupt().enable();
     }
 
     /**
@@ -52,7 +72,23 @@ public class Condition2 {
      */
     public void wakeAll() {
         Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+
+        //edited by KuLokSun on 10/4/2015
+        Machine.interrupt().disable();
+        do{
+            KThread nextThread = waitQueue.nextThread();
+            if(nextThread != null){
+                nextThread.ready();
+            }else{
+                break;
+            }
+        }while(true);
+        Machine.interrupt().enable();
     }
 
     private Lock conditionLock;
+
+    //edited by KuLokSun on 10/4/2015
+    // Using Thread Queue in schedular
+    private ThreadQueue waitQueue;
 }
