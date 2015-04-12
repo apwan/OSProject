@@ -2,6 +2,10 @@ package nachos.threads;
 
 import nachos.machine.*;
 
+// Library for priority queue
+import java.util.Comparator;  
+import java.util.PriorityQueue;  
+
 /**
  * Uses the hardware timer to provide preemption, and to allow threads to sleep
  * until a certain time.
@@ -16,8 +20,37 @@ public class Alarm {
      */
     public Alarm() {
         Machine.timer().setInterruptHandler(new Runnable() {
-                public void run() { timerInterrupt(); }
-            });
+            public void run() { timerInterrupt(); }
+        });
+        // create a comparator for priority queue
+        Comparator comparator = new Comparator<Record>() {  
+            public int compare(Record a, Record b) {  
+                if (a.wakeTime < b.wakeTime ){
+                    return -1;
+                } else if (a.wakeTime == b.wakeTime) {
+                    if(a.sleepTime <= b.sleepTime){
+                        return -1;
+                    } 
+                }
+                return 1;
+            }  
+        };
+        // create priority queue, 128 is just a hint, it will auto resize
+        if (waitQueue == null){
+            waitQueue = new PriorityQueue(128, comparator); 
+        }
+    }
+
+    // A private class store (thread, time)for priority queue
+    private class Record {
+        public Record(KThread kthread, long sleepTime, long wakeTime){
+            this.thread = kthread;
+            this.sleepTime = sleepTime;
+            this.wakeTime = wakeTime;
+        }
+        public KThread thread;
+        private long sleepTime;
+        public long wakeTime;
     }
 
     /**
@@ -27,7 +60,18 @@ public class Alarm {
      * that should be run.
      */
     public void timerInterrupt() {
+
         KThread.currentThread().yield();
+        // Do we need interrupt diable() ?
+        Record top = waitQueue.peek();
+        if (top == null){
+        	return;
+        }
+        long currentTime = Machine.timer().getTime();
+        while(top.wakeTime > currentTime){
+            Record record = waitQueue.poll();
+            record.thread.ready();    
+        }
     }
 
     /**
@@ -46,8 +90,24 @@ public class Alarm {
      */
     public void waitUntil(long x) {
         // for now, cheat just to get something working (busy waiting is bad)
-        long wakeTime = Machine.timer().getTime() + x;
-        while (wakeTime > Machine.timer().getTime())
-            KThread.yield();
+        // long wakeTime = Machine.timer().getTime() + x;
+        // while (wakeTime > Machine.timer().getTime())
+        //     KThread.yield();
+        Machine.interrupt().disable();
+
+        // create object which is going to be added into queue
+        KThread currentThread = KThread.currentThread();
+        long sleepTime = Machine.timer().getTime();
+        long wakeTime = sleepTime + x;
+        Record p = new Record(currentThread, sleepTime, wakeTime);
+        
+        // add into queue        
+        waitQueue.add(p);
+        // *** Tutor ask why we do not sleep on conditional revariable.
+        KThread.sleep();
+
+        Machine.interrupt().enable();
     }
+
+    private PriorityQueue<Record> waitQueue;
 }
