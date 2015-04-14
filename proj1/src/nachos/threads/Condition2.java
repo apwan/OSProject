@@ -350,12 +350,12 @@ public class Condition2 {
     	// implement the test case!
     	
     	KThread k;
-    	//k=new KThread(new CaseTester1());
-    	//k.setName("condition CT1").fork();
-    	//k.join();
-    	//k=new KThread(new CaseTester2());
-    	//k.setName("condition CT2").fork();
-    	//k.join();
+    	k=new KThread(new CaseTester1());
+    	k.setName("condition CT1").fork();
+    	k.join();
+    	k=new KThread(new CaseTester2());
+    	k.setName("condition CT2").fork();
+    	k.join();
     	k=new KThread(new CaseTester3());
     	k.setName("condition CT3").fork();
     	k.join();
