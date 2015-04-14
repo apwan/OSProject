@@ -141,16 +141,18 @@ public class Alarm {
 
         //We don't need to disable interrupt
         
-        Record top = waitQueue.peek();
-        if (top == null){
-        	return;
-        }
+        
         long currentTime = Machine.timer().getTime();
-        while(top.wakeTime > currentTime){
-            Record record = waitQueue.poll();
+        Record record;
+        do{
+        	record = waitQueue.peek();
+        	if (record == null || record.wakeTime > currentTime){
+        		break;
+        	}
+            waitQueue.remove();
             record.thread.ready();
             Lib.debug('t', "thread "+record.thread.getName()+" wake up");
-        }
+        }while(true);
         
     }
 
