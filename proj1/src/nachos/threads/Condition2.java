@@ -211,7 +211,7 @@ public class Condition2 {
     	}
     	static int done;
     	static Lock lock;
-    	static Condition condition;
+    	static Condition2 condition;
     	static int balance;
     	static int atomicBalance;
     	static int balanceViolation=0;
@@ -234,13 +234,14 @@ public class Condition2 {
 	    			}
 	    		}
     			int tmp=balance;
-    			KThread.currentThread().yield();
+    			//KThread.currentThread().yield();
     			int newbalance=tmp+amount;
     			System.out.println("oldbanalce:"+tmp+" -> new"+newbalance);
     			atomicBalance+=amount;
     			KThread.currentThread().yield();
     			balance=amount;
     			if(balance<0)balanceViolation++;
+    			if(amount>0)condition.wakeAll();
     			lock.release();
     			System.out.println("adder "+amount+" has done. current balance:"+balance);
     			done++;
@@ -250,7 +251,7 @@ public class Condition2 {
     	public void run()
     	{
     		lock=new Lock();
-    		condition=new Condition(lock);
+    		condition=new Condition2(lock);
     		done=0;
     		//CaseTester2Changer[] a=new CaseTester2Changer[20];
     		int n=0, i=0;
@@ -270,7 +271,7 @@ public class Condition2 {
     		TestMgr.finishTest(tcid);
     		tcid=TestMgr.addTest("Bank: Atomic Balance == Actual Operated Balance");
     		TestMgr.finishTest(tcid, atomicBalance==balance);
-    		tcid=TestMgr.addTest("Bank: no balance<0 violation");
+    		tcid=TestMgr.addTest("Bank: balance<0 violation");
     		TestMgr.finishTest(tcid, balanceViolation==0);
     	}
     }
