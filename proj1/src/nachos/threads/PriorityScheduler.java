@@ -189,6 +189,39 @@ public class PriorityScheduler extends Scheduler {
             return null;
         }
         
+        public int getEffectivePriority() {
+
+            
+            // return minimum priority
+            if (transferPriority == false) {
+            return priorityMinimum;
+            }
+            // return max in the waitQueue
+            if (dirty) {
+                effective = priorityMinimum; 
+                for (Iterator<KThread> it = waitQueue.iterator(); it.hasNext();) {  
+                    int tmp = getThreadState(it.next()).getEffectivePriority();
+                    if ( tmp > effective) { 
+                        effective = tmp;
+                    }
+                }
+                dirty = false;
+            }
+
+            return effective;
+        }
+        
+        public void setDirty() {
+            if (!this.transferPriority) {
+                return;
+            }
+            dirty = true;
+
+            if (this.owner != null) {
+                this.owner.setDirty();
+            }
+        }
+        
         public void print() {
             Lib.assertTrue(Machine.interrupt().disabled());
             // implement me (if you want)
@@ -202,6 +235,8 @@ public class PriorityScheduler extends Scheduler {
         
         private ThreadState owner = null;
         private LinkedList<KThread> waitQueue = new LinkedList<KThread>();
+        private boolean dirty = false;
+        private int effective;
     }
 
     /**
@@ -260,7 +295,22 @@ public class PriorityScheduler extends Scheduler {
             this.priority = priority;
             
             // implement me
+            setDirty();
         }
+        
+        public void setDirty() {
+            if (dirty) {
+                return;
+            }
+            dirty = true;
+
+            PriorityQueue tmp = (PriorityQueue)waiting;
+            if (tmp != null) {
+                tmp.setDirty();
+            }
+
+        }
+
 
         /**
          * Called when <tt>waitForAccess(thread)</tt> (where <tt>thread</tt> is
@@ -277,6 +327,14 @@ public class PriorityScheduler extends Scheduler {
         public void waitForAccess(PriorityQueue waitQueue) {
             // implement me
         	waitQueue.waitQueue.add(this.thread);
+        	waitQueue.setDirty();
+        	waiting = waitQueue;
+        	
+        	// remove if already in resQueues
+        	if(resQueues.indexOf(waitQueue)>-1){
+        		resQueues.remove(waitQueue);
+        		waitQueue.owner = null;
+        	}
         	
         	
         }
@@ -293,6 +351,13 @@ public class PriorityScheduler extends Scheduler {
          */
         public void acquire(PriorityQueue waitQueue) {
             // implement me
+        	
+        	resQueues.add(waitQueue);
+        	// clear if just waiting
+        	if(waitQueue == waiting){
+        		waiting = null;
+        	}
+        	setDirty();
         }       
 
         /** The thread with which this object is associated. */    
@@ -301,6 +366,7 @@ public class PriorityScheduler extends Scheduler {
         protected int priority;
         protected int effective;
         private boolean dirty = false;
+        protected ThreadQueue waiting;
         // queues wait for this resource
         protected LinkedList<ThreadQueue> resQueues = new LinkedList<ThreadQueue>();
         
