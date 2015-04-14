@@ -87,10 +87,10 @@ public class Boat
             t.setName("Adult Thread No. " + i);
             t.fork();
         }
-        yield();
+        KThread.yield();
         while(childrenOnSource + adultsOnSource > 0)
         {
-            yield();
+            KThread.yield();
         }
         return;
     }
@@ -108,7 +108,7 @@ public class Boat
             adultsOnSource++;
         }
         arith.release();
-        yield();
+        KThread.yield();
         int state = 0; // 0: on Oahu, 1: on Molokai
         while(state == 0)
         {
@@ -140,7 +140,7 @@ public class Boat
             childrenOnSource++;
         }
         arith.release();
-        yield();
+        KThread.yield();
         int state = 0; // 0: on Oahu, 1: on Molokai
         while(true)
         {
