@@ -41,12 +41,12 @@ public class Condition2 {
         // get this thread from the lock
         KThread currentThread = KThread.currentThread();
         conditionLock.release();
-        Machine.interrupt().disable();
+        boolean intStatus = Machine.interrupt().disable();
         // add this thread to queue
         waitQueue.waitForAccess(currentThread);
         // this thread sleep
         KThread.sleep();
-        Machine.interrupt().enable();
+        Machine.interrupt().restore(intStatus);;
         conditionLock.acquire();
     }
 

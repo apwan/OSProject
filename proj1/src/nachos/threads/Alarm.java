@@ -65,9 +65,7 @@ public class Alarm {
      */
     public void timerInterrupt() {
 
-        KThread.yield();
-        // Do we need interrupt diable() ?
-        boolean intStatus = Machine.interrupt().disable();
+        //We don't need to disable interrupt
         
         Record top = waitQueue.peek();
         if (top == null){
@@ -76,10 +74,10 @@ public class Alarm {
         long currentTime = Machine.timer().getTime();
         while(top.wakeTime > currentTime){
             Record record = waitQueue.poll();
-            record.thread.ready();    
+            record.thread.ready();
+            Lib.debug('t', "thread "+record.thread.getName()+" wake up");
         }
         
-        Machine.interrupt().restore(intStatus);
     }
 
     /**
