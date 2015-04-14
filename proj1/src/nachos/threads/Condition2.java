@@ -239,7 +239,8 @@ public class Condition2 {
     			System.out.println("oldbanalce:"+tmp+" -> new"+newbalance);
     			atomicBalance+=amount;
     			KThread.currentThread().yield();
-    			balance=amount;
+//    			balance=amount; Seems Logic Error, It should be atomicBalance
+    			balance = atomicBalance;
     			if(balance<0)balanceViolation++;
     			if(amount>0)condition.wakeAll();
     			lock.release();
