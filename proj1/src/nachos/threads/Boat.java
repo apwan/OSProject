@@ -4,6 +4,20 @@ import nachos.ag.BoatGrader;
 public class Boat
 {
     static BoatGrader bg;
+
+    static alarm = new Alarm();
+    static int
+        adultsOnSource = 0,
+        childrenOnSource = 0,
+        childrenAboard = 0,
+        boat = 0; // 0: on Oahu, 1: on Molokai
+    static Lock
+        arith = new Lock(),
+        boarding = new Lock(),
+        childrenUnload = new Lock();
+    static Condition
+        bd = new Condition(boarding),
+        cu = new Condition(childrenUnload);
     
     public static void selfTest()
     {
@@ -30,6 +44,7 @@ public class Boat
         // Create threads here. See section 3.4 of the Nachos for Java
         // Walkthrough linked from the projects page.
 
+        /*
         Runnable r = new Runnable() {
             public void run() {
                 SampleItinerary();
@@ -38,7 +53,35 @@ public class Boat
         KThread t = new KThread(r);
         t.setName("Sample Boat Thread");
         t.fork();
-
+        */
+        for(int i = 0; i < children, i++)
+        {
+            Runnable r = new Runnable() {
+                public void run() {
+                    ChildItinerary();
+                }
+            };
+            KThread t = new KThread(r);
+            t.setName("Child Thread No. " + String(i));
+            t.fork();
+        }
+        for(int i = 0; i < adults, i++)
+        {
+            Runnable r = new Runnable() {
+                public void run() {
+                    AdultItinerary();
+                }
+            };
+            KThread t = new KThread(r);
+            t.setName("Adult Thread No. " + String(i));
+            t.fork();
+        }
+        alarm.waitUntil(0);
+        while(childrenOnSource + adultsOnSource > 0)
+        {
+            alarm.waitUntil(0);
+        }
+        return;
     }
 
     static void AdultItinerary()
@@ -49,10 +92,136 @@ public class Boat
                bg.AdultRowToMolokai();
            indicates that an adult has rowed the boat across to Molokai
         */
+        arith.acquire();
+        {
+            adultsOnSource++;
+        }
+        arith.release();
+        alarm.waitUntil(0);
+        int state = 0; // 0: on Oahu, 1: on Molokai
+        while(state == 0)
+        {
+            boarding.acquire();
+            {
+                while(childrenAboard > 0 || childrenOnSource > 1 || boat == 1)
+                {
+                    bd.sleep();
+                }
+                arith.acquire();
+                {
+                    adultOnSource--;
+                }
+                arith.release();
+                state = 1;
+                bg.AdultRowToMolokai();
+                bg.wakeAll();
+            }
+            boarding.release();
+        }
+        return;
     }
 
     static void ChildItinerary()
     {
+        arith.acquire();
+        {
+            childrenOnSource++;
+        }
+        arith.release();
+        alarm.waitUntil(0);
+        int state = 0; // 0: on Oahu, 1: on Molokai
+        while(1)
+        {
+            while(state == 1)
+            {
+                boarding.acquire();
+                {
+                    while(childrenAboard > 0 || adultsOnSource > 0 || boat == 0)
+                    {
+                        bd.sleep();
+                    }
+                    childRowToMolokai();
+                    arith.acquire();
+                    {
+                        childrenOnSOurce++;
+                    }
+                    arith.release();
+                    state = 0;
+                    bd.wakeAll();
+                }
+                boarding.release();
+            }
+            while(state == 0)
+            {
+                boarding.acquire();
+                {
+                    arith.acquire();
+                    {
+                        childrenAboard++;
+                    }
+                    arith.release();
+                    int isDriver = 1;
+                    while(childrenAboard == 1 and adultsOnSource > 0)
+                    {
+                        if(childrenOnSource == 1)
+                        {
+                            arith.acquire();
+                            {
+                                childrenAboard--;
+                            }
+                            arith.release();
+                            bd.sleep();
+                            arith.acquire();
+                            {
+                                childrenAboard++;
+                            }
+                            arith.release();
+                        }
+                        else
+                        {
+                            isDriver = 0;
+                            bd.sleep();
+                        }
+                    }
+                    bd.wakeAll();
+                }
+                boarding.release();
+                if(isDriver == 1)
+                {
+                    childrenUnload.acquire();
+                    {
+                        childRowToMolokai();
+                        arith.acquire();
+                        {
+                            childrenOnSource--;
+                            childrenAboard--;
+                        }
+                        arith.release();
+                        state = 1;
+                        cu.wakeAll();
+                    }
+                    childrenUnload.release();
+                }
+                else
+                {
+                    childrenUnload.acquire();
+                    {
+                        while(childrenAboard > 1)
+                        {
+                            cu.sleep();
+                        }
+                        childRideToMolokai();
+                        childRowToOahu(); // counters not modified
+                        arith.acquire();
+                        {
+                            childrenAboard--;
+                        }
+                        arith.release();
+                    }
+                    childrenUnload.release();
+                }
+            }
+        }
     }
 
     static void SampleItinerary()
