@@ -112,6 +112,7 @@ public class Boat
                 }
                 arith.release();
                 state = 1;
+                boat = 1;
                 bg.AdultRowToMolokai();
                 bd.wakeAll();
             }
@@ -129,8 +130,9 @@ public class Boat
         arith.release();
         ThreadedKernel.alarm.waitUntil(0);
         int state = 0; // 0: on Oahu, 1: on Molokai
-        while(1)
+        while(true)
         {
+            int isDriver = 1;
             while(state == 1)
             {
                 boarding.acquire();
@@ -146,6 +148,7 @@ public class Boat
                     }
                     arith.release();
                     state = 0;
+                    boat = 0;
                     bd.wakeAll();
                 }
                 boarding.release();
@@ -159,7 +162,7 @@ public class Boat
                         childrenAboard++;
                     }
                     arith.release();
-                    int isDriver = 1;
+                    isDriver = 1;
                     while(childrenAboard == 1 && adultsOnSource > 0)
                     {
                         if(childrenOnSource == 1)
