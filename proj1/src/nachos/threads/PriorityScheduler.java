@@ -5,6 +5,7 @@ import nachos.machine.*;
 import java.util.TreeSet;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 
 /**
  * A scheduler that chooses threads based on their priorities.
@@ -137,12 +138,23 @@ public class PriorityScheduler extends Scheduler {
 
         public void acquire(KThread thread) {
             Lib.assertTrue(Machine.interrupt().disabled());
-            getThreadState(thread).acquire(this);
+            ThreadState state = getThreadState(thread);
+            if(this.transferPriority && this.owner != null){
+            	// do something
+            }
+            this.owner = state;
+            state.acquire(this);
         }
 
         public KThread nextThread() {
             Lib.assertTrue(Machine.interrupt().disabled());
             // implement me
+            
+            KThread next = pickNextThread();
+            if(next != null){
+            	waitQueue.remove(next);
+            	getThreadState(next).acquire(this);
+            }
             return null;
         }
 
@@ -153,7 +165,7 @@ public class PriorityScheduler extends Scheduler {
          * @return      the next thread that <tt>nextThread()</tt> would
          *              return.
          */
-        protected ThreadState pickNextThread() {
+        protected KThread pickNextThread() {
             // implement me
             return null;
         }
@@ -168,6 +180,9 @@ public class PriorityScheduler extends Scheduler {
          * threads to the owning thread.
          */
         public boolean transferPriority;
+        
+        private ThreadState owner = null;
+        private LinkedList<KThread> waitQueue = new LinkedList<KThread>();
     }
 
     /**
@@ -257,5 +272,9 @@ public class PriorityScheduler extends Scheduler {
         protected KThread thread;
         /** The priority of the associated thread. */
         protected int priority;
+        protected int effective;
+        private boolean dirty = false;
+        
+        
     }
 }
