@@ -74,7 +74,7 @@ public class Communicator {
 			for(int i=0;i<5;i++)
 			{
 				senders[i]=new KThread(new CaseTestHelperSend(i));
-				senders[i].fork();
+				senders[i].setName("ComCT1#"+i).fork();
 				snd_acc+=i;
 			}
 			KThread t1=new KThread(new CaseTestHelperRecv());
@@ -101,7 +101,7 @@ public class Communicator {
 			for(int i=0;i<5;i++)
 			{
 				senders[i]=new KThread(new CaseTestHelperRecv());
-				senders[i].fork();
+				senders[i].setName("ComCT2#"+i).fork();
 			}
 			KThread t1=new KThread(new CaseTestHelperSend(3));
 			t1.fork();
@@ -126,27 +126,35 @@ public class Communicator {
 			int snd_acc=0;
 			int cnts=0,cntr=0;
 			Random rnd=new Random();
-			KThread actors[]=new KThread[5];
+			KThread actors[]=new KThread[100];
+			boolean hasForked[]=new boolean[100];
 			for(int i=0;i<100;i++)
 			{
 				int val=rnd.nextInt(100);
-				if(rnd.nextBoolean())
+				if(i%2==0)
 				{
 					actors[i]=new KThread(new CaseTestHelperSend(val));
-					actors[i].fork();
+					actors[i].setName("ComCT3 snd#"+i);
 					snd_acc+=val;
-					cnts++;
+					
 				}
 				else
 				{
 					actors[i]=new KThread(new CaseTestHelperRecv());
-					actors[i].fork();
-					cntr++;
+					actors[i].setName("ComCT3 rcv#"+i);
 				}
 			}
-			for(int i=100-1;i>=0;i--)actors[i].join();
+			for(int i=0;i<103;i++)
+			{
+				int pos=(i*130)%103;
+				if(pos>=100)continue;
+				actors[pos].fork();
+			}
 			
-			TestMgr.finishTest(tcid, rcv_acc == snd_acc && sent==rcvd && rcvd==Min(cnts,cntr));
+			for(int i=0;i<100;i++)
+				actors[i].join();
+			
+			TestMgr.finishTest(tcid, rcv_acc == snd_acc && sent==rcvd && rcvd==50);
 		}
 		private int Min(int a,int b) {
 			return a<b?a:b;
