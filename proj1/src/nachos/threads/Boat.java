@@ -61,7 +61,7 @@ public class Boat
                 }
             };
             KThread t = new KThread(r);
-            t.setName("Child Thread No. " + String(i));
+            t.setName("Child Thread No. " + i);
             t.fork();
         }
         for(int i = 0; i < adults, i++)
@@ -72,7 +72,7 @@ public class Boat
                 }
             };
             KThread t = new KThread(r);
-            t.setName("Adult Thread No. " + String(i));
+            t.setName("Adult Thread No. " + i);
             t.fork();
         }
         ThreadedKernel.alarm.waitUntil(0);
