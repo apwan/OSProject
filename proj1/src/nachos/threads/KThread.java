@@ -1,7 +1,6 @@
 package nachos.threads;
 
 import nachos.machine.*;
-
 /**
  * A KThread is a thread that can be used to execute Nachos kernel code. Nachos
  * allows multiple threads to run concurrently.
@@ -482,6 +481,70 @@ public class KThread {
         	TestMgr.finishTest(tcid, cond);
     	}
     }
+
+    private static class CaseTester2 implements Runnable {
+    	private int tcid;
+    	CaseTester2()
+    	{
+    		tcid=TestMgr.addTest("KThread Case Test 2: join  twice");
+    	}
+    	public void run() {
+    		PingTest p=new PingTest(888);
+        	KThread toJoin=new KThread(p);
+        	System.out.println("Case Test0: Launching pinger...");
+        	toJoin.fork();
+        	System.out.println("Case Test0: Joining pinger...");
+        	toJoin.join();
+        	System.out.println("Case Test0: Joining pinger twice...");
+        	toJoin.join();
+        	TestMgr.finishTest(tcid);
+    	}
+    }
+    
+
+    private static class CaseTester3 implements Runnable {
+    	private int tcid;
+    	CaseTester3()
+    	{
+    		tcid=TestMgr.addTest("KThread Case Test 3: joining chain");
+    	}
+    	private static boolean deepest=false;
+    	private static class CaseTester3Child implements Runnable {
+    		private int depth;
+    		CaseTester3Child(int d)
+    		{
+    			depth=d;
+    		}
+    		public void run() {
+    			if(depth<=0)
+    			{
+    				System.out.println("I'm the deepest; yielding");
+    				for(int i=0;i<10;i++)currentThread.yield();
+    				deepest=true;
+    				System.out.println("I'm the deepest; returning");
+    				return;
+    			}
+    			else
+    			{
+    				KThread chi=new KThread(new CaseTester3Child(depth-1));
+    				chi.setName("CaseTest3Child depth="+(depth-1)).fork();
+    				chi.join();
+    				return;
+    			}
+    		}
+    	}
+    	
+    	public void run() {
+    		deepest=false;
+    		KThread toJoin=new KThread(new CaseTester3Child(50));
+        	System.out.println("Case Test3: building join-chain...");
+    		toJoin.setName("CaseTest3 First Child").fork();
+        	System.out.println("Case Test3: joining last child...");
+        	toJoin.join();
+        	System.out.println("Case Test3: joined.");
+        	TestMgr.finishTest(tcid,deepest);
+    	}
+    }
     
     /**
      * Tests whether this module is working.
@@ -489,17 +552,29 @@ public class KThread {
     public static void selfTest() {
         Lib.debug(dbgThread, "Enter KThread.selfTest");
         
-        //new KThread(new PingTest(1)).setName("forked thread").fork();
         KThread ct0=new KThread(new CaseTester0());
         ct0.setName("CT0 thread").fork();
-        ct0.join();
+
+        //Machine.
+        
+        /*
         KThread ct1=new KThread(new CaseTester1());
         ct1.setName("CT1 thread").fork();
-        //ct1.setName("CT1 thread").fork();
-        //ct1.join();
+        ct1.join();
         
+        KThread ct2=new KThread(new CaseTester2());
+        ct2.setName("CT2 thread").fork();
+        ct2.join();
+      */
+
+        KThread ct3=new KThread(new CaseTester3());
+        ct3.setName("CT2 thread").fork();
+        
+        ct0.join();
+        ct3.join();
+        
+        //new KThread(new PingTest(1)).setName("forked thread").fork();
         //new PingTest(0).run();
-        //while(true)currentThread.yield();
         
     }
 

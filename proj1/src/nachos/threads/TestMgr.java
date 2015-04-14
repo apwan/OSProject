@@ -13,7 +13,7 @@ public class TestMgr {
 	{
 		testNames.add(s);
 		int id=testNames.size()-1;
-		testStatus.set(id,init);
+		testStatus.add(init);
 		return id;
 	}
 	public static void finishTest(int id)
@@ -43,13 +43,15 @@ public class TestMgr {
 		System.out.println("Passed:"+passed );
 		System.out.println("Failed:"+failed);
 		System.out.println("blocked:"+blocked );
+
+		System.out.println("===" );
 		for(int i=0;i<testStatus.size();i++)
 		{
 			switch(testStatus.get(i))
 			{
 				case pass: continue;
 				case fail: System.out.print("fail:");break;
-				case init: System.out.print("block:");break;
+				case init: System.out.print("unfinished case:");break;
 				default: System.out.print("???:");
 			}		
 			System.out.println(testNames.get(i));
