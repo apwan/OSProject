@@ -159,6 +159,7 @@ public class PriorityScheduler extends Scheduler {
             
             KThread next = pickNextThread();
             if(next != null){
+            	Lib.debug('t', "idle??");
             	waitQueue.remove(next);
             	getThreadState(next).acquire(this);
             }
@@ -186,7 +187,7 @@ public class PriorityScheduler extends Scheduler {
         	}
         	
         	
-            return null;
+            return next;
         }
         
         public int getEffectivePriority() {

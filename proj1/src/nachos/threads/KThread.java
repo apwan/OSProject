@@ -327,6 +327,7 @@ public class KThread {
             public void run() { while (true) yield(); }
         });
         idleThread.setName("idle");
+        
 
         Machine.autoGrader().setIdleThread(idleThread);
         
