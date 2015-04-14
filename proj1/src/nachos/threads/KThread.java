@@ -430,64 +430,77 @@ public class KThread {
         public boolean finished;
         private int which;
     }
-
-    public static void caseTest0() { // test Joining
-    	PingTest p=new PingTest(888);
-    	KThread toJoin=new KThread(p);
-    	System.out.println("casetest0: Launching pinger...");
-    	toJoin.fork();
-    	currentThread.yield();
-    	currentThread.yield();
-    	System.out.println("casetest0: joining pinger...");
-    	toJoin.join();
-    	boolean cond=p.finished;
-    	System.out.println("casetest0: joined.");
-
-    	System.out.println("### CaseTest0 "+(cond?"ok":"failed"));
+    
+    private static class CaseTester0 implements Runnable {
+    	private int tcid;
+    	CaseTester0()
+    	{
+    		tcid=TestMgr.addTest("KThread Case Test 0: runnable join to 1");
+    	}
+    	public void run() {
+    		PingTest p=new PingTest(888);
+        	KThread toJoin=new KThread(p);
+        	System.out.println("Case Test0: Launching pinger...");
+        	toJoin.fork();
+        	System.out.println("Case Test0: Joining pinger...");
+        	toJoin.join();
+        	System.out.println("Case Test0: Joined.");
+        	TestMgr.finishTest(tcid, p.finished==true);
+    	}
     }
-
-    public static void caseTest1() { // test Joining
-    	KThread[] toJoin=new KThread[5];
-    	PingTest[] toLaunch=new PingTest[5];
-    	for(int i=0;i<toJoin.length;i++)
+    private static class CaseTester1 implements Runnable {
+    	private int tcid;
+    	CaseTester1()
     	{
-    		toLaunch[i]=new PingTest(i);
-    		toJoin[i]=new KThread(toLaunch[i]);
-    		toJoin[i].setName("CaseTest1 toJoinThread#"+i).fork();
+    		tcid=TestMgr.addTest("KThread Case Test 1: runnable join to 5");
     	}
-    	currentThread.yield();
-    	System.out.println("CaseTest1 Joining...");
-    	for(int i=0;i<toJoin.length;i++)
-    	{
-        	System.out.println("*** CaseTest1 try joining"+i);
-    		toJoin[i].join();
+    	public void run() {
+    		KThread[] toJoin=new KThread[5];
+        	PingTest[] toLaunch=new PingTest[5];
+        	for(int i=0;i<toJoin.length;i++)
+        	{
+        		toLaunch[i]=new PingTest(i);
+        		toJoin[i]=new KThread(toLaunch[i]);
+        		toJoin[i].setName("CaseTest1 toJoinThread#"+i).fork();
+        	}
+        	//currentThread.yield();
+        	System.out.println("CaseTest1 Joining...");
+        	for(int i=0;i<toJoin.length;i++)
+        	{
+            	System.out.println("*** CaseTest1 try joining"+i);
+        		toJoin[i].join();
+        	}
+        	System.out.println("CaseTest1 Joined.");
+        	boolean cond=true;
+        	for(int i=0;i<toJoin.length;i++)
+        	{
+        		cond=cond&&toLaunch[i].finished;
+        		if(toLaunch[i].finished==false)
+        			Lib.debug('e', "Error: joined before a task finish. job#"+i);
+        	}
+        	System.out.println("### CaseTest1 "+(cond?"ok":"failed"));
+        	TestMgr.finishTest(tcid, cond);
     	}
-    	System.out.println("CaseTest1 Joined.");
-    	boolean cond=true;
-    	for(int i=0;i<toJoin.length;i++)
-    	{
-    		cond=cond&&toLaunch[i].finished;
-    		if(toLaunch[i].finished==false)
-    			Lib.debug('e', "Error: joined before a task finish. job#"+i);
-    	}
-    	System.out.println("### CaseTest1 "+(cond?"ok":"failed"));
-    	
     }
+    
     /**
      * Tests whether this module is working.
      */
     public static void selfTest() {
         Lib.debug(dbgThread, "Enter KThread.selfTest");
         
-        new KThread(new PingTest(1)).setName("forked thread").fork();
+        //new KThread(new PingTest(1)).setName("forked thread").fork();
+        KThread ct0=new KThread(new CaseTester0());
+        ct0.setName("CT0 thread").fork();
+        ct0.join();
+        KThread ct1=new KThread(new CaseTester1());
+        ct1.setName("CT1 thread").fork();
+        //ct1.setName("CT1 thread").fork();
+        //ct1.join();
         
         //new PingTest(0).run();
         //while(true)currentThread.yield();
         
-        //caseTest0();
-        //caseTest1();
-
-
     }
 
     private static final char dbgThread = 't';
