@@ -25,11 +25,23 @@ public class Boat
         System.out.println("\n ***Testing Boats with only 2 children***");
         begin(0, 2, b);
 
-//      System.out.println("\n ***Testing Boats with 2 children, 1 adult***");
-//      begin(1, 2, b);
+        System.out.println("\n ***Testing Boats with 2 children, 1 adult***");
+        begin(1, 2, b);
 
-//      System.out.println("\n ***Testing Boats with 3 children, 3 adults***");
-//      begin(3, 3, b);
+        System.out.println("\n ***Testing Boats with 3 children, 3 adults***");
+        begin(3, 3, b);
+
+        System.out.println("\n ***Testing Boats with 10 children, 2 adults***");
+        begin(10, 2, b);
+
+        System.out.println("\n ***Testing Boats with 10 children, 10 adults***");
+        begin(10, 10, b);
+
+        System.out.println("\n ***Testing Boats with 2 children, 10 adults***");
+        begin(2, 10, b);
+
+        System.out.println("\n ***Testing Boats with 100 children, 100 adults***");
+        begin(100, 100, b);
     }
 
     public static void begin( int adults, int children, BoatGrader b )
@@ -75,10 +87,10 @@ public class Boat
             t.setName("Adult Thread No. " + i);
             t.fork();
         }
-        ThreadedKernel.alarm.waitUntil(0);
+        yield();
         while(childrenOnSource + adultsOnSource > 0)
         {
-            ThreadedKernel.alarm.waitUntil(0);
+            yield();
         }
         return;
     }
@@ -96,7 +108,7 @@ public class Boat
             adultsOnSource++;
         }
         arith.release();
-        ThreadedKernel.alarm.waitUntil(0);
+        yield();
         int state = 0; // 0: on Oahu, 1: on Molokai
         while(state == 0)
         {
@@ -128,7 +140,7 @@ public class Boat
             childrenOnSource++;
         }
         arith.release();
-        ThreadedKernel.alarm.waitUntil(0);
+        yield();
         int state = 0; // 0: on Oahu, 1: on Molokai
         while(true)
         {
