@@ -14,10 +14,10 @@ public class Communicator {
      * Allocate a new communicator.
      */
     public Communicator() {
-    	lock = new Lock();
-    	sendCV = new Condition2(lock);
-    	receiveCV = new Condition2(lock);
-    	
+        lock = new Lock();
+        sendCV = new Condition2(lock);
+        receiveCV = new Condition2(lock);
+        
     }
 
     /**
@@ -31,17 +31,21 @@ public class Communicator {
      * @param   word    the integer to transfer.
      */
     public void speak(int word) {
-    	lock.acquire();
-    	++senderCount;
-    	while(wordReady || receiverCount == 0){
-    		receiveCV.wakeAll();
-    		sendCV.sleep();
-    	}
-    	
-    	wordBuffer = word;
-    	wordReady = true;
-    	--senderCount;
-    	lock.release();
+        lock.acquire();
+        // ++senderCount; // seems useless
+        while(wordReady || receiverCount == 0){
+            receiveCV.wakeAll();
+            sendCV.sleep();
+        }
+        
+        wordBuffer = word;
+        wordReady = true;
+        // --senderCount; // seems useless
+        // Added by KuLokSun
+        // wake all receiver to get the word
+        receiveCV.wakeAll();
+        // end add
+        lock.release();
     }
 
     /**
@@ -51,23 +55,29 @@ public class Communicator {
      * @return  the integer transferred.
      */    
     public int listen() {
-    	lock.acquire();
-    	++receiverCount;
-    	while(!wordReady){
-    		sendCV.wakeAll();
-    		receiveCV.sleep();
-    	}
-    	int ret = wordBuffer;
-    	wordReady = false;
-    	
-    	lock.release();
-    	--receiverCount;
+        lock.acquire();
+        ++receiverCount;
+        while(!wordReady){
+            sendCV.wakeAll();
+            receiveCV.sleep();
+        }
+        int ret = wordBuffer;
+        wordReady = false;
+        
+        --receiverCount;
+        // Added by KuLokSun
+        // wake all receiver and sender for next round
+        receiveCV.wakeAll(); // make recevierCount > 0
+        sendCV.wakeAll(); // let sender send the message
+        // end add
+        lock.release();
+
         return ret;
     }
     
     Lock lock = null;
     private Condition2 sendCV = null, 
-    		receiveCV = null;
+            receiveCV = null;
     private int senderCount = 0, receiverCount = 0;
     // we have no public method to know whether there are senders/listeners
     
