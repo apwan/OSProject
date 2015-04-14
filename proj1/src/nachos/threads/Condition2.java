@@ -275,7 +275,74 @@ public class Condition2 {
     		TestMgr.finishTest(tcid, balanceViolation==0);
     	}
     }
+
+	private static class CaseTester3 implements Runnable {
+    	private int tcid;
+    	CaseTester3()
+    	{
+    		tcid=TestMgr.addTest("Condition Case Test 3: Overslept");
+    	}
+    	static int done;
+    	static Lock lock;
+    	static Condition2 condition, altcond;
+    	static int ok=0;
+    	static final int N=5;
+    	private static class CaseTester3Waiter implements Runnable{
+    		public void run(){
+    			lock.acquire();
+    			while(ok==0)
+    			{
+    				condition.sleep();
+    			}
+    			KThread.currentThread().yield();
+    			done++;        		
+    			altcond.wake();
+    			while(ok==1)
+    			{
+    				condition.sleep();
+    			}
+    			lock.release();
+    			done++;
+    		}
+    	}
+    	private static class CaseTester3Allower implements Runnable{
+    		public void run(){
+    			lock.acquire();
+    			KThread.currentThread().yield();
+    			ok++;
+    			condition.wakeAll();
+    			while(done<N)
+    			{
+    				altcond.sleep();
+    			}
+    			ok++;
+    			condition.wakeAll();
+    			lock.release();
+    		}
+    	}
+	
+    	public void run()
+    	{
+    		lock=new Lock();
+    		condition=new Condition2(lock);altcond=new Condition2(lock);
+    		done=0;
+    		for(int i=0;i<N;i++)
+    			new KThread(new CaseTester3Waiter()).setName("waiter#"+(i)).fork();
+    		new KThread(new CaseTester3Allower()).setName("upd##").fork();
+    		
+    		//new KThread(new CaseTester2Changer(50)).setName("bank client#"+(i++)).fork();
+    		int step=0;
+    		do{
+    			System.out.println("Current finished waiter stage#"+done+", step"+step);
+    			KThread.currentThread().yield();
+    			step++;
+    		}while(done!=2*N && step<N*50);
+    		TestMgr.finishTest(tcid,done==2*N);
+    	}
+    }
     
+    
+
     
     public static void selfTest(){
     	//Lock lock = new Lock();
@@ -286,8 +353,11 @@ public class Condition2 {
     	//k=new KThread(new CaseTester1());
     	//k.setName("condition CT1").fork();
     	//k.join();
-    	k=new KThread(new CaseTester2());
-    	k.setName("condition CT2").fork();
+    	//k=new KThread(new CaseTester2());
+    	//k.setName("condition CT2").fork();
+    	//k.join();
+    	k=new KThread(new CaseTester3());
+    	k.setName("condition CT3").fork();
     	k.join();
     	
     }
