@@ -5,7 +5,6 @@ public class Boat
 {
     static BoatGrader bg;
 
-    static alarm = new Alarm();
     static int
         adultsOnSource = 0,
         childrenOnSource = 0,
@@ -76,10 +75,10 @@ public class Boat
             t.setName("Adult Thread No. " + String(i));
             t.fork();
         }
-        alarm.waitUntil(0);
+        ThreadedKernel.alarm.waitUntil(0);
         while(childrenOnSource + adultsOnSource > 0)
         {
-            alarm.waitUntil(0);
+            ThreadedKernel.alarm.waitUntil(0);
         }
         return;
     }
@@ -97,7 +96,7 @@ public class Boat
             adultsOnSource++;
         }
         arith.release();
-        alarm.waitUntil(0);
+        ThreadedKernel.alarm.waitUntil(0);
         int state = 0; // 0: on Oahu, 1: on Molokai
         while(state == 0)
         {
@@ -128,7 +127,7 @@ public class Boat
             childrenOnSource++;
         }
         arith.release();
-        alarm.waitUntil(0);
+        ThreadedKernel.alarm.waitUntil(0);
         int state = 0; // 0: on Oahu, 1: on Molokai
         while(1)
         {
