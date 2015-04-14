@@ -11,6 +11,11 @@ import java.util.PriorityQueue;
  * until a certain time.
  */
 public class Alarm {
+	public static void selfTest(){
+		System.out.println("Alarm self test started");
+		
+		System.out.println("Alarm self test finished");
+	}
     /**
      * Allocate a new Alarm. Set the machine's timer interrupt handler to this
      * alarm's callback.
@@ -27,17 +32,16 @@ public class Alarm {
             public int compare(Record a, Record b) {  
                 if (a.wakeTime < b.wakeTime ){
                     return -1;
-                } else if (a.wakeTime == b.wakeTime) {
-                    if(a.sleepTime <= b.sleepTime){
-                        return -1;
-                    } 
+                } else if (a.wakeTime == b.wakeTime && a.sleepTime <= b.sleepTime) {
+                    return -1;
+                   
                 }
                 return 1;
             }  
         };
         // create priority queue, 128 is just a hint, it will auto resize
         if (waitQueue == null){
-            waitQueue = new PriorityQueue(128, comparator); 
+            waitQueue = new PriorityQueue<Record>(128, comparator); 
         }
     }
 
@@ -63,6 +67,8 @@ public class Alarm {
 
         KThread.yield();
         // Do we need interrupt diable() ?
+        boolean intStatus = Machine.interrupt().disable();
+        
         Record top = waitQueue.peek();
         if (top == null){
         	return;
@@ -72,6 +78,8 @@ public class Alarm {
             Record record = waitQueue.poll();
             record.thread.ready();    
         }
+        
+        Machine.interrupt().restore(intStatus);
     }
 
     /**
@@ -93,20 +101,22 @@ public class Alarm {
         // long wakeTime = Machine.timer().getTime() + x;
         // while (wakeTime > Machine.timer().getTime())
         //     KThread.yield();
-        Machine.interrupt().disable();
+    	
+        boolean intStatus = Machine.interrupt().disable();
 
         // create object which is going to be added into queue
         KThread currentThread = KThread.currentThread();
         long sleepTime = Machine.timer().getTime();
         long wakeTime = sleepTime + x;
         Record p = new Record(currentThread, sleepTime, wakeTime);
+        Lib.debug('t', "alarm set by thread "+ KThread.currentThread().getName()+", timing "+x);
         
         // add into queue        
         waitQueue.add(p);
         // *** Tutor ask why we do not sleep on conditional revariable.
         KThread.sleep();
 
-        Machine.interrupt().enable();
+        Machine.interrupt().restore(intStatus);
     }
 
     private PriorityQueue<Record> waitQueue;

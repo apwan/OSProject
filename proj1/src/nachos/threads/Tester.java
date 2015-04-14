@@ -16,6 +16,12 @@ public class Tester {
 	public static void testPriorityScheduler(){
 		
 	}
+	public static void scheduleCase1(){
+		
+	}
+	public static void scheduleCase2(){
+		
+	}
 	
 
 }
