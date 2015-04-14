@@ -53,7 +53,7 @@ public class Boat
         t.setName("Sample Boat Thread");
         t.fork();
         */
-        for(int i = 0; i < children, i++)
+        for(int i = 0; i < children; i++)
         {
             Runnable r = new Runnable() {
                 public void run() {
@@ -64,7 +64,7 @@ public class Boat
             t.setName("Child Thread No. " + i);
             t.fork();
         }
-        for(int i = 0; i < adults, i++)
+        for(int i = 0; i < adults; i++)
         {
             Runnable r = new Runnable() {
                 public void run() {
@@ -108,12 +108,12 @@ public class Boat
                 }
                 arith.acquire();
                 {
-                    adultOnSource--;
+                    adultsOnSource--;
                 }
                 arith.release();
                 state = 1;
                 bg.AdultRowToMolokai();
-                bg.wakeAll();
+                bd.wakeAll();
             }
             boarding.release();
         }
@@ -139,10 +139,10 @@ public class Boat
                     {
                         bd.sleep();
                     }
-                    ChildRowToMolokai();
+                    bg.ChildRowToMolokai();
                     arith.acquire();
                     {
-                        childrenOnSOurce++;
+                        childrenOnSource++;
                     }
                     arith.release();
                     state = 0;
@@ -160,7 +160,7 @@ public class Boat
                     }
                     arith.release();
                     int isDriver = 1;
-                    while(childrenAboard == 1 and adultsOnSource > 0)
+                    while(childrenAboard == 1 && adultsOnSource > 0)
                     {
                         if(childrenOnSource == 1)
                         {
@@ -189,7 +189,7 @@ public class Boat
                 {
                     childrenUnload.acquire();
                     {
-                        ChildRowToMolokai();
+                        bg.ChildRowToMolokai();
                         arith.acquire();
                         {
                             childrenOnSource--;
@@ -209,8 +209,8 @@ public class Boat
                         {
                             cu.sleep();
                         }
-                        ChildRideToMolokai();
-                        ChildRowToOahu(); // counters not modified
+                        bg.ChildRideToMolokai();
+                        bg.ChildRowToOahu(); // counters not modified
                         arith.acquire();
                         {
                             childrenAboard--;

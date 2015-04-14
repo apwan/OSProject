@@ -23,7 +23,7 @@ public class Alarm {
             public void run() { timerInterrupt(); }
         });
         // create a comparator for priority queue
-        Comparator comparator = new Comparator<Record>() {  
+        Comparator<Record> comparator = new Comparator<Record>() {  
             public int compare(Record a, Record b) {  
                 if (a.wakeTime < b.wakeTime ){
                     return -1;
@@ -61,7 +61,7 @@ public class Alarm {
      */
     public void timerInterrupt() {
 
-        KThread.currentThread().yield();
+        KThread.yield();
         // Do we need interrupt diable() ?
         Record top = waitQueue.peek();
         if (top == null){
