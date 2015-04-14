@@ -58,12 +58,12 @@ public class Condition2 {
         Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
         //edited by KuLokSun on 10/4/2015
-        Machine.interrupt().disable();
+        boolean intStatus = Machine.interrupt().disable();
         KThread nextThread = waitQueue.nextThread();
         if(nextThread != null){
             nextThread.ready();
         }
-        Machine.interrupt().enable();
+        Machine.interrupt().restore(intStatus);;
     }
 
     /**
@@ -74,7 +74,7 @@ public class Condition2 {
         Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
         //edited by KuLokSun on 10/4/2015
-        Machine.interrupt().disable();
+        boolean intStatus = Machine.interrupt().disable();
         do{
             KThread nextThread = waitQueue.nextThread();
             if(nextThread != null){
@@ -83,7 +83,13 @@ public class Condition2 {
                 break;
             }
         }while(true);
-        Machine.interrupt().enable();
+        Machine.interrupt().restore(intStatus);;
+    }
+    
+    public static void selfTest(){
+    	Lock lock = new Lock();
+    	Condition2 condition2 = new Condition2(lock);
+    	// implement the test case!
     }
 
     private Lock conditionLock;
