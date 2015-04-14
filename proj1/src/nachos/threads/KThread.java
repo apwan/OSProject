@@ -443,7 +443,7 @@ public class KThread {
     	boolean cond=p.finished;
     	System.out.println("casetest0: joined.");
 
-    	System.out.println("CaseTest0 "+(cond?"ok":"failed"));
+    	System.out.println("### CaseTest0 "+(cond?"ok":"failed"));
     }
 
     public static void caseTest1() { // test Joining
@@ -470,7 +470,7 @@ public class KThread {
     		if(toLaunch[i].finished==false)
     			Lib.debug('e', "Error: joined before a task finish. job#"+i);
     	}
-    	System.out.println("CaseTest1 "+(cond?"ok":"failed"));
+    	System.out.println("### CaseTest1 "+(cond?"ok":"failed"));
     	
     }
     /**
@@ -479,10 +479,12 @@ public class KThread {
     public static void selfTest() {
         Lib.debug(dbgThread, "Enter KThread.selfTest");
         
-        //new KThread(new PingTest(1)).setName("forked thread").fork();
-        //new PingTest(0).run();
+        new KThread(new PingTest(1)).setName("forked thread").fork();
         
-        caseTest0();
+        //new PingTest(0).run();
+        //while(true)currentThread.yield();
+        
+        //caseTest0();
         //caseTest1();
 
 

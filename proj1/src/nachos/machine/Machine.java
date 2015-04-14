@@ -5,6 +5,8 @@ package nachos.machine;
 import nachos.security.*;
 import nachos.ag.*;
 
+import nachos.threads.TestMgr;
+
 import java.io.File;
 
 /**
@@ -97,6 +99,7 @@ public final class Machine {
     public static void halt() {
 	System.out.print("Machine halting!\n\n");
 	stats.print();
+	TestMgr.printAll();
 	terminate();
     }
 
