@@ -203,14 +203,90 @@ public class Condition2 {
     	}
     }
     
+    private static class CaseTester2 implements Runnable {
+    	private int tcid;
+    	CaseTester2()
+    	{
+    		tcid=TestMgr.addTest("Condition Case Test 2: Bank deposition");
+    	}
+    	static int done;
+    	static Lock lock;
+    	static Condition condition;
+    	static int balance;
+    	static int atomicBalance;
+    	static int balanceViolation=0;
+    	private static class CaseTester2Changer implements Runnable{
+    		int amount;
+    		CaseTester2Changer(int a){
+    			amount=a;
+    			if(a<0)
+    				System.out.println("I'm a remover, amount"+(-a));
+    			else
+    				System.out.println("I'm an adder, amount"+(a));
+    		}
+    		public void run(){
+    			lock.acquire();
+    			if(amount<0)
+    			{
+    				while(balance+amount<0)
+	    			{
+	    				condition.sleep();
+	    			}
+	    		}
+    			int tmp=balance;
+    			KThread.currentThread().yield();
+    			int newbalance=tmp+amount;
+    			System.out.println("oldbanalce:"+tmp+" -> new"+newbalance);
+    			atomicBalance+=amount;
+    			KThread.currentThread().yield();
+    			balance=amount;
+    			if(balance<0)balanceViolation++;
+    			lock.release();
+    			System.out.println("adder "+amount+" has done. current balance:"+balance);
+    			done++;
+    		}
+    	}
+    	
+    	public void run()
+    	{
+    		lock=new Lock();
+    		condition=new Condition(lock);
+    		done=0;
+    		//CaseTester2Changer[] a=new CaseTester2Changer[20];
+    		int n=0, i=0;
+    		//a[i++]=
+    		new KThread(new CaseTester2Changer(50)).setName("bank client#"+(i++)).fork();
+    		new KThread(new CaseTester2Changer(-20)).setName("bank client#"+(i++)).fork();
+    		new KThread(new CaseTester2Changer(-20)).setName("bank client#"+(i++)).fork();
+    		new KThread(new CaseTester2Changer(-20)).setName("bank client#"+(i++)).fork();
+    		new KThread(new CaseTester2Changer(50)).setName("bank client#"+(i++)).fork();
+    		//new KThread(new CaseTester2Changer(50)).setName("bank client#"+(i++)).fork();
+    		n=i;int step=0;
+    		do{
+    			System.out.println("Current finished adder #"+done+", step"+step);
+    			KThread.currentThread().yield();
+    			step++;
+    		}while(done!=n && step<n*50);
+    		TestMgr.finishTest(tcid);
+    		tcid=TestMgr.addTest("Bank: Atomic Balance == Actual Operated Balance");
+    		TestMgr.finishTest(tcid, atomicBalance==balance);
+    		tcid=TestMgr.addTest("Bank: no balance<0 violation");
+    		TestMgr.finishTest(tcid, balanceViolation==0);
+    	}
+    }
+    
+    
     public static void selfTest(){
     	//Lock lock = new Lock();
     	//Condition2 condition2 = new Condition2(lock);
     	// implement the test case!
     	
     	KThread k;
-    	k=new KThread(new CaseTester1());
-    	k.setName("condition CT1").fork();
+    	//k=new KThread(new CaseTester1());
+    	//k.setName("condition CT1").fork();
+    	//k.join();
+    	k=new KThread(new CaseTester2());
+    	k.setName("condition CT2").fork();
     	k.join();
     	
     }
