@@ -290,7 +290,8 @@ public class KThread {
         
         boolean interruptStatus  = Machine.interrupt().disable();
         
-        if(currentThread.status != statusFinished){
+        // check the status of this thread, not the current thread
+        if(this.status != statusFinished){
             if(waitQueue == null){
                 waitQueue = ThreadedKernel.scheduler.newThreadQueue(true);
                 //transfer priority
