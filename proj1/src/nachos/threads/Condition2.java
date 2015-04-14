@@ -86,10 +86,36 @@ public class Condition2 {
         Machine.interrupt().restore(intStatus);;
     }
     
+
+    private static class CaseTester0 implements Runnable {
+    	private int tcid;
+    	CaseTester0()
+    	{
+    		tcid=TestMgr.addTest("Condition Case Test 0: ??");
+    	}
+    	public void run() {
+    	
+    	}
+    }
+
+    private static class CaseTester1 implements Runnable {
+    	private int tcid;
+    	CaseTester1()
+    	{
+    		tcid=TestMgr.addTest("Condition Case Test 1: ??");
+    	}
+    	public void run() {
+    	
+    	}
+    }
+    
     public static void selfTest(){
     	Lock lock = new Lock();
     	Condition2 condition2 = new Condition2(lock);
     	// implement the test case!
+    	
+    	KThread k=new KThread(new CaseTester0());
+    	k.setName("condition CT0").fork();
     }
 
     private Lock conditionLock;
