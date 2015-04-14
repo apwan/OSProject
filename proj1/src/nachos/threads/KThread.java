@@ -191,10 +191,10 @@ public class KThread {
         //edited by WuYijie on 9/4/2015
         ThreadQueue curWaitQueue = currentThread.waitQueue;
         if(curWaitQueue != null){
-        	KThread nextThread = curWaitQueue.nextThread();
+            KThread nextThread = curWaitQueue.nextThread();
             while(nextThread != null){
-            	nextThread.ready();
-            	nextThread = curWaitQueue.nextThread();
+                nextThread.ready();
+                nextThread = curWaitQueue.nextThread();
             }
         }
         
@@ -292,16 +292,16 @@ public class KThread {
         boolean interruptStatus  = Machine.interrupt().disable();
         
         if(currentThread.status != statusFinished){
-        	if(waitQueue == null){
-        		waitQueue = ThreadedKernel.scheduler.newThreadQueue(true);
-        		//transfer priority
-        		
-        		waitQueue.acquire(this);// acquire lock
-        	}
-        	//note that currentThread != this
-        	waitQueue.waitForAccess(currentThread);
-        	sleep();//static method cause currentThread to sleep
-        	
+            if(waitQueue == null){
+                waitQueue = ThreadedKernel.scheduler.newThreadQueue(true);
+                //transfer priority
+                
+                waitQueue.acquire(this);// acquire lock
+            }
+            //note that currentThread != this
+            waitQueue.waitForAccess(currentThread);
+            sleep();//static method cause currentThread to sleep
+            
         }
         
         Machine.interrupt().restore(interruptStatus);
