@@ -140,7 +140,7 @@ public class Boat
                     {
                         bd.sleep();
                     }
-                    childRowToMolokai();
+                    ChildRowToMolokai();
                     arith.acquire();
                     {
                         childrenOnSOurce++;
@@ -190,7 +190,7 @@ public class Boat
                 {
                     childrenUnload.acquire();
                     {
-                        childRowToMolokai();
+                        ChildRowToMolokai();
                         arith.acquire();
                         {
                             childrenOnSource--;
@@ -210,8 +210,8 @@ public class Boat
                         {
                             cu.sleep();
                         }
-                        childRideToMolokai();
-                        childRowToOahu(); // counters not modified
+                        ChildRideToMolokai();
+                        ChildRowToOahu(); // counters not modified
                         arith.acquire();
                         {
                             childrenAboard--;
