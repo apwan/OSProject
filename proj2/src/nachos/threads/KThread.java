@@ -554,8 +554,8 @@ public class KThread {
     public static void selfTest() {
         Lib.debug(dbgThread, "Enter KThread.selfTest");
         
-        KThread ct0=new KThread(new CaseTester0());
-        ct0.setName("CT0 thread").fork();
+        //KThread ct0=new KThread(new CaseTester0());
+        //ct0.setName("CT0 thread").fork();
 
         //Machine.
         
@@ -569,14 +569,14 @@ public class KThread {
         ct2.join();
       */
 
-        KThread ct3=new KThread(new CaseTester3());
-        ct3.setName("CT2 thread").fork();
+        //KThread ct3=new KThread(new CaseTester3());
+        //ct3.setName("CT2 thread").fork();
         
-        ct0.join();
-        ct3.join();
+        //ct0.join();
+        //ct3.join();
         
-        //new KThread(new PingTest(1)).setName("forked thread").fork();
-        //new PingTest(0).run();
+        new KThread(new PingTest(1)).setName("forked thread").fork();
+        new PingTest(0).run();
         
     }
 
