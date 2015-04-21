@@ -10,11 +10,11 @@
 
 # you need to point to the right executables
 #$(ARCHDIR)/
-GCCDIR = /usr/local/mips/bin/mips-
+GCCDIR = ../../../mips/bin/mips-
 
 ASFLAGS = -mips1
 CPPFLAGS =
-CFLAGS = -O2 -B$(GCCDIR) -G 0 -Wa,-mips1 -nostdlib -ffreestanding
+CFLAGS = -O2 -I ./ -B$(GCCDIR) -G 0 -Wa,-mips1 -nostdlib -ffreestanding
 LDFLAGS = -s -T script -N -warn-common -warn-constructors -warn-multiple-gp
 
 CC = $(GCCDIR)gcc
