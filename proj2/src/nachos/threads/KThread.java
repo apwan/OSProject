@@ -420,7 +420,7 @@ public class KThread {
         }
         
         public void run() {
-        	this.finished=false;
+            this.finished=false;
             for (int i=0; i<5; i++) {
                 System.out.println("*** thread " + which + " looped "
                                    + i + " times");
@@ -433,119 +433,119 @@ public class KThread {
     }
     
     private static class CaseTester0 implements Runnable {
-    	private int tcid;
-    	CaseTester0()
-    	{
-    		tcid=TestMgr.addTest("KThread Case Test 0: runnable join to 1");
-    	}
-    	public void run() {
-    		PingTest p=new PingTest(888);
-        	KThread toJoin=new KThread(p);
-        	System.out.println("Case Test0: Launching pinger...");
-        	toJoin.fork();
-        	System.out.println("Case Test0: Joining pinger...");
-        	toJoin.join();
-        	System.out.println("Case Test0: Joined.");
-        	TestMgr.finishTest(tcid, p.finished==true);
-    	}
+        private int tcid;
+        CaseTester0()
+        {
+            tcid=TestMgr.addTest("KThread Case Test 0: runnable join to 1");
+        }
+        public void run() {
+            PingTest p=new PingTest(888);
+            KThread toJoin=new KThread(p);
+            System.out.println("Case Test0: Launching pinger...");
+            toJoin.fork();
+            System.out.println("Case Test0: Joining pinger...");
+            toJoin.join();
+            System.out.println("Case Test0: Joined.");
+            TestMgr.finishTest(tcid, p.finished==true);
+        }
     }
     private static class CaseTester1 implements Runnable {
-    	private int tcid;
-    	CaseTester1()
-    	{
-    		tcid=TestMgr.addTest("KThread Case Test 1: runnable join to 5");
-    	}
-    	public void run() {
-    		KThread[] toJoin=new KThread[5];
-        	PingTest[] toLaunch=new PingTest[5];
-        	for(int i=0;i<toJoin.length;i++)
-        	{
-        		toLaunch[i]=new PingTest(i);
-        		toJoin[i]=new KThread(toLaunch[i]);
-        		toJoin[i].setName("CaseTest1 toJoinThread#"+i).fork();
-        	}
-        	//currentThread.yield();
-        	System.out.println("CaseTest1 Joining...");
-        	for(int i=0;i<toJoin.length;i++)
-        	{
-            	System.out.println("*** CaseTest1 try joining"+i);
-        		toJoin[i].join();
-        	}
-        	System.out.println("CaseTest1 Joined.");
-        	boolean cond=true;
-        	for(int i=0;i<toJoin.length;i++)
-        	{
-        		cond=cond&&toLaunch[i].finished;
-        		if(toLaunch[i].finished==false)
-        			Lib.debug('e', "Error: joined before a task finish. job#"+i);
-        	}
-        	System.out.println("### CaseTest1 "+(cond?"ok":"failed"));
-        	TestMgr.finishTest(tcid, cond);
-    	}
+        private int tcid;
+        CaseTester1()
+        {
+            tcid=TestMgr.addTest("KThread Case Test 1: runnable join to 5");
+        }
+        public void run() {
+            KThread[] toJoin=new KThread[5];
+            PingTest[] toLaunch=new PingTest[5];
+            for(int i=0;i<toJoin.length;i++)
+            {
+                toLaunch[i]=new PingTest(i);
+                toJoin[i]=new KThread(toLaunch[i]);
+                toJoin[i].setName("CaseTest1 toJoinThread#"+i).fork();
+            }
+            //currentThread.yield();
+            System.out.println("CaseTest1 Joining...");
+            for(int i=0;i<toJoin.length;i++)
+            {
+                System.out.println("*** CaseTest1 try joining"+i);
+                toJoin[i].join();
+            }
+            System.out.println("CaseTest1 Joined.");
+            boolean cond=true;
+            for(int i=0;i<toJoin.length;i++)
+            {
+                cond=cond&&toLaunch[i].finished;
+                if(toLaunch[i].finished==false)
+                    Lib.debug('e', "Error: joined before a task finish. job#"+i);
+            }
+            System.out.println("### CaseTest1 "+(cond?"ok":"failed"));
+            TestMgr.finishTest(tcid, cond);
+        }
     }
 
     private static class CaseTester2 implements Runnable {
-    	private int tcid;
-    	CaseTester2()
-    	{
-    		tcid=TestMgr.addTest("KThread Case Test 2: join  twice");
-    	}
-    	public void run() {
-    		PingTest p=new PingTest(888);
-        	KThread toJoin=new KThread(p);
-        	System.out.println("Case Test0: Launching pinger...");
-        	toJoin.fork();
-        	System.out.println("Case Test0: Joining pinger...");
-        	toJoin.join();
-        	System.out.println("Case Test0: Joining pinger twice...");
-        	toJoin.join();
-        	TestMgr.finishTest(tcid);
-    	}
+        private int tcid;
+        CaseTester2()
+        {
+            tcid=TestMgr.addTest("KThread Case Test 2: join  twice");
+        }
+        public void run() {
+            PingTest p=new PingTest(888);
+            KThread toJoin=new KThread(p);
+            System.out.println("Case Test0: Launching pinger...");
+            toJoin.fork();
+            System.out.println("Case Test0: Joining pinger...");
+            toJoin.join();
+            System.out.println("Case Test0: Joining pinger twice...");
+            toJoin.join();
+            TestMgr.finishTest(tcid);
+        }
     }
     
 
     private static class CaseTester3 implements Runnable {
-    	private int tcid;
-    	CaseTester3()
-    	{
-    		tcid=TestMgr.addTest("KThread Case Test 3: joining chain");
-    	}
-    	private static boolean deepest=false;
-    	private static class CaseTester3Child implements Runnable {
-    		private int depth;
-    		CaseTester3Child(int d)
-    		{
-    			depth=d;
-    		}
-    		public void run() {
-    			if(depth<=0)
-    			{
-    				System.out.println("I'm the deepest; yielding");
-    				for(int i=0;i<10;i++)currentThread.yield();
-    				deepest=true;
-    				System.out.println("I'm the deepest; returning");
-    				return;
-    			}
-    			else
-    			{
-    				KThread chi=new KThread(new CaseTester3Child(depth-1));
-    				chi.setName("CaseTest3Child depth="+(depth-1)).fork();
-    				chi.join();
-    				return;
-    			}
-    		}
-    	}
-    	
-    	public void run() {
-    		deepest=false;
-    		KThread toJoin=new KThread(new CaseTester3Child(50));
-        	System.out.println("Case Test3: building join-chain...");
-    		toJoin.setName("CaseTest3 First Child").fork();
-        	System.out.println("Case Test3: joining last child...");
-        	toJoin.join();
-        	System.out.println("Case Test3: joined.");
-        	TestMgr.finishTest(tcid,deepest);
-    	}
+        private int tcid;
+        CaseTester3()
+        {
+            tcid=TestMgr.addTest("KThread Case Test 3: joining chain");
+        }
+        private static boolean deepest=false;
+        private static class CaseTester3Child implements Runnable {
+            private int depth;
+            CaseTester3Child(int d)
+            {
+                depth=d;
+            }
+            public void run() {
+                if(depth<=0)
+                {
+                    System.out.println("I'm the deepest; yielding");
+                    for(int i=0;i<10;i++)currentThread.yield();
+                    deepest=true;
+                    System.out.println("I'm the deepest; returning");
+                    return;
+                }
+                else
+                {
+                    KThread chi=new KThread(new CaseTester3Child(depth-1));
+                    chi.setName("CaseTest3Child depth="+(depth-1)).fork();
+                    chi.join();
+                    return;
+                }
+            }
+        }
+        
+        public void run() {
+            deepest=false;
+            KThread toJoin=new KThread(new CaseTester3Child(50));
+            System.out.println("Case Test3: building join-chain...");
+            toJoin.setName("CaseTest3 First Child").fork();
+            System.out.println("Case Test3: joining last child...");
+            toJoin.join();
+            System.out.println("Case Test3: joined.");
+            TestMgr.finishTest(tcid,deepest);
+        }
     }
     
     /**

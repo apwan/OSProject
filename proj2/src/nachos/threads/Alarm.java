@@ -12,84 +12,84 @@ import java.util.Random;
  * until a certain time.
  */
 public class Alarm {
-	
+    
 
-	private static class CaseTester0 implements Runnable{
-    	private int tcid;
-    	CaseTester0()
-    	{
-    		tcid=TestMgr.addTest("alarm Case Test 1: sleep&wake");
-    	}
-		public void run() {
-			long time=Machine.timer().getTime();
-			Alarm.getInstance().waitUntil(2);
-			long time2=Machine.timer().getTime();
-			TestMgr.finishTest(tcid, time2-time>=2);
-		}
-	}
-	
-	private static class CaseTester1 implements Runnable{
-    	private int tcid;
-    	CaseTester1()
-    	{
-    		tcid=TestMgr.addTest("alarm Case Test 1: sleepsort");
-    	}
-    	private static class CaseTester1sort implements Runnable{
-    		int val;
-    		CaseTester1sort(int d){val=d;}
-			public void run() {
-				Alarm.getInstance().waitUntil(val);
-				glo[pos++]=val;
-			}
-    	}
-    	static int glo[];
-    	static int pos;
-		public void run() {
-			int N=10;
-			int Max=20;
-			int a[]=new int[N];
-			glo=new int[N];
-			pos=0;
-			Random rand = new Random();
-			for(int i=0;i<N;i++)
-				a[i]=rand.nextInt(Max);
-			for(int i=0;i<N;i++)
-				new KThread(new CaseTester1sort(a[i])).fork();
-			
-			for(int i=0;i<N-1;i++)
-				for(int j=i;j<N;j++)
-					if(a[i]>a[j])
-					{
-						int t=a[i];a[i]=a[j];a[j]=t;
-					}
+    private static class CaseTester0 implements Runnable{
+        private int tcid;
+        CaseTester0()
+        {
+            tcid=TestMgr.addTest("alarm Case Test 1: sleep&wake");
+        }
+        public void run() {
+            long time=Machine.timer().getTime();
+            Alarm.getInstance().waitUntil(2);
+            long time2=Machine.timer().getTime();
+            TestMgr.finishTest(tcid, time2-time>=2);
+        }
+    }
+    
+    private static class CaseTester1 implements Runnable{
+        private int tcid;
+        CaseTester1()
+        {
+            tcid=TestMgr.addTest("alarm Case Test 1: sleepsort");
+        }
+        private static class CaseTester1sort implements Runnable{
+            int val;
+            CaseTester1sort(int d){val=d;}
+            public void run() {
+                Alarm.getInstance().waitUntil(val);
+                glo[pos++]=val;
+            }
+        }
+        static int glo[];
+        static int pos;
+        public void run() {
+            int N=10;
+            int Max=20;
+            int a[]=new int[N];
+            glo=new int[N];
+            pos=0;
+            Random rand = new Random();
+            for(int i=0;i<N;i++)
+                a[i]=rand.nextInt(Max);
+            for(int i=0;i<N;i++)
+                new KThread(new CaseTester1sort(a[i])).fork();
+            
+            for(int i=0;i<N-1;i++)
+                for(int j=i;j<N;j++)
+                    if(a[i]>a[j])
+                    {
+                        int t=a[i];a[i]=a[j];a[j]=t;
+                    }
 
-			Alarm.getInstance().waitUntil(Max);
-			boolean cond=true;
-			for(int i=0;i<N;i++)
-				if(a[i]!=glo[i])cond=false;
-			TestMgr.finishTest(tcid, cond);
-		}		
-	}
-	
-	public static void selfTest(){
-		System.out.println("Alarm self test started");
-    	KThread k;
-    	k=new KThread(new CaseTester0());
-    	k.setName("alarm CT0").fork();
-    	k.join();
-		System.out.println("Alarm self test finished");
-	}
-	/**
-	 * Only allow a unique instance
-	 * 
-	 */
-	private static Alarm instance=null;
-	public static Alarm getInstance()
-	{
-		if(instance==null)
-			instance=new Alarm();
-		return instance;
-	}
+            Alarm.getInstance().waitUntil(Max);
+            boolean cond=true;
+            for(int i=0;i<N;i++)
+                if(a[i]!=glo[i])cond=false;
+            TestMgr.finishTest(tcid, cond);
+        }        
+    }
+    
+    public static void selfTest(){
+        System.out.println("Alarm self test started");
+        KThread k;
+        k=new KThread(new CaseTester0());
+        k.setName("alarm CT0").fork();
+        k.join();
+        System.out.println("Alarm self test finished");
+    }
+    /**
+     * Only allow a unique instance
+     * 
+     */
+    private static Alarm instance=null;
+    public static Alarm getInstance()
+    {
+        if(instance==null)
+            instance=new Alarm();
+        return instance;
+    }
     /**
      * Allocate a new Alarm. Set the machine's timer interrupt handler to this
      * alarm's callback.
@@ -145,10 +145,10 @@ public class Alarm {
         long currentTime = Machine.timer().getTime();
         Record record;
         do{
-        	record = waitQueue.peek();
-        	if (record == null || record.wakeTime > currentTime){
-        		break;
-        	}
+            record = waitQueue.peek();
+            if (record == null || record.wakeTime > currentTime){
+                break;
+            }
             waitQueue.remove();
             record.thread.ready();
             Lib.debug('t', "thread "+record.thread.getName()+" wake up");
@@ -175,7 +175,7 @@ public class Alarm {
         // long wakeTime = Machine.timer().getTime() + x;
         // while (wakeTime > Machine.timer().getTime())
         //     KThread.yield();
-    	
+        
         boolean intStatus = Machine.interrupt().disable();
 
         // create object which is going to be added into queue

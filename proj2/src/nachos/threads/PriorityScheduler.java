@@ -141,8 +141,8 @@ public class PriorityScheduler extends Scheduler {
             ThreadState state = getThreadState(thread);
             // change ownership
             if(this.transferPriority && this.owner != null){
-            	
-            	this.owner.resQueues.remove(this);
+                
+                this.owner.resQueues.remove(this);
             }
             this.owner = state;
             state.acquire(this);
@@ -154,14 +154,14 @@ public class PriorityScheduler extends Scheduler {
             if(waitQueue.isEmpty()) return null;
             // change ownership
             if(this.transferPriority && this.owner != null){
-            	this.owner.resQueues.remove(this);
+                this.owner.resQueues.remove(this);
             }
             
             KThread next = pickNextThread();
             if(next != null){
-            	Lib.debug('t', "idle??");
-            	waitQueue.remove(next);
-            	getThreadState(next).acquire(this);
+                Lib.debug('t', "idle??");
+                waitQueue.remove(next);
+                getThreadState(next).acquire(this);
             }
             return next;
         }
@@ -175,18 +175,18 @@ public class PriorityScheduler extends Scheduler {
          */
         protected KThread pickNextThread() {
             // implement me
-        	Lib.debug('t', "pick next: transferPriority: "+ this.transferPriority);
-        	Iterator<KThread> it=waitQueue.iterator();
-        	KThread next = it.next();
-        	while(it.hasNext()){
-        		
-        		KThread thread = it.next();
-        		if(getThreadState(next).getEffectivePriority()>getThreadState(thread).getEffectivePriority()){
-        			next = thread;
-        		}
-        	}
-        	
-        	
+            Lib.debug('t', "pick next: transferPriority: "+ this.transferPriority);
+            Iterator<KThread> it=waitQueue.iterator();
+            KThread next = it.next();
+            while(it.hasNext()){
+                
+                KThread thread = it.next();
+                if(getThreadState(next).getEffectivePriority()>getThreadState(thread).getEffectivePriority()){
+                    next = thread;
+                }
+            }
+            
+            
             return next;
         }
         
@@ -276,10 +276,10 @@ public class PriorityScheduler extends Scheduler {
          */
         public int getEffectivePriority() {
             // implement me
-        	int ret = this.priority;
-        	if(dirty){
-        		
-        	}
+            int ret = this.priority;
+            if(dirty){
+                
+            }
             return ret;
             
         }
@@ -327,17 +327,17 @@ public class PriorityScheduler extends Scheduler {
          */
         public void waitForAccess(PriorityQueue waitQueue) {
             // implement me
-        	waitQueue.waitQueue.add(this.thread);
-        	waitQueue.setDirty();
-        	waiting = waitQueue;
-        	
-        	// remove if already in resQueues
-        	if(resQueues.indexOf(waitQueue)>-1){
-        		resQueues.remove(waitQueue);
-        		waitQueue.owner = null;
-        	}
-        	
-        	
+            waitQueue.waitQueue.add(this.thread);
+            waitQueue.setDirty();
+            waiting = waitQueue;
+            
+            // remove if already in resQueues
+            if(resQueues.indexOf(waitQueue)>-1){
+                resQueues.remove(waitQueue);
+                waitQueue.owner = null;
+            }
+            
+            
         }
 
         /**
@@ -352,13 +352,13 @@ public class PriorityScheduler extends Scheduler {
          */
         public void acquire(PriorityQueue waitQueue) {
             // implement me
-        	
-        	resQueues.add(waitQueue);
-        	// clear if just waiting
-        	if(waitQueue == waiting){
-        		waiting = null;
-        	}
-        	setDirty();
+            
+            resQueues.add(waitQueue);
+            // clear if just waiting
+            if(waitQueue == waiting){
+                waiting = null;
+            }
+            setDirty();
         }       
 
         /** The thread with which this object is associated. */    

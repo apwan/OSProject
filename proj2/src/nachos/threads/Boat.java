@@ -42,7 +42,7 @@ public class Boat
 
         //System.out.println("\n ***Testing Boats with 100 children, 100 adults***");
         //begin(100, 100, b);
-      	
+          
     }
 
     public static void begin( int adults, int children, BoatGrader b )
@@ -91,7 +91,7 @@ public class Boat
         KThread.yield();
         while(childrenOnSource + adultsOnSource > 0)
         {
-        	//System.out.println(childrenOnSource + " " + adultsOnSource);
+            //System.out.println(childrenOnSource + " " + adultsOnSource);
             KThread.yield();
         }
         return;
@@ -171,12 +171,12 @@ public class Boat
             {
                 boarding.acquire();
                 {
-                	//System.out.println("!!!!! child boarding." + childrenAboard);
-                	while(childrenAboard == 2 || boat == 1)
-                	{
-                		bd.sleep();
-                	}
-                	//System.out.println("!!!!!!! " + boat);
+                    //System.out.println("!!!!! child boarding." + childrenAboard);
+                    while(childrenAboard == 2 || boat == 1)
+                    {
+                        bd.sleep();
+                    }
+                    //System.out.println("!!!!!!! " + boat);
                     arith.acquire();
                     {
                         childrenAboard++;
@@ -201,7 +201,7 @@ public class Boat
                         }
                         else
                         {
-                        	//System.out.println("!!!!! rider decided.");
+                            //System.out.println("!!!!! rider decided.");
                             isDriver = 0;
                             bd.wakeAll();
                             bd.sleep();
@@ -209,7 +209,7 @@ public class Boat
                     }
                     if(childrenOnSource == 1 && isDriver == 1)
                     {
-                    	--childrenAboard;
+                        --childrenAboard;
                     }
                     bd.wakeAll();
                 }
@@ -233,7 +233,7 @@ public class Boat
                 {
                     childrenUnload.acquire();
                     {
-                    	/*
+                        /*
                         while(childrenAboard > 1)
                         {
                             cu.sleep();
