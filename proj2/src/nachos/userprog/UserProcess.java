@@ -137,11 +137,23 @@ public class UserProcess {
 
         byte[] memory = Machine.processor().getMemory();
         
+       
+        // do not confuse, just a utility function for retrieving page number
+        int vpn = Processor.pageFromAddress(vaddr);// TODO: check
+        int voffset = Processor.offsetFromAddress(vaddr);
+        
+        TranslationEntry entry = pageTable[vpn];
+        if( !entry.valid) return -1;
+        entry.used = true;
+        int paddr = entry.ppn*pageSize + voffset;
+        
+        
         // for now, just assume that virtual addresses equal physical addresses
-        if (vaddr < 0 || vaddr >= memory.length)
+        // change vaddr to paddr (WuYijie)
+        if (paddr < 0 || paddr >= memory.length)
             return 0;
 
-        int amount = Math.min(length, memory.length-vaddr);
+        int amount = Math.min(length, memory.length-paddr);
         System.arraycopy(memory, vaddr, data, offset, amount);
 
         return amount;
@@ -180,10 +192,18 @@ public class UserProcess {
 
         byte[] memory = Machine.processor().getMemory();
         
+        int vpn = Processor.pageFromAddress(vaddr);
+        int voffset = Processor.offsetFromAddress(vaddr);
+        TranslationEntry entry = pageTable[vpn];
+        // 
+        if( !entry.valid || entry.readOnly) return -1;
+        int paddr = entry.ppn*pageSize + voffset;
+        entry.used = true; entry.dirty = true;
         // for now, just assume that virtual addresses equal physical addresses
-        if (vaddr < 0 || vaddr >= memory.length)
+        // change vaddr to paddr (WuYijie)
+        if (paddr < 0 || paddr >= memory.length)
             return 0;
-
+        
         int amount = Math.min(length, memory.length-vaddr);
         System.arraycopy(data, offset, memory, vaddr, amount);
 
@@ -253,6 +273,13 @@ public class UserProcess {
 
         // and finally reserve 1 page for arguments
         numPages++;
+        
+        // edited by WuYijie
+        pageTable = new TranslationEntry[numPages];
+        for(int i=0;i<numPages;++i){
+        	pageTable[i] = new TranslationEntry(i, UserKernel.allocateFreePage(),
+        			true, false, false, false);// valid, not RO/used/dirty
+        }
 
         if (!loadSections())
             return false;
@@ -303,7 +330,10 @@ public class UserProcess {
                 int vpn = section.getFirstVPN()+i;
 
                 // for now, just assume virtual addresses=physical addresses
-                section.loadPage(i, vpn);
+                // change vpn to ppn (WuYijie)
+                TranslationEntry entry = pageTable[vpn];
+                entry.readOnly = section.isReadOnly();
+                section.loadPage(i, entry.ppn);
             }
         }
         
@@ -314,6 +344,15 @@ public class UserProcess {
      * Release any resources allocated by <tt>loadSections()</tt>.
      */
     protected void unloadSections() {
+    	// close the program
+    	coff.close();
+    	// release pages
+    	for(int i=0;i<numPages;++i){
+    		UserKernel.releaseFreePage(pageTable[i].ppn);
+    		pageTable[i] = null;
+    	}
+    	pageTable = null;
+    	
     }    
 
     /**
@@ -564,6 +603,8 @@ public class UserProcess {
         }
     }
 
+    private int pid;
+    private UserProcess parent;
     /** The program being run by this process. */
     protected Coff coff;
 
