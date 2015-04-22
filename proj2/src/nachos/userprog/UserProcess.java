@@ -27,6 +27,10 @@ public class UserProcess {
         pageTable = new TranslationEntry[numPhysPages];
         for (int i=0; i<numPhysPages; i++)
             pageTable[i] = new TranslationEntry(i,i, true,false,false,false);
+        
+        // Wu Yijie
+        filelist[STDIN] = new FileRecord("stdin", UserKernel.console.openForReading());
+        filelist[STDIN] = new FileRecord("stdout", UserKernel.console.openForWriting());
     }
     
     /**
@@ -345,7 +349,101 @@ public class UserProcess {
         Lib.assertNotReached("Machine.halt() did not halt machine!");
         return 0;
     }
-
+    // TASK I:
+    // using readVirtualMemoryString(int ,int) to get name
+    private int handleCreat(int namePtr){
+    	String name = readVirtualMemoryString(namePtr, maxlen);
+    	OpenFile file = UserKernel.fileSystem.open(name, true);
+    	if(file == null){
+    		return -1;
+    	}else{
+    		int fd = findUnusedFd();
+    		if(fd<0){
+    			// full
+    			return -1;
+    		}else{
+    			filelist[fd] = new FileRecord(name, file);
+    			return fd;
+    		}
+    	}
+    }
+    private int handleOpen(int namePtr){
+    	// should check invalid argument?
+    	
+    	String name = readVirtualMemoryString(namePtr, maxlen);
+    	OpenFile file = UserKernel.fileSystem.open(name, false);
+    	if(file == null){
+    		return -1;
+    	}else{
+    		int fd = findUnusedFd();
+    		if(fd<0){
+    			// full
+    			return -1;
+    		}else{
+    			filelist[fd] = new FileRecord(name, file);
+    			return fd;
+    		}
+    	}
+    }
+    private int handleRead(int fd, int bufferPtr, int size){
+    	// check argument!!
+    	if(filelist[fd] == null || filelist[fd].file == null){
+    		return -1;
+    	}
+    	byte []buffer = new byte[size];
+    	int readsize = filelist[fd].file.read(buffer, 0, size);
+    	if(readsize<0){
+    		return -1;
+    	}else{
+    		int writesize = writeVirtualMemory(bufferPtr, buffer, 0, readsize);
+    		return writesize<0? -1: writesize;
+    	}
+    	
+    }
+    private int handleWrite(int fd, int bufferPtr, int size){
+    	// check arguments!!
+    	if(filelist[fd] == null || filelist[fd].file == null){
+    		return -1;
+    	}
+    	byte []buffer = new byte[size];
+    	int readsize = readVirtualMemory(bufferPtr, buffer);// buffer.length
+    	if(readsize<0){
+    		return -1;
+    	}else{
+    		int writesize = filelist[fd].file.write(buffer, 0, readsize);
+    		return writesize<0? -1: writesize;
+    		
+    	}
+    	
+    }
+    private int handleClose(int fd){
+    	// check arguments!!
+    	
+    	
+    	filelist[fd].file.close();
+    	boolean ret = UserKernel.fileSystem.remove(filelist[fd].name);
+    	filelist[fd] = null;
+    	
+    	return ret? 0: -1;
+    }
+    private int handleUnlink(int namePtr){
+    	// check arguments!!
+    	
+    	String name = readVirtualMemoryString(namePtr, maxlen);
+    	int fd = maxfd-1;
+    	while(fd>0){
+    		if(filelist[fd]==null) continue;
+    		if(filelist[fd].name == name){
+    		
+    			break;
+    		}
+    	}
+    	if(fd<0){
+    		return -1;
+    	}else{
+    		return handleClose(fd);
+    	}
+    }
 
     private static final int
         syscallHalt = 0,
@@ -358,7 +456,31 @@ public class UserProcess {
         syscallWrite = 7,
         syscallClose = 8,
         syscallUnlink = 9;
-
+    private static final int maxlen = 256, //max length of bytes
+        maxfd = 16, //at most 16 files concurrently
+        STDIN = 0,
+        STDOUT = 1;
+    
+    public class FileRecord{
+    	public FileRecord(String filename, OpenFile openfile){
+    		this.name = filename;
+    		this.file = openfile;
+    	}
+    	public String name;
+    	public OpenFile file;
+    	public int usecount = 0;
+    }
+    private FileRecord []filelist = new FileRecord[maxfd];
+    // return unused fd
+    private int findUnusedFd(){
+    	int i = maxfd-1;
+    	while(i>=0){
+    		if(filelist[i]!=null){
+    			break;
+    		}
+    	}
+    	return i;
+    }
     /**
      * Handle a syscall exception. Called by <tt>handleException()</tt>. The
      * <i>syscall</i> argument identifies which syscall the user executed:
@@ -389,8 +511,20 @@ public class UserProcess {
      */
     public int handleSyscall(int syscall, int a0, int a1, int a2, int a3) {
         switch (syscall) {
-        case syscallHalt:
-            return handleHalt();
+            case syscallHalt:
+                return handleHalt();
+            case syscallCreate:
+        	    return handleCreat(a0);
+            case syscallOpen:
+        	    return handleOpen(a0);
+            case syscallRead:
+            	return handleRead(a0, a1, a2);
+            case syscallWrite:
+            	return handleWrite(a0, a1, a2);
+            case syscallClose:
+            	return handleClose(a0);
+            case syscallUnlink:
+            	return handleUnlink(a0);
 
 
         default:
