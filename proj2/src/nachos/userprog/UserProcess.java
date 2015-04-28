@@ -508,10 +508,75 @@ public class UserProcess {
     	}
     }
 
+    //Hanrui Zhang
+    //begin
     private int handleExit(int status)
     {
+    	for(Map.Entry<Integer, KThread> e : joiningPool.entrySet())
+    	{
+    		int k = e.getKey().intValue();
+    		KThread v = e.getValue();
+    		//writeInt(k, status);
+    		byte[] data = {(byte)((status >> 24) & 255), (byte)((status >> 16) & 255), (byte)((status >> 8) & 255), (byte)((status >> 0) & 255)};
+    		writeVirtualMemory(k, data);
+    		v.ready();
+    	}
+    	/*
+    	for(Iterator<KThread> i = threadPool.iterator(); i.hasNext();)
+    	{
+    		KThread thread = i.next();
+	    	thread.finish();
+    	}
+    	*/
+    	//for uni-thread processes, just finish current thread
+    	KThread.finish();
+    	unloadSections();
+    	for(int i = 0; i < maxfd; ++i)
+    	{
+    		handleClose(i);
+    	}
+    	parent.childrenPool.remove(new Integer(pid));
+    	taskPool.remove(new Integer(pid));
+    	if(taskPool.size() == 0)
+    	{
+    		Kernel.kernel.terminate();
+    	}
     	return 0;
     }
+    private int handleExec(int fildAddr, int argc, int argv)
+    {
+    	UserProcess newProcess = newUserProcess();
+    	newProcess.setParent(this);
+    	/*
+    	String name = readString(fileAddr);
+    	String args = readarameters(argc, argv);
+    	int flag = (int)(newProcess.execute(name, args));
+    	if(flag == 1)
+    	{
+    		childrenPool.add(newProcess.pid);
+    		return 0;
+    	}
+    	else
+    	{
+    		return -1;
+    	}
+    	*/
+    	return 0;
+    }
+    private int handleJoin(int pid, int statusAddr)
+    {
+    	KThread thread = KThread.currentThread();
+    	if(!childrenPool.contains(pid))
+    	{
+    		handleExit(-1);
+    		return -1;
+    	}
+    	UserProcess joining = taskPool.get(pid);
+    	joining.joiningPool.put(new Integer(statusAddr), thread);
+    	KThread.sleep();
+    	return 0;
+    }
+    //end
 
     private static final int
         syscallHalt = 0,
@@ -593,6 +658,12 @@ public class UserProcess {
             	return handleClose(a0);
             case syscallUnlink:
             	return handleUnlink(a0);
+            case syscallExit:
+            	return handleExit(a0);
+            case syscallExec:
+            	return handleExec(a0, a1, a2);
+            case syscallJoin:
+            	return handleJoin(a0, a1);
 
 
         default:
