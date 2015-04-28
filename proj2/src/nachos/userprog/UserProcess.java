@@ -5,6 +5,7 @@ import nachos.threads.*;
 import nachos.userprog.*;
 
 import java.io.EOFException;
+import java.util.*;
 
 /**
  * Encapsulates the state of a user process that is not contained in its
@@ -31,6 +32,15 @@ public class UserProcess {
         // Wu Yijie
         filelist[STDIN] = new FileRecord("stdin", UserKernel.console.openForReading());
         filelist[STDIN] = new FileRecord("stdout", UserKernel.console.openForWriting());
+        
+        //Hanrui Zhang
+        //begin
+        pid = ++taskCounter;
+        parent = null;
+        childrenPool = new HashSet<Integer>();
+        threadPool = new HashSet<KThread>();
+        joiningPool = new HashMap<Integer, KThread>();
+        //end
     }
     
     /**
@@ -56,10 +66,24 @@ public class UserProcess {
         if (!load(name, args))
             return false;
         
-        new UThread(this).setName(name).fork();
+        //Hanrui Zhang
+        //begin
+        //new UThread(this).setName(name).fork();
+        KThread thread = new UThread(this).setName(name);
+        threadPool.add(thread);
+        thread.fork();
+        //end
 
         return true;
     }
+    
+    //Hanrui Zhang
+    //begin
+    public void setParent(UserProcess process)
+    {
+    	parent = process;
+    }
+    //end
 
     /**
      * Save the state of this process in preparation for a context switch.
@@ -484,6 +508,11 @@ public class UserProcess {
     	}
     }
 
+    private int handleExit(int status)
+    {
+    	return 0;
+    }
+
     private static final int
         syscallHalt = 0,
         syscallExit = 1,
@@ -603,8 +632,17 @@ public class UserProcess {
         }
     }
 
+    //Hanrui Zhang
+    //begin
     private int pid;
     private UserProcess parent;
+    private Set<Integer> childrenPool;
+    private Set<KThread> threadPool;
+    private Map<Integer, KThread> joiningPool;
+
+    private static int taskCounter = 0;
+    private static Map<Integer, UserProcess> taskPool = new HashMap<Integer, UserProcess>();
+    //end
     /** The program being run by this process. */
     protected Coff coff;
 
