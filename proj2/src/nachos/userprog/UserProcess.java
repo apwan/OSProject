@@ -410,6 +410,8 @@ public class UserProcess {
         if (this.pid == 1) {
             Machine.halt();
             Lib.assertNotReached("Machine.halt() did not halt machine!");
+            // return 0 added to fix CE, Hanrui Zhang
+            return 0;
         } else {
             Lib.debug(dbgProcess, "Non Root Process call halt, return immediately");
             return -1;
