@@ -25,6 +25,7 @@
 #define syscallMmap		10
 #define syscallConnect		11
 #define syscallAccept		12
+#define syscallRand		13
 
 /* Don't want the assembler to see C code, but start.s includes syscall.h. */
 #ifndef START_S
@@ -257,6 +258,10 @@ int connect(int host, int port);
  */
 int accept(int port);
 
+/*
+ * Returns a random bit (0/1).
+ */
+int rand();
 #endif /* START_S */
 
 #endif /* SYSCALL_H */
