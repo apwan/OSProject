@@ -23,6 +23,8 @@ int compare(int size)
 }
 char filename[20];
 int fd,size,i,j,ret;
+#define check(ret) {if(ret<0)return -1;}
+#define equal(ret,exp) {if(ret!=exp)return -1;}
 int main(int argc, char** argv)
 {
 	for(i=0;i<BUFSIZE;i++)buf[i]='A'+i%26;
