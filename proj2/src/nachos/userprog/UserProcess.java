@@ -30,8 +30,8 @@ public class UserProcess {
             pageTable[i] = new TranslationEntry(i,i, true,false,false,false);
         
         // Wu Yijie
-        filelist[STDIN] = new FileRecord("stdin", UserKernel.console.openForReading());
-        filelist[STDIN] = new FileRecord("stdout", UserKernel.console.openForWriting());
+        fds[STDIN] = new FileDescriptor( UserKernel.console.openForReading(), "stdin", null);
+        fds[STDOUT] = new FileDescriptor(UserKernel.console.openForWriting(), "stdout", null);
         
         //Hanrui Zhang
         //begin
@@ -410,6 +410,7 @@ public class UserProcess {
         if (this.pid == 1) {
             Machine.halt();
             Lib.assertNotReached("Machine.halt() did not halt machine!");
+            return 0;
         } else {
             Lib.debug(dbgProcess, "Non Root Process call halt, return immediately");
             return -1;
@@ -418,97 +419,177 @@ public class UserProcess {
     // TASK I:
     // using readVirtualMemoryString(int ,int) to get name
     private int handleCreat(int namePtr){
-    	String name = readVirtualMemoryString(namePtr, maxlen);
-    	OpenFile file = UserKernel.fileSystem.open(name, true);
-    	if(file == null){
-    		return -1;
-    	}else{
-    		int fd = findUnusedFd();
-    		if(fd<0){
-    			// full
-    			return -1;
-    		}else{
-    			filelist[fd] = new FileRecord(name, file);
-    			return fd;
-    		}
-    	}
+
+        String name = readVirtualMemoryString(namePtr, maxlen);
+        // invalid namePtr or no \0 terminating character
+        if (name == null){
+            return -1;
+        }
+
+        int fdn = findUnusedFd();
+        // No empty slot
+        if (fdn < 0){
+            return -1;
+        }
+
+        FileRecord record = UserProcess.frs.get(name);
+        if (record != null){
+            if (record.calledUnlink) {
+                // File cannot be created until it is unlinked
+                return -1; 
+            }
+        }
+
+        // file name checked by file system
+        // Create file, clean the file if it exists (set file length to 0)
+        OpenFile file = UserKernel.fileSystem.open(name, true);
+        if (file == null){
+            // filename is invaild or
+            // Too much file opened
+            return -1;
+        }
+
+        if (record == null){
+            UserProcess.frs.put(name, new FileRecord());
+            record = UserProcess.frs.get(name);
+            if(record == null){
+                Lib.assertNotReached("Something wrong with the hash frs");
+            }
+        } else {
+            record.useCount++;
+        }
+        this.fds[fdn] = new FileDescriptor(file, name, record);
+
+        return fdn;
     }
+
     private int handleOpen(int namePtr){
-    	// should check invalid argument?
-    	
-    	String name = readVirtualMemoryString(namePtr, maxlen);
-    	OpenFile file = UserKernel.fileSystem.open(name, false);
-    	if(file == null){
-    		return -1;
-    	}else{
-    		int fd = findUnusedFd();
-    		if(fd<0){
-    			// full
-    			return -1;
-    		}else{
-    			filelist[fd] = new FileRecord(name, file);
-    			return fd;
-    		}
-    	}
+        String name = readVirtualMemoryString(namePtr, maxlen);
+        if (name == null){
+            return -1;
+        }
+
+        int fdn = findUnusedFd();
+        if (fdn == -1){
+            // No empty slot
+            return -1;
+        }
+
+        FileRecord record = UserProcess.frs.get(name);
+        if (record != null){
+            if (record.calledUnlink) {
+                // File cannot be created until it is unlinked
+                return -1; 
+            }
+        }
+        
+        OpenFile file = UserKernel.fileSystem.open(name, false);
+        if (file == null){
+            // filename is invaild or
+            // Too much file opened
+            return -1;
+        }
+
+        if (record == null){
+            UserProcess.frs.put(name, new FileRecord());
+            record = UserProcess.frs.get(name);
+            if(record == null){
+                Lib.assertNotReached("Something wrong with the hash frs");
+            }
+        } else {
+            record.useCount++;
+        }
+        this.fds[fdn] = new FileDescriptor(file, name, record);
+
+        return fdn;
+
     }
+
     private int handleRead(int fd, int bufferPtr, int size){
     	// check argument!!
-    	if(filelist[fd] == null || filelist[fd].file == null){
+        if(size < 0){
+            return -1;
+        }
+        if(fd >= maxfd || fd <= -1){
+            return -1;
+        }
+    	if(this.fds[fd] == null || this.fds[fd].file == null){
     		return -1;
     	}
     	byte []buffer = new byte[size];
-    	int readsize = filelist[fd].file.read(buffer, 0, size);
+    	int readsize = this.fds[fd].file.read(buffer, 0, size);
     	if(readsize<0){
     		return -1;
     	}else{
-    		int writesize = writeVirtualMemory(bufferPtr, buffer, 0, readsize);
-    		return writesize<0? -1: writesize;
+    		return readsize;
     	}
-    	
     }
+
     private int handleWrite(int fd, int bufferPtr, int size){
     	// check arguments!!
-    	if(filelist[fd] == null || filelist[fd].file == null){
+        if(size < 0){
+            return -1;
+        }
+        if(fd >= maxfd || fd <= -1){
+            return -1;
+        }
+    	if(this.fds[fd] == null || this.fds[fd].file == null){
     		return -1;
     	}
     	byte []buffer = new byte[size];
-    	int readsize = readVirtualMemory(bufferPtr, buffer);// buffer.length
-    	if(readsize<0){
-    		return -1;
-    	}else{
-    		int writesize = filelist[fd].file.write(buffer, 0, readsize);
-    		return writesize<0? -1: writesize;
-    		
-    	}
-    	
+    	int writesize = this.fds[fd].file.write(buffer, 0, size);
+    	return writesize<0? -1: writesize;
     }
-    private int handleClose(int fd){
+
+    private int handleClose(int fdn){
     	// check arguments!!
-    	
-    	
-    	filelist[fd].file.close();
-    	boolean ret = UserKernel.fileSystem.remove(filelist[fd].name);
-    	filelist[fd] = null;
-    	
-    	return ret? 0: -1;
+        if(fdn >= maxfd || fdn <= -1){
+            return -1;
+        }
+        FileDescriptor fd = fds[fdn];
+        fd.file.close();
+        fds[fdn] = null;
+
+        // decrement open count
+        FileRecord record = fd.fileRecord;
+        // record == null if it is stdin or stdout
+        if (record == null){
+            return 0;
+        }
+
+        if (record.useCount == 1){
+            // stdin, stdout have filename == null
+            if (fd.fileName != null){
+                UserProcess.frs.remove(fd.fileName);
+                if (record.calledUnlink){
+                    if (!UserKernel.fileSystem.remove(fd.fileName)){
+                        return -1;
+                    }
+                }
+            }
+        } else {
+            record.useCount -= 1;
+        }
+        return 0;
+
     }
+
     private int handleUnlink(int namePtr){
     	// check arguments!!
-    	
     	String name = readVirtualMemoryString(namePtr, maxlen);
-    	int fd = maxfd-1;
-    	while(fd>0){
-    		if(filelist[fd]==null) continue;
-    		if(filelist[fd].name == name){
-    		
-    			break;
-    		}
-    	}
-    	if(fd<0){
-    		return -1;
-    	}else{
-    		return handleClose(fd);
-    	}
+        if (name == null){
+            return -1;
+        }
+
+        FileRecord record = UserProcess.frs.get(name);
+        if (record == null){
+            if (!UserKernel.fileSystem.remove(name)){
+                return -1;
+            }
+        } else {
+            record.calledUnlink = true;
+        }
+        return 0;
     }
 
     //Hanrui Zhang
@@ -581,42 +662,6 @@ public class UserProcess {
     }
     //end
 
-    private static final int
-        syscallHalt = 0,
-        syscallExit = 1,
-        syscallExec = 2,
-        syscallJoin = 3,
-        syscallCreate = 4,
-        syscallOpen = 5,
-        syscallRead = 6,
-        syscallWrite = 7,
-        syscallClose = 8,
-        syscallUnlink = 9;
-    private static final int maxlen = 256, //max length of bytes
-        maxfd = 16, //at most 16 files concurrently
-        STDIN = 0,
-        STDOUT = 1;
-    
-    public class FileRecord{
-    	public FileRecord(String filename, OpenFile openfile){
-    		this.name = filename;
-    		this.file = openfile;
-    	}
-    	public String name;
-    	public OpenFile file;
-    	public int usecount = 0;
-    }
-    private FileRecord []filelist = new FileRecord[maxfd];
-    // return unused fd
-    private int findUnusedFd(){
-    	int i = maxfd-1;
-    	while(i>=0){
-    		if(filelist[i]!=null){
-    			break;
-    		}
-    	}
-    	return i;
-    }
     /**
      * Handle a syscall exception. Called by <tt>handleException()</tt>. The
      * <i>syscall</i> argument identifies which syscall the user executed:
@@ -717,6 +762,61 @@ public class UserProcess {
     private static int taskCounter = 0;
     private static Map<Integer, UserProcess> taskPool = new HashMap<Integer, UserProcess>();
     //end
+
+    // Wuyiejie, Moved by ku lok sun
+    private static final int
+        syscallHalt = 0,
+        syscallExit = 1,
+        syscallExec = 2,
+        syscallJoin = 3,
+        syscallCreate = 4,
+        syscallOpen = 5,
+        syscallRead = 6,
+        syscallWrite = 7,
+        syscallClose = 8,
+        syscallUnlink = 9;
+    private static final int maxlen = 256, //max length of bytes
+        maxfd = 16, //at most 16 files concurrently
+        STDIN = 0,
+        STDOUT = 1;
+    
+    public class FileRecord{
+        public FileRecord(){
+        }
+        public int useCount = 1;
+        public boolean calledUnlink = false; // added by Ku Lok Sun
+    }
+
+    public class FileDescriptor{
+        public FileDescriptor(OpenFile f, String fn, FileRecord fr){
+            this.file = f;
+            this.fileName = fn;
+            this.fileRecord = fr;
+        }
+        public String fileName = null;
+        public OpenFile file= null;
+        public FileRecord fileRecord = null;
+    }
+
+    // A global file record keep track on open count (for handling unlink)
+    private static HashMap<String, FileRecord> frs = new HashMap<String, FileRecord>();
+    
+    private FileDescriptor fds[] = new FileDescriptor[maxfd];
+
+    // return unused fd
+    private int findUnusedFd(){
+        int i = maxfd-1;
+        while(i>=0){
+            if(this.fds[i] == null){
+                return i;
+            }
+            i--;
+        }
+        return -1;
+    }
+
+
+
     /** The program being run by this process. */
     protected Coff coff;
 
