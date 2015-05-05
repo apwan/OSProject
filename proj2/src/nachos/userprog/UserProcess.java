@@ -595,14 +595,15 @@ public class UserProcess {
 
     //Hanrui Zhang
     //begin
-    private int handleExit(int status)
+    private void handleExit(int status)
     {
     	for(Map.Entry<Integer, KThread> e : joiningPool.entrySet())
     	{
     		int k = e.getKey().intValue();
     		KThread v = e.getValue();
     		//writeInt(k, status);
-    		byte[] data = {(byte)((status >> 24) & 255), (byte)((status >> 16) & 255), (byte)((status >> 8) & 255), (byte)((status >> 0) & 255)};
+    		//byte[] data = {(byte)((status >> 24) & 255), (byte)((status >> 16) & 255), (byte)((status >> 8) & 255), (byte)((status >> 0) & 255)};
+    		byte[] data = {(byte)((status >> 0) & 255), (byte)((status >> 8) & 255), (byte)((status >> 16) & 255), (byte)((status >> 24) & 255)};
     		writeVirtualMemory(k, data);
     		v.ready();
     	}
@@ -613,20 +614,19 @@ public class UserProcess {
 	    	thread.finish();
     	}
     	*/
-    	//for uni-thread processes, just finish current thread
+    	// for uni-thread processes, just finish current thread
     	KThread.finish();
     	unloadSections();
     	for(int i = 0; i < maxfd; ++i)
     	{
     		handleClose(i);
     	}
-    	parent.childrenPool.remove(new Integer(pid));
-    	taskPool.remove(new Integer(pid));
+    	parent.childrenPool.remove(pid);
+    	taskPool.remove(pid);
     	if(taskPool.size() == 0)
     	{
     		Kernel.kernel.terminate();
     	}
-    	return 0;
     }
     private int handleExec(int fileAddr, int argc, int argv)
     {
@@ -642,7 +642,8 @@ public class UserProcess {
     			int t = 0;
     			for(int j = 0; j < 4; ++j)
     			{
-    				t += (((int)addr[j]) << ((3 - j) * 8));
+    				//t += (((int)addr[j]) << ((3 - j) * 8));
+    				t += (((int)addr[j]) << (j * 8));
     			}
     			args[i] = readVirtualMemoryString(t, maxlen);
     		}
@@ -654,7 +655,8 @@ public class UserProcess {
     	if(newProcess.execute(name, args))
     	{
     		childrenPool.add(newProcess.pid);
-    		return 0;
+    		taskPool.put(newProcess.pid, newProcess);
+    		return newProcess.pid;
     	}
     	else
     	{
@@ -680,13 +682,18 @@ public class UserProcess {
     	KThread thread = KThread.currentThread();
     	if(!childrenPool.contains(pid))
     	{
-    		handleExit(-1);
+    		//handleExit(-1);
+    		return -1;
+    	}
+    	if(!taskPool.containsKey(pid))
+    	{
+    		//handleExit(-1);
     		return -1;
     	}
     	UserProcess joining = taskPool.get(pid);
     	joining.joiningPool.put(new Integer(statusAddr), thread);
     	KThread.sleep();
-    	return 0;
+    	return 1;
     }
     private int handleRand()
     {
@@ -739,7 +746,8 @@ public class UserProcess {
             case syscallUnlink:
             	return handleUnlink(a0);
             case syscallExit:
-            	return handleExit(a0);
+            	handleExit(a0);
+            	return 0;
             case syscallExec:
             	return handleExec(a0, a1, a2);
             case syscallJoin:
@@ -810,7 +818,7 @@ public class UserProcess {
         syscallWrite = 7,
         syscallClose = 8,
         syscallUnlink = 9,
-        syscallRand = 10; // Hanrui Zhang
+        syscallRand = 13; // Hanrui Zhang
     private static final int maxlen = 256, //max length of bytes
         maxfd = 16, //at most 16 files concurrently
         STDIN = 0,
