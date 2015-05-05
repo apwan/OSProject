@@ -601,7 +601,6 @@ public class UserProcess {
     	{
     		int k = e.getKey().intValue();
     		KThread v = e.getValue();
-    		//writeInt(k, status);
     		//byte[] data = {(byte)((status >> 24) & 255), (byte)((status >> 16) & 255), (byte)((status >> 8) & 255), (byte)((status >> 0) & 255)};
     		byte[] data = {(byte)((status >> 0) & 255), (byte)((status >> 8) & 255), (byte)((status >> 16) & 255), (byte)((status >> 24) & 255)};
     		writeVirtualMemory(k, data);
@@ -662,32 +661,12 @@ public class UserProcess {
     	{
     		return -1;
     	}
-    	/*
-    	String name = readString(fileAddr);
-    	String args = readarameters(argc, argv);
-    	int flag = (int)(newProcess.execute(name, args));
-    	if(flag == 1)
-    	{
-    		childrenPool.add(newProcess.pid);
-    		return 0;
-    	}
-    	else
-    	{
-    		return -1;
-    	}
-    	*/
     }
     private int handleJoin(int pid, int statusAddr)
     {
     	KThread thread = KThread.currentThread();
-    	if(!childrenPool.contains(pid))
+    	if(!childrenPool.contains(pid) || !taskPool.containsKey(pid))
     	{
-    		//handleExit(-1);
-    		return -1;
-    	}
-    	if(!taskPool.containsKey(pid))
-    	{
-    		//handleExit(-1);
     		return -1;
     	}
     	UserProcess joining = taskPool.get(pid);
