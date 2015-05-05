@@ -410,10 +410,7 @@ public class UserProcess {
         if (this.pid == 1) {
             Machine.halt();
             Lib.assertNotReached("Machine.halt() did not halt machine!");
-<<<<<<< HEAD
             // return 0 added to fix CE, Hanrui Zhang
-=======
->>>>>>> 8967322fc31173b4ceec1af4a4f74d49dc9e1732
             return 0;
         } else {
             Lib.debug(dbgProcess, "Non Root Process call halt, return immediately");
@@ -678,6 +675,10 @@ public class UserProcess {
     	KThread.sleep();
     	return 0;
     }
+    private int handleRand()
+    {
+    	return rg.nextInt();
+    }
     //end
 
     /**
@@ -730,6 +731,8 @@ public class UserProcess {
             	return handleExec(a0, a1, a2);
             case syscallJoin:
             	return handleJoin(a0, a1);
+            case syscallRand:
+            	return handleRand();
 
 
         default:
@@ -779,6 +782,7 @@ public class UserProcess {
 
     private static int taskCounter = 0;
     private static Map<Integer, UserProcess> taskPool = new HashMap<Integer, UserProcess>();
+    private static Random rg = new Random();
     //end
 
     // Wuyiejie, Moved by ku lok sun
@@ -792,7 +796,8 @@ public class UserProcess {
         syscallRead = 6,
         syscallWrite = 7,
         syscallClose = 8,
-        syscallUnlink = 9;
+        syscallUnlink = 9,
+        syscallRand = 10; // Hanrui Zhang
     private static final int maxlen = 256, //max length of bytes
         maxfd = 16, //at most 16 files concurrently
         STDIN = 0,
