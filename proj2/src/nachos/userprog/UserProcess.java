@@ -412,7 +412,7 @@ public class UserProcess {
             Lib.assertNotReached("Machine.halt() did not halt machine!");
         } else {
             Lib.debug(dbgProcess, "Non Root Process call halt, return immediately");
-            return 0;
+            return -1;
         }        
     }
     // TASK I:
