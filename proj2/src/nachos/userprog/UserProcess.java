@@ -406,11 +406,14 @@ public class UserProcess {
      * Handle the halt() system call. 
      */
     private int handleHalt() {
-
-        Machine.halt();
-        
-        Lib.assertNotReached("Machine.halt() did not halt machine!");
-        return 0;
+        // Ku Lok Sun
+        if (this.pid == 1) {
+            Machine.halt();
+            Lib.assertNotReached("Machine.halt() did not halt machine!");
+        } else {
+            Lib.debug(dbgProcess, "Non Root Process call halt, return immediately");
+            return -1;
+        }        
     }
     // TASK I:
     // using readVirtualMemoryString(int ,int) to get name
