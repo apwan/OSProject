@@ -636,7 +636,20 @@ public class UserProcess {
     	String[] args = new String[argc];
     	for(int i = 0; i < argc; ++i)
     	{
-    		args[i] = readVirtualMemoryString(argv + i * 4, maxlen);
+    		byte[] addr = new byte[4];
+    		if(readVirtualMemory(argv + 4 * i, addr) == 4)
+    		{
+    			int t = 0;
+    			for(int j = 0; j < 4; ++j)
+    			{
+    				t += (((int)addr[j]) << ((3 - j) * 8));
+    			}
+    			args[i] = readVirtualMemoryString(t, maxlen);
+    		}
+    		else
+    		{
+    			return -1;
+    		}
     	}
     	if(newProcess.execute(name, args))
     	{
