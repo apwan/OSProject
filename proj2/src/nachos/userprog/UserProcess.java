@@ -627,10 +627,25 @@ public class UserProcess {
     	}
     	return 0;
     }
-    private int handleExec(int fildAddr, int argc, int argv)
+    private int handleExec(int fileAddr, int argc, int argv)
     {
     	UserProcess newProcess = newUserProcess();
     	newProcess.setParent(this);
+    	String name = readVirtualMemoryString(fileAddr, maxlen);
+    	String[] args = new String[argc];
+    	for(int i = 0; i < argc; ++i)
+    	{
+    		args[i] = readVirtualMemoryString(argv + i * 4, maxlen);
+    	}
+    	if(newProcess.execute(name, args))
+    	{
+    		childrenPool.add(newProcess.pid);
+    		return 0;
+    	}
+    	else
+    	{
+    		return -1;
+    	}
     	/*
     	String name = readString(fileAddr);
     	String args = readarameters(argc, argv);
@@ -645,7 +660,6 @@ public class UserProcess {
     		return -1;
     	}
     	*/
-    	return 0;
     }
     private int handleJoin(int pid, int statusAddr)
     {
