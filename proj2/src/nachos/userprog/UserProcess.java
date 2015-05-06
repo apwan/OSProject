@@ -169,8 +169,9 @@ public class UserProcess {
         int amount = 0;
         while(length > 0)
         {
+        	if(vpn >= numPages) return -1;
 	        TranslationEntry entry = pageTable[vpn];
-	        if( !entry.valid || vpn >= numPages) return -1;
+	        if(!entry.valid) return -1;
 	        entry.used = true;
 	        int paddr = entry.ppn*pageSize + voffset;
 	        
