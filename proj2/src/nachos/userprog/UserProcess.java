@@ -751,6 +751,10 @@ public class UserProcess {
      * @param        cause        the user exception that occurred.
      */
     public void handleException(int cause) {
+    	//Hanrui Zhang
+    	//begin
+    	boolean status = Machine.interrupt().setStatus(false);
+    	//end
         Processor processor = Machine.processor();
 
         switch (cause) {
@@ -763,6 +767,10 @@ public class UserProcess {
                                        );
             processor.writeRegister(Processor.regV0, result);
             processor.advancePC();
+            //Hanrui Zhang
+            //begin
+            Machine.interrupt().restore(status);
+            //end
             break;                                       
                                        
         default:
