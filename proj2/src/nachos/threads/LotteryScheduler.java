@@ -390,7 +390,7 @@ public class LotteryScheduler {
                 for (Enumeration<LotteryQueue> queues = resources.keys(); 
                         queues.hasMoreElements(); ) {
                     LotteryQueue q = queues.nextElement();
-                    newEffectivePriority = originalPriority + q.donation;
+                    newEffectivePriority += q.donation;
                 }
             }
             if (newEffectivePriority == priority)
