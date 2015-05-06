@@ -4,7 +4,6 @@ package nachos.machine;
 
 import nachos.security.*;
 import nachos.ag.*;
-
 import nachos.threads.TestMgr;
 
 import java.io.File;
@@ -43,9 +42,9 @@ public final class Machine {
 	}
 	else {
 	    // use ../test
-	    testDirectory = new File(baseDirectory.getParentFile(), "test");
+	    testDirectory = new File(baseDirectory.getParentFile(), "src/nachos/test");
 	}
-
+	Lib.debug('m',"\n"+testDirectory.getAbsolutePath());
 	securityManager = new NachosSecurityManager(testDirectory);
 	privilege = securityManager.getPrivilege();
 
