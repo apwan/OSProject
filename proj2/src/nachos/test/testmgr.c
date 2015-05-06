@@ -12,7 +12,7 @@
 char buf[BUFSIZE];
 
 char filename[50];
-long fd,size,i,j,ret;
+long fd,size,i,j,ret,pid,st;
 #define check(ret) {if(ret<0)return -1;}
 #define equal(ret,exp) {if(ret!=exp)return -1;}
 
@@ -49,7 +49,8 @@ int main(int argc, char** argv)
 		sprintf(filename,"%s.coff",cases[i]);
 		printf("Running test case: %s\n",filename);
 		pid=exec(filename,0,NULL);
-		res[i]=join(pid);
+		ret=join(pid,&res[i]);
+		if(ret!=1)res[i]=ret;
 		printf("Result: %d\n",res[i]);
 		if(res[i]==0)succ++;
 		else fail++;
