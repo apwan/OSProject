@@ -28,7 +28,12 @@ STDLIB_H = stdio.h stdlib.h ag.h
 STDLIB_C = stdio.c stdlib.c
 STDLIB_O = start.o stdio.o stdlib.o
 
-LIB = assert atoi printf readline stdio strncmp strcat strcmp strcpy strlen memcpy memset
+TEST_C = test1_01 test1_02 test1_03 \
+test1_05 test1_06 \
+test1_08 test1_09 test2_01 test2_02 test2_03 test2_04 test3_01
+#test3_07 test3_08
+LIB = assert atoi printf readline stdio strncmp strcat strcmp strcpy strlen memcpy memset $(TEST_C)
+
 NLIB = libnachos.a
 
 TARGETS = halt sh matmult sort echo cat cp mv rm $(ADDTEST)#chat chatserver
