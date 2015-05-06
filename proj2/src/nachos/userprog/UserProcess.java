@@ -163,23 +163,32 @@ public class UserProcess {
         
        
         // do not confuse, just a utility function for retrieving page number
+        // Hanrui Zhang
+        // Multiple pages supported
         int vpn = Processor.pageFromAddress(vaddr);// TODO: check
         int voffset = Processor.offsetFromAddress(vaddr);
-        
-        TranslationEntry entry = pageTable[vpn];
-        if( !entry.valid) return -1;
-        entry.used = true;
-        int paddr = entry.ppn*pageSize + voffset;
-        
-        
-        // for now, just assume that virtual addresses equal physical addresses
-        // change vaddr to paddr (WuYijie)
-        if (paddr < 0 || paddr >= memory.length)
-            return 0;
-
-        int amount = Math.min(length, memory.length-paddr);
-        System.arraycopy(memory, vaddr, data, offset, amount);
-
+        int amount = 0;
+        while(length > 0)
+        {
+	        TranslationEntry entry = pageTable[vpn];
+	        if( !entry.valid) return -1;
+	        entry.used = true;
+	        int paddr = entry.ppn*pageSize + voffset;
+	        
+	        
+	        // for now, just assume that virtual addresses equal physical addresses
+	        // change vaddr to paddr (WuYijie)
+	        if (paddr < 0 || paddr >= memory.length)
+	            return amount;
+	
+	        int tam = Math.min(length, memory.length-paddr);
+	        System.arraycopy(memory, paddr, data, offset, tam);
+	        amount += tam;
+	        offset += tam;
+	        length -= tam;
+	        ++vpn;
+	        voffset = 0;
+        }
         return amount;
     }
 
@@ -216,20 +225,31 @@ public class UserProcess {
 
         byte[] memory = Machine.processor().getMemory();
         
+        // Hanrui Zhang
+        // Multiple pages supported
         int vpn = Processor.pageFromAddress(vaddr);
         int voffset = Processor.offsetFromAddress(vaddr);
-        TranslationEntry entry = pageTable[vpn];
+        int amount = 0;
         // 
-        if( !entry.valid || entry.readOnly) return -1;
-        int paddr = entry.ppn*pageSize + voffset;
-        entry.used = true; entry.dirty = true;
-        // for now, just assume that virtual addresses equal physical addresses
-        // change vaddr to paddr (WuYijie)
-        if (paddr < 0 || paddr >= memory.length)
-            return 0;
-        
-        int amount = Math.min(length, memory.length-vaddr);
-        System.arraycopy(data, offset, memory, vaddr, amount);
+	    while(length > 0)
+	    {
+	    	TranslationEntry entry = pageTable[vpn];
+	        if( !entry.valid || entry.readOnly) return -1;
+	        int paddr = entry.ppn*pageSize + voffset;
+	        entry.used = true; entry.dirty = true;
+	        // for now, just assume that virtual addresses equal physical addresses
+	        // change vaddr to paddr (WuYijie)
+	        if (paddr < 0 || paddr >= memory.length)
+	            return amount;
+	        
+	        int tam = Math.min(length, memory.length-paddr);
+	        System.arraycopy(data, offset, memory, paddr, tam);
+	        amount += tam;
+	        offset += tam;
+	        length -= tam;
+	        ++vpn;
+	        voffset = 0;
+	    }
 
         return amount;
     }
@@ -344,6 +364,7 @@ public class UserProcess {
         }
 
         // load sections
+        //System.out.println("New process.");
         for (int s=0; s<coff.getNumSections(); s++) {
             CoffSection section = coff.getSection(s);
             
@@ -352,11 +373,16 @@ public class UserProcess {
 
             for (int i=0; i<section.getLength(); i++) {
                 int vpn = section.getFirstVPN()+i;
+                //System.out.println("length: " + section.getLength());
+                //System.out.println("first VPN: " + section.getFirstVPN());
+                //System.out.println("current VPN: " + (section.getFirstVPN() + i));
+                
 
                 // for now, just assume virtual addresses=physical addresses
                 // change vpn to ppn (WuYijie)
                 TranslationEntry entry = pageTable[vpn];
                 entry.readOnly = section.isReadOnly();
+                //System.out.println("PPN: " + entry.ppn);
                 section.loadPage(i, entry.ppn);
             }
         }
@@ -371,7 +397,9 @@ public class UserProcess {
     	// close the program
     	coff.close();
     	// release pages
+    	//System.out.println("!!!!unloading sections, num: " + numPages);
     	for(int i=0;i<numPages;++i){
+    		//System.out.println("!!!!freeing " + pageTable[i].ppn);
     		UserKernel.releaseFreePage(pageTable[i].ppn);
     		pageTable[i] = null;
     	}
@@ -548,6 +576,8 @@ public class UserProcess {
             return -1;
         }
         FileDescriptor fd = fds[fdn];
+        if(fd == null)
+        	return -1;
         fd.file.close();
         fds[fdn] = null;
 
@@ -597,6 +627,7 @@ public class UserProcess {
     //begin
     private void handleExit(int status)
     {
+    	//System.out.println("!!!!!!!handling exit");
     	exitStatus.put(pid, status);
     	for(Map.Entry<Integer, KThread> e : joiningPool.entrySet())
     	{
@@ -615,7 +646,6 @@ public class UserProcess {
     	}
     	*/
     	// for uni-thread processes, just finish current thread
-    	KThread.finish();
     	unloadSections();
     	for(int i = 0; i < maxfd; ++i)
     	{
@@ -623,6 +653,7 @@ public class UserProcess {
     	}
     	parent.childrenPool.remove(pid);
     	taskPool.remove(pid);
+    	KThread.finish();
     	if(taskPool.size() == 0)
     	{
     		Kernel.kernel.terminate();
