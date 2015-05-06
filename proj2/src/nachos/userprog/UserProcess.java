@@ -557,7 +557,6 @@ public class UserProcess {
     	}
     	byte []buffer = new byte[size];
     	int readsize = this.fds[fd].file.read(buffer, 0, size);
-        writeVirtualMemory(int vaddr, byte[] data)
     	if(readsize<0){
     		return -1;
     	}else{
@@ -578,7 +577,7 @@ public class UserProcess {
     		return -1;
     	}
     	byte []buffer = new byte[size];
-        int readSize = readVirtualMemory(bufferPtr, buffer)
+        int readSize = readVirtualMemory(bufferPtr, buffer);
 
     	int writesize = this.fds[fd].file.write(buffer, 0, readSize);
     	return writesize<0? -1: writesize;
