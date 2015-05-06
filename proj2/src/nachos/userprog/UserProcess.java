@@ -659,7 +659,10 @@ public class UserProcess {
     	{
     		handleClose(i);
     	}
-    	parent.childrenPool.remove(pid);
+    	if(parent != null)
+    	{
+    		parent.childrenPool.remove(pid);
+    	}
     	taskPool.remove(pid);
     	KThread.finish();
     	if(taskPool.size() == 0)
