@@ -27,7 +27,7 @@ import java.util.LinkedList;
  * Unlike a priority scheduler, these tickets add (as opposed to just taking
  * the maximum).
  */
-public class LotteryScheduler {
+public class LotteryScheduler extends Scheduler {
     /**
      * Allocate a new lottery scheduler.
      */

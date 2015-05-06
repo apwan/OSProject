@@ -68,14 +68,11 @@ public class UserProcess {
         
         //Hanrui Zhang
         //begin
-        //new UThread(this).setName(name).fork();
         KThread thread = new UThread(this).setName(name);
         threadPool.add(thread);
         thread.fork();
         taskPool.put(pid, this);
-        //System.out.println("process " + pid + " starting");
-        //end
-
+        
         return true;
     }
     
@@ -374,7 +371,6 @@ public class UserProcess {
         }
 
         // load sections
-        //System.out.println("New process.");
         for (int s=0; s<coff.getNumSections(); s++) {
             CoffSection section = coff.getSection(s);
             
@@ -383,16 +379,12 @@ public class UserProcess {
 
             for (int i=0; i<section.getLength(); i++) {
                 int vpn = section.getFirstVPN()+i;
-                //System.out.println("length: " + section.getLength());
-                //System.out.println("first VPN: " + section.getFirstVPN());
-                //System.out.println("current VPN: " + (section.getFirstVPN() + i));
                 
 
                 // for now, just assume virtual addresses=physical addresses
                 // change vpn to ppn (WuYijie)
                 TranslationEntry entry = pageTable[vpn];
                 entry.readOnly = section.isReadOnly();
-                //System.out.println("PPN: " + entry.ppn);
                 section.loadPage(i, entry.ppn);
             }
         }
@@ -407,9 +399,7 @@ public class UserProcess {
     	// close the program
     	coff.close();
     	// release pages
-    	//System.out.println("!!!!unloading sections, num: " + numPages);
     	for(int i=0;i<numPages;++i){
-    		//System.out.println("!!!!freeing " + pageTable[i].ppn);
     		UserKernel.releaseFreePage(pageTable[i].ppn);
     		pageTable[i] = null;
     	}
@@ -640,14 +630,11 @@ public class UserProcess {
     //begin
     private void handleExit(int status)
     {
-    	//System.out.println("!!!!!!!handling exit");
-    	//System.out.println("process " + pid + " exiting");
     	exitStatus.put(pid, status);
     	for(Map.Entry<Integer, KThread> e : joiningPool.entrySet())
     	{
     		int k = e.getKey().intValue();
     		KThread v = e.getValue();
-    		//byte[] data = {(byte)((status >> 24) & 255), (byte)((status >> 16) & 255), (byte)((status >> 8) & 255), (byte)((status >> 0) & 255)};
     		byte[] data = {(byte)((status >> 0) & 255), (byte)((status >> 8) & 255), (byte)((status >> 16) & 255), (byte)((status >> 24) & 255)};
     		writePhysicalMemory(k, data);
     		v.ready();
@@ -690,7 +677,6 @@ public class UserProcess {
     			int t = 0;
     			for(int j = 0; j < 4; ++j)
     			{
-    				//t += (((int)addr[j]) << ((3 - j) * 8));
     				t += (((int)addr[j]) << (j * 8));
     			}
     			args[i] = readVirtualMemoryString(t, maxlen);
@@ -703,7 +689,6 @@ public class UserProcess {
     	if(newProcess.execute(name, args))
     	{
     		childrenPool.add(newProcess.pid);
-    		taskPool.put(newProcess.pid, newProcess);
     		return newProcess.pid;
     	}
     	else
