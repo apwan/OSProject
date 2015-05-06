@@ -171,7 +171,7 @@ public class UserProcess {
         while(length > 0)
         {
 	        TranslationEntry entry = pageTable[vpn];
-	        if( !entry.valid) return -1;
+	        if( !entry.valid || vpn >= numPages) return -1;
 	        entry.used = true;
 	        int paddr = entry.ppn*pageSize + voffset;
 	        
@@ -204,6 +204,14 @@ public class UserProcess {
     public int writeVirtualMemory(int vaddr, byte[] data) {
         return writeVirtualMemory(vaddr, data, 0, data.length);
     }
+    
+    private int writePhysicalMemory(int paddr, byte[] data)
+    {
+    	byte[] memory = Machine.processor().getMemory();
+    	int amount = Math.min(data.length, memory.length - paddr);
+    	System.arraycopy(data, 0, memory, paddr, amount);
+    	return amount;
+    }
 
     /**
      * Transfer data from the specified array to this process's virtual memory.
@@ -234,7 +242,7 @@ public class UserProcess {
 	    while(length > 0)
 	    {
 	    	TranslationEntry entry = pageTable[vpn];
-	        if( !entry.valid || entry.readOnly) return -1;
+	        if( !entry.valid || entry.readOnly || vpn >= numPages) return -1;
 	        int paddr = entry.ppn*pageSize + voffset;
 	        entry.used = true; entry.dirty = true;
 	        // for now, just assume that virtual addresses equal physical addresses
@@ -635,7 +643,7 @@ public class UserProcess {
     		KThread v = e.getValue();
     		//byte[] data = {(byte)((status >> 24) & 255), (byte)((status >> 16) & 255), (byte)((status >> 8) & 255), (byte)((status >> 0) & 255)};
     		byte[] data = {(byte)((status >> 0) & 255), (byte)((status >> 8) & 255), (byte)((status >> 16) & 255), (byte)((status >> 24) & 255)};
-    		writeVirtualMemory(k, data);
+    		writePhysicalMemory(k, data);
     		v.ready();
     	}
     	/*
@@ -702,7 +710,19 @@ public class UserProcess {
     		return -1;
     	}
     	UserProcess joining = taskPool.get(pid);
-    	joining.joiningPool.put(new Integer(statusAddr), thread);
+    	int vpn = Processor.pageFromAddress(statusAddr);
+        int voffset = Processor.offsetFromAddress(statusAddr);
+        if(vpn >= numPages)
+        {
+        	return -1;
+        }
+    	TranslationEntry entry = pageTable[vpn];
+        if(!entry.valid || entry.readOnly) 
+        {
+        	return -1;
+        }
+        int paddr = entry.ppn * pageSize + voffset;
+    	joining.joiningPool.put(paddr, thread);
     	KThread.sleep();
     	if(exitStatus.get(pid) != -1)
     	{
