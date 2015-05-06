@@ -241,8 +241,10 @@ public class UserProcess {
         // 
 	    while(length > 0)
 	    {
+	    	if(vpn >= numPages)
+	    		return -1;
 	    	TranslationEntry entry = pageTable[vpn];
-	        if( !entry.valid || entry.readOnly || vpn >= numPages) return -1;
+	        if( !entry.valid || entry.readOnly) return -1;
 	        int paddr = entry.ppn*pageSize + voffset;
 	        entry.used = true; entry.dirty = true;
 	        // for now, just assume that virtual addresses equal physical addresses
