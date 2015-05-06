@@ -597,6 +597,7 @@ public class UserProcess {
     //begin
     private void handleExit(int status)
     {
+    	exitStatus.put(pid, status);
     	for(Map.Entry<Integer, KThread> e : joiningPool.entrySet())
     	{
     		int k = e.getKey().intValue();
@@ -672,7 +673,14 @@ public class UserProcess {
     	UserProcess joining = taskPool.get(pid);
     	joining.joiningPool.put(new Integer(statusAddr), thread);
     	KThread.sleep();
-    	return 1;
+    	if(exitStatus.get(pid) != -1)
+    	{
+    		return 1;
+    	}
+    	else
+    	{
+    		return 0;
+    	}
     }
     private int handleRand()
     {
@@ -776,7 +784,9 @@ public class UserProcess {
         default:
             Lib.debug(dbgProcess, "Unexpected exception: " +
                       Processor.exceptionNames[cause]);
-            Lib.assertNotReached("Unexpected exception");
+            handleExit(-1);
+            return;
+            //Lib.assertNotReached("Unexpected exception");
         }
     }
 
@@ -790,6 +800,7 @@ public class UserProcess {
 
     private static int taskCounter = 0;
     private static Map<Integer, UserProcess> taskPool = new HashMap<Integer, UserProcess>();
+    private static Map<Integer, Integer> exitStatus = new HashMap<Integer, Integer>();
     private static Random rg = new Random();
     //end
 
