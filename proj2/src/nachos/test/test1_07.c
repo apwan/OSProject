@@ -13,7 +13,7 @@
 char buf[BUFSIZE],buf2[BUFSIZE];
 int pids[INSTCNT];
 
-int compare(int size)
+int compare(char* buf, char* buf2, int size)
 {
 	int i;
 	for(i=0;i<size;i++)
@@ -22,7 +22,7 @@ int compare(int size)
 	return 1;
 }
 char filename[20];
-int fd,size,i,j,ret;
+int fd,size,i,j,ret,st;
 #define check(ret) {if(ret<0)return -1;}
 #define equal(ret,exp) {if(ret!=exp)return -1;}
 int main(int argc, char** argv)
@@ -37,15 +37,15 @@ int main(int argc, char** argv)
 			check(pids[i]=exec("test1_07.coff",INSTCNT+i,argv));
 		ret=0;
 		for(i=0;i<INSTCNT;i++)
-			ret+=join(pids[i]);
-		if(ret<0)return ret;//might <-1
+			ret+=join(pids[i],&st);
+		if(ret<=0)return ret;
 		
 		for(i=0;i<INSTCNT;i++)
 			check(pids[i]=exec("test1_07.coff",INSTCNT*2+i,argv));
 		ret=0;
 		for(i=0;i<INSTCNT;i++)
-			ret+=join(pids[i]);
-		if(ret<0)return ret;//might <-1
+			ret+=join(pids[i],&st);
+		if(ret<=0)return ret;
 		
 		for(i=0;i<INSTCNT;i++)
 		{
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 		sprintf(filename,"test-rwi%d.tmp",argc%INSTCNT);
 		check(fd=open(filename));
 		check(read(fd,buf2,20));
-		check(compare(buf2,buf+(i%20)),20);
+		check(compare(buf2,buf+(i%20),20));
 		check(close(fd));
 	}
 	return 0;

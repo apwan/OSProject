@@ -8,7 +8,7 @@
 
 #define check(ret) {if(ret<0)return -1;}
 #define equal(ret,exp) {if(ret!=exp)return -1;}
-int i,j,k,fd;
+int i,j,k,fd,st;
 int pids[20];
 int ranInt()
 {
@@ -36,7 +36,11 @@ int main(int argc, char** argv)
 		for(i=0;i<1000;i++)
 			pids[i]=exec("test3_07.coff",1000+i,argv);
 		for(i=0;i<1000;i++)
-			equal(join(pids[i]),i);
+		{		
+			equal(join(pids[i],&st),1);
+			equal(st,i);
+		}
+		
 		
 		unlink("test_3_07_delayer.tmp");
 		exit(0);

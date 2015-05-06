@@ -12,7 +12,7 @@
 
 char buf[BUFSIZE],buf2[BUFSIZE];
 
-int compare(int size)
+int compare(char* buf,char* buf2, int size)
 {
 	int i;
 	for(i=0;i<size;i++)

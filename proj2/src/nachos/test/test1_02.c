@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 	
 	size=567;//magic number
 	ret=write(fd,buf,size);
-	if(ret<size)break;//disk filled.
+	if(ret<size)return -1;//disk filled.
 	
 	ret=close(fd);
 	if(ret<0)return -1;
