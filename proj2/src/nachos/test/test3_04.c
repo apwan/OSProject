@@ -8,7 +8,7 @@
 
 #define check(ret) {if(ret<0)return -1;}
 #define equal(ret,exp) {if(ret!=exp)return -1;}
-int pid,fd;
+int pid,fd,i;
 char buf[20];
 int main(int argc, char** argv)
 {

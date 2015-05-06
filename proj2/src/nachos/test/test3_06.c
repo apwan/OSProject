@@ -8,7 +8,7 @@
 
 #define check(ret) {if(ret<0)return -1;}
 #define equal(ret,exp) {if(ret!=exp)return -1;}
-int i,j,k;
+int i,j,k,st,pid;
 int main(int argc, char** argv)
 {
 	if(argc>1000)
@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 	else
 	{
 		pid=exec("test3_06.coff",1234,argv);
-		check(join(pid)!=0);
+		equal(join(pid,&st),0);//unhandled exception:0
 		exit(0);
 	}
 	return 0;
