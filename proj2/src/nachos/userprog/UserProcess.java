@@ -72,6 +72,8 @@ public class UserProcess {
         KThread thread = new UThread(this).setName(name);
         threadPool.add(thread);
         thread.fork();
+        taskPool.put(pid, this);
+        //System.out.println("process " + pid + " starting");
         //end
 
         return true;
@@ -636,6 +638,7 @@ public class UserProcess {
     private void handleExit(int status)
     {
     	//System.out.println("!!!!!!!handling exit");
+    	//System.out.println("process " + pid + " exiting");
     	exitStatus.put(pid, status);
     	for(Map.Entry<Integer, KThread> e : joiningPool.entrySet())
     	{
@@ -664,11 +667,11 @@ public class UserProcess {
     		parent.childrenPool.remove(pid);
     	}
     	taskPool.remove(pid);
-    	KThread.finish();
     	if(taskPool.size() == 0)
     	{
     		Kernel.kernel.terminate();
     	}
+    	KThread.finish();
     }
     private int handleExec(int fileAddr, int argc, int argv)
     {
@@ -839,7 +842,7 @@ public class UserProcess {
             Lib.debug(dbgProcess, "Unexpected exception: " +
                       Processor.exceptionNames[cause]);
             handleExit(-1);
-            return;
+            
             //Lib.assertNotReached("Unexpected exception");
         }
     }
