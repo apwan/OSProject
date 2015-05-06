@@ -197,7 +197,9 @@ public class LotteryScheduler {
                     lotterySum += ts.getEffectivePriority();
                 }
             }
-
+            if (lotterySum <= 0){
+                return null;
+            }
             int ticket = Lib.random(lotterySum) + 1;
             
             it = waitQueue.iterator();
