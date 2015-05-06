@@ -15,4 +15,4 @@ hs_err_pid*
 */bin/*
 */doc/*
 */mips/*
-*/src/nachos/test/test*.*
+*/src/nachos/test/test*.coff
