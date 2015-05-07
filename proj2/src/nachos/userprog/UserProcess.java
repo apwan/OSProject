@@ -476,7 +476,7 @@ public class UserProcess {
         // Create file, clean the file if it exists (set file length to 0)
         OpenFile file = UserKernel.fileSystem.open(name, true);
         if (file == null){
-            // filename is invaild or
+            // filename is invalid or
             // Too much file opened
             return -1;
         }
@@ -517,7 +517,7 @@ public class UserProcess {
         
         OpenFile file = UserKernel.fileSystem.open(name, false);
         if (file == null){
-            // filename is invaild or
+            // filename is invalid or
             // Too much file opened
             return -1;
         }
