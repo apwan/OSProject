@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+echo "possible pid:";
+pgrep server;
+echo "stop service not yet implemented";
