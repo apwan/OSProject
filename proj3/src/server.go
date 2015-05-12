@@ -94,13 +94,22 @@ type BoolResponse struct {
 var (
 	TrueResponseStr = "{\"success\":true}"
 	FalseResponseStr = "{\"success\":false}"
-)
+)// in high-performance setting, TRS="1", FRS="0" !!!
 
 type StrResponse struct {
 	Success bool `json:"success"`
     Value string `json:"value"`
 }
 
+func naive_kvUpsertHandler(w http.ResponseWriter, r *http.Request) {
+	key:= r.FormValue("key")
+	value:= r.FormValue("value")
+	if db.Set(key,value){
+		fmt.Fprintf(w, "%s",TrueResponseStr)
+		return
+	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
+} 
 func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
@@ -110,11 +119,23 @@ func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 } 
-func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	
-} 
 func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	
+	key:= r.FormValue("key")
+	value:= r.FormValue("value")
+	if db.Has(key) && db.Set(key,value){
+		fmt.Fprintf(w, "%s",TrueResponseStr)
+		return
+	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
+} 
+func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	key:= r.FormValue("key")
+	if db.Has(key){
+		db.Remove(key)
+		fmt.Fprintf(w, "%s",TrueResponseStr)
+		return
+	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
 } 
 func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
