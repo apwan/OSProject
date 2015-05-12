@@ -114,10 +114,10 @@ func kvmanDumpHandler(w http.ResponseWriter, r *http.Request) {
 func kvmanShutdownHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q, DB suicide",
       html.EscapeString(r.URL.Path))
-	//should send signal to peer!
-	
-	//use defer to allow connection be closed gracefully
-	defer os.Exit(0)
+	go func(){
+		time.Sleep(1)
+		os.Exit(0)
+	}()
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
