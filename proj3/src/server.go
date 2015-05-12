@@ -246,6 +246,28 @@ func primary_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 }
 func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	switch stage {
+		case COLD_START, WARM_START, BOOTSTRAP:
+			fmt.Fprintf(w, "%s",FalseResponseStr)
+			return
+	}
+	key:= r.FormValue("key")
+	if db.Has(key){
+		recover:=db.Get(key)
+		db.Remove(key)
+		ret:= fastSync(key,"",true)
+		if ret{
+			ret:=&StrResponse{
+				Success:true,
+				Value:recover}
+			str,_:=json.Marshal(ret);
+			fmt.Fprintf(w, "%s",str)
+			return
+		}
+		//recover
+		db.Set(key,recover)
+	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
 }
 
 
