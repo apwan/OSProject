@@ -1,6 +1,8 @@
 package main
 
 import (
+  "net"
+  "net/url"
   "net/http"
   "html"
   "log"
@@ -58,7 +60,7 @@ func det_role() int {
 	}
 	return 0
 }
-func find_port() int{
+func find_port() (int,int){
 	var p,err=strconv.Atoi(conf["port"])
 		if err!=nil {
 			fmt.Println("Failed to parse port:"+conf["port"]);
@@ -70,31 +72,70 @@ func find_port() int{
 			panic(err2)
 		}
 		
-	if role==PRIMARY{
-		return p
-	}
 	if conf["primary"]!=conf["backup"]{
-		return p
+		return p,p
 	}
-	return bp
+	
+	if role==PRIMARY{
+		return p,bp
+	}
+	return bp,bp
 }
 var(
  role = det_role() //PRIMARY, SECONDARY
  stage = COLD_START // COLD_START=0 WARM_START=1 BOOTSTRAP=2 SYNC=3
  conf = readConf("conf/settings.conf")
- listenPort = find_port()
+ listenPort, backupPort = find_port()
  db = cmap_string_string.New()
  )
- 
- //Main program started here
- //methods: insert,delete,update; get (via GET)
-type BoolResponse struct {
+ type BoolResponse struct {
     Success bool `json:"success"`
 }
 var (
 	TrueResponseStr = "{\"success\":true}"
 	FalseResponseStr = "{\"success\":false}"
 )// in high-performance setting, TRS="1", FRS="0" !!!
+ 
+ 
+var short_timeout = time.Duration(500 * time.Millisecond)
+func dialTimeout(network, addr string) (net.Conn, error) {
+    return net.DialTimeout(network, addr, short_timeout)
+}
+var fastTransport http.RoundTripper = &http.Transport{
+        Proxy:                 http.ProxyFromEnvironment,
+        ResponseHeaderTimeout: short_timeout,
+		Dial: dialTimeout,
+}
+var fastClient = http.Client{
+        Transport: fastTransport,
+    }
+var backup_furl = "http://"+conf["primary"]+":"+strconv.Itoa(backupPort)+"/kv/upsert?"
+func fastSync(key string, value string, del bool) bool{
+	var url = backup_furl+
+		"?key="+url.QueryEscape(key)+
+		"&value="+url.QueryEscape(value)
+	if(del){
+		url += "&delete=true"
+	}
+	//key, value, delete=true
+	resp, err := fastClient.Get(url)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return false
+	}
+	fmt.Print("fastSync:")
+	fmt.Println(body)
+	return string(body)=="1" ||  string(body)== TrueResponseStr
+}
+ 
+ 
+ //Main program started here
+ //methods: insert,delete,update; get (via GET)
+
 
 type StrResponse struct {
 	Success bool `json:"success"`
@@ -104,6 +145,12 @@ type StrResponse struct {
 func naive_kvUpsertHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
+	delete:= r.FormValue("delete")
+	if(delete == "true"){
+		db.Remove(key)
+		fmt.Fprintf(w, "%s",TrueResponseStr)
+		return
+	}
 	if db.Set(key,value){
 		fmt.Fprintf(w, "%s",TrueResponseStr)
 		return
