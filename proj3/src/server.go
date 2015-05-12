@@ -146,6 +146,20 @@ func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	str,_:=json.Marshal(ret);
 	fmt.Fprintf(w, "%s",str)
 } 
+
+func primary_kvGetHandler(w http.ResponseWriter, r *http.Request) {
+	switch stage {
+		case COLD_START, WARM_START:
+			fmt.Fprintf(w, "%s",FalseResponseStr)
+			return
+		case BOOTSTRAP, SYNC:
+			naive_kvGetHandler(w, r);
+			return
+	}
+}
+
+
+
  
 func kvmanCountkeyHandler(w http.ResponseWriter, r *http.Request) {
 	tmp := make(map[string]int)
