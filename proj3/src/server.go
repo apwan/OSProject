@@ -87,12 +87,34 @@ var(
  )
  
  //Main program started here
- 
- 
-func kvHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %q, we should implements insert/delete/get/update",
-      html.EscapeString(r.URL.Path))
+ //methods: insert,delete,update; get (via GET)
+type BoolResponse struct {
+    Success bool `json:"success"`
 }
+type StrResponse struct {
+	Success bool `json:"success"`
+    Value string `json:"value"`
+}
+
+func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
+	
+} 
+func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	
+} 
+func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	
+} 
+func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
+	key:= r.FormValue("key")
+	val,ok:= db.Get(key)
+	ret:=&StrResponse{
+		Success:ok,
+		Value:val}
+	str,_:=json.Marshal(ret);
+	fmt.Fprintf(w, "%s",str)
+} 
+ 
 func kvmanCountkeyHandler(w http.ResponseWriter, r *http.Request) {
 	tmp := make(map[string]int)
 	tmp["result"]=db.Count()
@@ -165,5 +187,9 @@ func main(){
 	http.HandleFunc("/kvman/countkey", kvmanCountkeyHandler)
 	http.HandleFunc("/kvman/dump", kvmanDumpHandler)
 	http.HandleFunc("/kvman/shutdown", kvmanShutdownHandler)
+	
+	if true{// should be if(backup)
+		http.HandleFunc("/kv/get", naive_kvGetHandler)
+	}
 	log.Fatal(s.ListenAndServe())  
 }
