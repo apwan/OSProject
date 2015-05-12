@@ -115,13 +115,14 @@ func kvmanShutdownHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q, DB suicide",
       html.EscapeString(r.URL.Path))
 	go func(){
-		time.Sleep(1)
+		time.Sleep(1) //sleep epsilon
 		os.Exit(0)
 	}()
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/"{
+		time.Sleep(3 * time.Second)
 		fmt.Fprintf(w, "Unrecognized Request")
 		return
 	}
