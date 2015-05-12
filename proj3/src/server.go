@@ -312,9 +312,7 @@ func main(){
 		http.HandleFunc("/kv/update", naive_kvUpdateHandler)
 		http.HandleFunc("/kv/delete", naive_kvDeleteHandler)
 		http.HandleFunc("/kv/upsert", naive_kvUpsertHandler)
-	}
-	else
-	{
+	}else{
 		http.HandleFunc("/kv/get", primary_kvGetHandler)
 		http.HandleFunc("/kv/insert", primary_kvInsertHandler)
 		http.HandleFunc("/kv/update", primary_kvUpdateHandler)
