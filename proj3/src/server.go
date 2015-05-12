@@ -10,6 +10,7 @@ import (
   "os"
   "io/ioutil"
   "encoding/json"
+  "./cmap_string_string"
   )
  
   
@@ -82,7 +83,11 @@ var(
  stage = COLD_START // COLD_START=0 WARM_START=1 BOOTSTRAP=2 SYNC=3
  conf = readConf("conf/settings.conf")
  listenPort = find_port()
+ db = cmap_string_string.New()
  )
+ 
+ //Main program started here
+ 
  
 func kvHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q, we should implements insert/delete/get/update",
@@ -96,8 +101,16 @@ func kvmanHandler(w http.ResponseWriter, r *http.Request) {
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q, this is a server.",
       html.EscapeString(r.URL.Path))
-	fmt.Fprintf(w, "Role:%d, stage:%d",
+	fmt.Fprintf(w, "Role:%d, stage:%d,",
       role, stage)
+	var str,err=db.MarshalJSON();
+	if err!=nil{
+		fmt.Fprintf(w, "DB marshalling error %s",err)
+	}else{
+		fmt.Fprintf(w, "DB marshalled content:%s",
+			str)
+	}
+	fmt.Printf("Marshalled cDB:%s",str);
 }
 
 func main(){
@@ -127,7 +140,7 @@ func main(){
   }
   //http.HandleFunc("/kv", kvHandler)
   //http.HandleFunc("/kvman", kvmanHandler)
-  
+  db.Set("_","__");
   http.HandleFunc("/", homeHandler)
   log.Fatal(s.ListenAndServe())
 	
