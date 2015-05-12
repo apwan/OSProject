@@ -232,7 +232,7 @@ func primary_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
 	if db.Has(key){
-		recover:=db.Get(key)
+		recover,_:=db.Get(key)
 		if(db.Set(key,value)){
 			ret:= fastSync(key,value,false)
 			if ret{
@@ -253,7 +253,7 @@ func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	key:= r.FormValue("key")
 	if db.Has(key){
-		recover:=db.Get(key)
+		recover,_:=db.Get(key)
 		db.Remove(key)
 		ret:= fastSync(key,"",true)
 		if ret{
