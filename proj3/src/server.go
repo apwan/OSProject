@@ -205,6 +205,31 @@ func primary_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func primary_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
+	switch stage {
+		case COLD_START, WARM_START, BOOTSTRAP:
+			fmt.Fprintf(w, "%s",FalseResponseStr)
+			return
+	}
+	//case SYNC:
+	key:= r.FormValue("key")
+	value:= r.FormValue("value")
+	if !db.Has(key) && db.Set(key,value){
+		ret:= fastSync(key,value,false)
+		if ret{
+			fmt.Fprintf(w, "%s",TrueResponseStr)
+			return
+		}
+		//recover
+		db.Remove(key)
+	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
+}
+
+func primary_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
+}
+func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
+}
 
 
  
@@ -281,12 +306,19 @@ func main(){
 	http.HandleFunc("/kvman/dump", kvmanDumpHandler)
 	http.HandleFunc("/kvman/shutdown", kvmanShutdownHandler)
 	
-	if true{// should be if(backup)
+	if role==BACKUP{// should be if(backup)
 		http.HandleFunc("/kv/get", naive_kvGetHandler)
 		http.HandleFunc("/kv/insert", naive_kvInsertHandler)
 		http.HandleFunc("/kv/update", naive_kvUpdateHandler)
 		http.HandleFunc("/kv/delete", naive_kvDeleteHandler)
 		http.HandleFunc("/kv/upsert", naive_kvUpsertHandler)
+	}
+	else
+	{
+		http.HandleFunc("/kv/get", primary_kvGetHandler)
+		http.HandleFunc("/kv/insert", primary_kvInsertHandler)
+		http.HandleFunc("/kv/update", primary_kvUpdateHandler)
+		http.HandleFunc("/kv/delete", primary_kvDeleteHandler)
 	}
 	log.Fatal(s.ListenAndServe())  
 }
