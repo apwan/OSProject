@@ -5,7 +5,7 @@ class curl {
 	public static $_XFIP = "59.66.130.223";
 	public static $_Curl_Handle = null;
 	public static $_Curl_Handles = array();
-	public static function buildCurlHandle($ch, $url, $ref=false)
+	public static function buildCurlHandle($ch, $url, $data=false, $post=false)
 	{	
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_FAILONERROR, true);
@@ -17,18 +17,31 @@ class curl {
 		curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate');//解释gzip
 		curl_setopt($ch, CURLOPT_TIMEOUT, 30); // 设置超时限制防止死循环
 		
-		if($ref){
-			curl_setopt($ch, CURLOPT_REFERER, $ref);//带来的Referer
-		}else{
-			curl_setopt($ch, CURLOPT_AUTOREFERER, 1); // 自动设置Referer
+		//if($ref){
+			//curl_setopt($ch, CURLOPT_REFERER, $ref);//带来的Referer
+		//}else{
+			//curl_setopt($ch, CURLOPT_AUTOREFERER, 1); // 自动设置Referer
+		//}
+		
+		$postData = '';
+		//create name value pairs seperated by &
+		if(count($data))
+			foreach($data as $k => $v) 
+			{ 
+				$postData .= $k . '='.urlencode($v).'&'; 
+			}
+		rtrim($postData, '&');
+		if($post)
+		{
+			curl_setopt($ch, CURLOPT_POST, count($postData));
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);    
 		}
+		else
+		{
+			curl_setopt($ch, CURLOPT_URL, $url.'?'.$postData);
+		}
+   
 		
-		
-		$_Cookie=realpath(self::$_Cookie);
-		if(!is_readable($_Cookie) || !is_writable($_Cookie)) die( 'No cookie saver.');
-		
-		curl_setopt($ch, CURLOPT_COOKIEJAR,  $_Cookie ); //存储cookies
-		curl_setopt($ch, CURLOPT_COOKIEFILE, $_Cookie ); //存储cookies
 		$head=array(
 		 'X-FORWARDED-FOR:'.self::$_XFIP,
 		 'User-Agent: '.self::$_UA,
@@ -42,19 +55,24 @@ class curl {
 		curl_setopt($ch,CURLOPT_HTTPHEADER,$head);
 		return $ch;
 	}
-	public static function Get($url, $ref=false)//single request
+	public static function Get($url, $data)//single request
 	{
-		//$ch = curl_init($url); //初始化
-		
 		if(! self::$_Curl_Handle) self::$_Curl_Handle=curl_init();
 		$ch = self::$_Curl_Handle;
-		$ch = self::buildCurlHandle($ch, $url, $ref);
+		$ch = self::buildCurlHandle($ch, $url, $data);
 		$data = curl_exec($ch);
-		//curl_close($ch);	//connection reuse
+		return $data;
+	}
+	public static function Post($url, $data)//single request
+	{
+		if(! self::$_Curl_Handle) self::$_Curl_Handle=curl_init();
+		$ch = self::$_Curl_Handle;
+		$ch = self::buildCurlHandle($ch, $url, $data, true);
+		$data = curl_exec($ch);
 		return $data;
 	}
 	
-	public static function multiGet($urls, $ref=false)
+	public static function Multi($urls, $dataset, $ispost=false)
 	{
 		$chs = self::$_Curl_Handles;
 		$queue = curl_multi_init();
@@ -62,8 +80,11 @@ class curl {
 		{
 			if(!isset($chs[$i]) || !$chs[$i])
 				$chs[$i] = curl_init();
-
-			$chs[$i] = self::buildCurlHandle($chs[$i], $url, $ref);
+			$post=false;
+			if($ispost===true)$post=true;
+			if(is_array($ispost))$post=$ispost[$i];
+			$chs[$i] = self::buildCurlHandle($chs[$i], 
+				$url, $dataset[$i], $post);
 			curl_multi_add_handle($queue, $chs[$i]);
 		}
 		
