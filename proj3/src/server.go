@@ -3,8 +3,8 @@ package main
 import (
   "net/http"
   "html"
-  //"log"
-  //"time"
+  "log"
+  "time"
   "fmt"
   "strconv"
   "os"
@@ -92,6 +92,14 @@ func kvmanHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q, we should implements countkey/dump/shutdown",
       html.EscapeString(r.URL.Path))
 }
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, %q, this is a server.",
+      html.EscapeString(r.URL.Path))
+	fmt.Fprintf(w, "Role:%d, stage:%d",
+      role, stage)
+}
+
 func main(){
 	fmt.Println("Initialized with conf:");
 	fmt.Println(conf);
@@ -110,15 +118,17 @@ func main(){
 	fmt.Println(listenPort)
 	
 	
-  /*s := &http.Server{
-    Addr: ":8088",
+  s := &http.Server{
+    Addr: ":"+strconv.Itoa(listenPort),
     Handler: nil,
     ReadTimeout: 10 * time.Second,
     WriteTimeout: 10 * time.Second,
     MaxHeaderBytes: 1<<20,
   }
-  http.HandleFunc("/kv", kvHandler)
-  http.HandleFunc("/kvman", kvmanHandler)
-  log.Fatal(s.ListenAndServe())*/
+  //http.HandleFunc("/kv", kvHandler)
+  //http.HandleFunc("/kvman", kvmanHandler)
+  
+  http.HandleFunc("/", homeHandler)
+  log.Fatal(s.ListenAndServe())
 	
 }
