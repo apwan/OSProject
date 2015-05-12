@@ -6,6 +6,7 @@ import (
   //"log"
   //"time"
   "fmt"
+  "strconv"
   "os"
   "io/ioutil"
   "encoding/json"
@@ -33,8 +34,17 @@ func readConf(s string) map[string]string{
 	return ret
 }
 
-const PRIMARY=1
-const BACKUP=2
+const(
+ PRIMARY=1
+ BACKUP=2
+)
+const(
+ COLD_START=0
+ WARM_START=1
+ BOOTSTRAP=2
+ SYNC=3
+)
+
 func det_role() int {
 	arg_num := len(os.Args)
 	for i := 0 ; i < arg_num ;i++{
@@ -47,11 +57,31 @@ func det_role() int {
 	}
 	return 0
 }
-  
+func find_port() int{
+	var p,err=strconv.Atoi(conf["port"])
+		if err!=nil {
+			fmt.Println("Failed to parse port:"+conf["port"]);
+			panic(err)
+		}
+	var bp,err2=strconv.Atoi(conf["back_port"])
+		if err!=nil{
+			fmt.Println("Failed to parse back_port:"+conf["back_port"]);
+			panic(err2)
+		}
+		
+	if role==PRIMARY{
+		return p
+	}
+	if conf["primary"]!=conf["backup"]{
+		return p
+	}
+	return bp
+}
 var(
- role = det_role() //0 is uninitialized, 1 is primary, 2 is secondary
- stage = 0 //0: cold start, 1: warm start, 2: bootstrap, 3: synced  
+ role = det_role() //PRIMARY, SECONDARY
+ stage = COLD_START // COLD_START=0 WARM_START=1 BOOTSTRAP=2 SYNC=3
  conf = readConf("conf/settings.conf")
+ listenPort = find_port()
  )
  
 func kvHandler(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +106,10 @@ func main(){
 			fmt.Println("Unknown; please specify role as command line parameter.")
 			panic(os.Args)
 	}
+	fmt.Print("listenPort:")
+	fmt.Println(listenPort)
+	
+	
   /*s := &http.Server{
     Addr: ":8088",
     Handler: nil,
