@@ -109,7 +109,7 @@ var fastTransport http.RoundTripper = &http.Transport{
 var fastClient = http.Client{
         Transport: fastTransport,
     }
-var backup_furl = "http://"+conf["primary"]+":"+strconv.Itoa(backupPort)+"/kv/upsert?"
+var backup_furl = "http://"+conf["primary"]+":"+strconv.Itoa(backupPort)+"/kv/upsert"
 func fastSync(key string, value string, del bool) bool{
 	var url = backup_furl+
 		"?key="+url.QueryEscape(key)+
@@ -127,8 +127,6 @@ func fastSync(key string, value string, del bool) bool{
 	if err != nil {
 		return false
 	}
-	fmt.Print("fastSync:")
-	fmt.Println(body)
 	return string(body)=="1" ||  string(body)== TrueResponseStr
 }
  
