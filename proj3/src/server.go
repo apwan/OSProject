@@ -91,13 +91,24 @@ var(
 type BoolResponse struct {
     Success bool `json:"success"`
 }
+var (
+	TrueResponseStr = "{\"success\":true}"
+	FalseResponseStr = "{\"success\":false}"
+)
+
 type StrResponse struct {
 	Success bool `json:"success"`
     Value string `json:"value"`
 }
 
 func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
-	
+	key:= r.FormValue("key")
+	value:= r.FormValue("value")
+	if !db.Has(key) && db.Set(key,value){
+		fmt.Fprintf(w, "%s",TrueResponseStr)
+		return
+	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
 } 
 func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	
@@ -190,6 +201,10 @@ func main(){
 	
 	if true{// should be if(backup)
 		http.HandleFunc("/kv/get", naive_kvGetHandler)
+		http.HandleFunc("/kv/insert", naive_kvInsertHandler)
+		http.HandleFunc("/kv/update", naive_kvUpdateHandler)
+		http.HandleFunc("/kv/delete", naive_kvDeleteHandler)
+		http.HandleFunc("/kv/upsert", naive_kvUpsertHandler)
 	}
 	log.Fatal(s.ListenAndServe())  
 }

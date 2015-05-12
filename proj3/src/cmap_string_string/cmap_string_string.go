@@ -35,12 +35,14 @@ func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
 }
 
 // Sets the given value under the specified key.
-func (m *ConcurrentMap) Set(key string, value string) {
+func (m *ConcurrentMap) Set(key string, value string) bool{
 	// Get map shard.
 	shard := m.GetShard(key)
 	shard.Lock()
 	defer shard.Unlock()
 	shard.items[key] = value
+	_, ok := shard.items[key]
+	return ok
 }
 
 // Retrieves an element from map under given key.
