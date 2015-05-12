@@ -14,14 +14,44 @@ if($ret1['success']!=true ||$ret1['value']!='#')die('Is the server up and runnin
 $N=1000;
 $urls=array();
 $dataset=array();
-for($i=0;$i<$N;$i++)
-{
+$longstr='_';
+for($i=0;$i<$N;$i++){
 	$urls[$i]=$kv_url.'update';
-	$dataset[$i]=array('key'=>'$a'.$i,'value'=>'vca'.$i);
+	$dataset[$i]=array('key'=>'$a'.$i.$longstr,'value'=>'val$'.$i.$longstr);
 }
 $time_start = microtime(true);
 $ret1=curl::Multi($urls,$dataset,true);
 $ret2=curl::Multi($urls,$dataset,false);
 $time_end = microtime(true);
 $time = $time_end - $time_start;
-echo "Performed $N R/W in time:".$time;
+echo PHP_EOL;
+echo "Performed $N short R/W in time:".$time;
+echo PHP_EOL;
+$time_start = microtime(true);
+$ret2=curl::Multi($urls,$dataset,false);
+$time_end = microtime(true);
+$time = $time_end - $time_start;
+echo PHP_EOL;
+echo "Performed $N short Readonly in time:".$time;
+echo PHP_EOL;
+
+$longstr=str_repeat('*',2050);
+for($i=0;$i<$N;$i++){
+	$urls[$i]=$kv_url.'update';
+	$dataset[$i]=array('key'=>'$a'.$i.$longstr,'value'=>'val$'.$i.$longstr);
+}
+$time_start = microtime(true);
+$ret1=curl::Multi($urls,$dataset,true);
+$ret2=curl::Multi($urls,$dataset,false);
+$time_end = microtime(true);
+$time = $time_end - $time_start;
+echo PHP_EOL;
+echo "Performed $N long R/W in time:".$time;
+echo PHP_EOL;
+$time_start = microtime(true);
+$ret2=curl::Multi($urls,$dataset,false);
+$time_end = microtime(true);
+$time = $time_end - $time_start;
+echo PHP_EOL;
+echo "Performed $N long Readonly in time:".$time;
+echo PHP_EOL;

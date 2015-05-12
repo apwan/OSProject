@@ -104,7 +104,7 @@ class curl {
 					echo ',';
 				} while ($mrc == CURLM_CALL_MULTI_PERFORM);
 			}
-			usleep(1000*1000*0.01);echo '>';
+			usleep(1000);echo '>';
 			$mrc = curl_multi_exec($queue, $active);
 		}
 		//done curl_multi
