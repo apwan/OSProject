@@ -93,24 +93,43 @@ func kvHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q, we should implements insert/delete/get/update",
       html.EscapeString(r.URL.Path))
 }
-func kvmanHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %q, we should implements countkey/dump/shutdown",
+func kvmanCountkeyHandler(w http.ResponseWriter, r *http.Request) {
+	tmp := make(map[string]int)
+	tmp["result"]=db.Count()
+	var str,err=json.Marshal(tmp)
+	if err==nil{
+		fmt.Fprintf(w, "%s",str)
+		return
+	}
+	fmt.Fprintf(w, "DB marshalling error %s",err)
+}
+func kvmanDumpHandler(w http.ResponseWriter, r *http.Request) {
+	var str,err=db.MarshalJSON();
+	if err==nil{
+		fmt.Fprintf(w, "%s",str)
+		return
+	}
+	fmt.Fprintf(w, "DB marshalling error %s",err)
+}
+func kvmanShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, %q, DB suicide",
       html.EscapeString(r.URL.Path))
+	//should send signal to peer!
+	
+	//use defer to allow connection be closed gracefully
+	defer os.Exit(0)
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/"{
+		fmt.Fprintf(w, "Unrecognized Request")
+		return
+	}
 	fmt.Fprintf(w, "Hello, %q, this is a server.",
       html.EscapeString(r.URL.Path))
-	fmt.Fprintf(w, "Role:%d, stage:%d,",
+	fmt.Fprintf(w, "Role:%d, stage:%d, dump:",
       role, stage)
-	var str,err=db.MarshalJSON();
-	if err!=nil{
-		fmt.Fprintf(w, "DB marshalling error %s",err)
-	}else{
-		fmt.Fprintf(w, "DB marshalled content:%s",
-			str)
-	}
-	fmt.Printf("Marshalled cDB:%s",str);
+	kvmanDumpHandler(w,r);
 }
 
 func main(){
@@ -131,17 +150,19 @@ func main(){
 	fmt.Println(listenPort)
 	
 	
-  s := &http.Server{
-    Addr: ":"+strconv.Itoa(listenPort),
-    Handler: nil,
-    ReadTimeout: 10 * time.Second,
-    WriteTimeout: 10 * time.Second,
-    MaxHeaderBytes: 1<<20,
-  }
-  //http.HandleFunc("/kv", kvHandler)
-  //http.HandleFunc("/kvman", kvmanHandler)
-  db.Set("_","__");
-  http.HandleFunc("/", homeHandler)
-  log.Fatal(s.ListenAndServe())
-	
+	db.Set("_","__");
+  
+	s := &http.Server{
+		Addr: ":"+strconv.Itoa(listenPort),
+		Handler: nil,
+		ReadTimeout: 10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		MaxHeaderBytes: 1<<20,
+	}
+	//http.HandleFunc("/kv", kvHandler)
+	http.HandleFunc("/", homeHandler)
+	http.HandleFunc("/kvman/countkey", kvmanCountkeyHandler)
+	http.HandleFunc("/kvman/dump", kvmanDumpHandler)
+	http.HandleFunc("/kvman/shutdown", kvmanShutdownHandler)
+	log.Fatal(s.ListenAndServe())  
 }
