@@ -202,7 +202,6 @@ func primary_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 	}
 }
-
 func primary_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 	switch stage {
 		case COLD_START, WARM_START, BOOTSTRAP:
@@ -225,6 +224,26 @@ func primary_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func primary_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	switch stage {
+		case COLD_START, WARM_START, BOOTSTRAP:
+			fmt.Fprintf(w, "%s",FalseResponseStr)
+			return
+	}
+	key:= r.FormValue("key")
+	value:= r.FormValue("value")
+	if db.Has(key){
+		recover:=db.Get(key)
+		if(db.Set(key,value)){
+			ret:= fastSync(key,value,false)
+			if ret{
+					fmt.Fprintf(w, "%s",TrueResponseStr)
+					return
+			}
+		}
+		//recover
+		db.Set(key,recover)
+	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
 }
 func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
