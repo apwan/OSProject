@@ -60,6 +60,8 @@ const(
  SHUTTING_DOWN=-1
 )
 
+const check_HTTP_method = false //should be true for safety reasons
+
 func det_role() int {
 	arg_num := len(os.Args)
 	for i := 0 ; i < arg_num ;i++{
@@ -440,6 +442,16 @@ func kvmanDumpHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "DB marshalling error %s",err)
 }
 func kvmanShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "GET" {
+		fmt.Fprintf(w, "Bad Method: Please use GET")
+		return
+	}
+	if r.URL.RawQuery != "" || r.URL.Path != "/kvman/shutdown" {
+		fmt.Fprintf(w, "Bad Request: shutdown handler does not accept query parameter or malformed path")
+		return
+	}
+
+
 	stage=SHUTTING_DOWN
 	if role==PRIMARY{
 		time.Sleep(time.Millisecond*502)
@@ -448,7 +460,7 @@ func kvmanShutdownHandler(w http.ResponseWriter, r *http.Request) {
 	_,_=http.Get(peerURL+"peershutdown")
 	fmt.Fprintf(w, "Hello, %q, DB suicide",
       html.EscapeString(r.URL.Path))
-	defer func(){
+	go func(){
 		time.Sleep(time.Millisecond*1) //sleep epsilon
 		os.Exit(0)
 	}()
