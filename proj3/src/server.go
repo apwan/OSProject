@@ -10,6 +10,7 @@ import (
   "fmt"
   "strconv"
   "os"
+  "os/exec"
   "io/ioutil"
   "crypto/md5"
   "encoding/hex"
@@ -17,8 +18,12 @@ import (
   "./cmap_string_string"
   )
 
-func MD5(text string) string {
+func str_MD5(text string) string {
    hash := md5.Sum([]byte(text))
+   return hex.EncodeToString(hash[:])
+}
+func MD5(text []byte) string {
+   hash := md5.Sum(text)
    return hex.EncodeToString(hash[:])
 }
   
@@ -105,36 +110,105 @@ var(
  db = cmap_string_string.New()
  )
  
-var peerSyncErrorSignal chan int //should we use buffered channel? or let all error'd process block and respond simultaneously?
-var peerShutdownSignal chan int 
-var peerStartupSignal chan int 
-var peerInSyncSignal chan int 
- 
+var peerSyncErrorSignal=make(chan int) //should we use buffered channel? or let all error'd process block and respond simultaneously?
+var peerShutdownSignal=make(chan int)
+var peerStartupSignal=make(chan int)
+var peerInSyncSignal=make(chan int) 
  
 func housekeeper(){
 	for {
-		case stage{
-			COLD_START:
+		switch stage{
+			case COLD_START:
+				fmt.Println("Cold Start...")
+				select{//when waiting as a primary...
+					case _=<-peerSyncErrorSignal ://??
+					case _=<-peerShutdownSignal : stage=BOOTSTRAP //I have priority
+					case _=<-peerStartupSignal :  stage=BOOTSTRAP //I have priority
+					case _=<-peerInSyncSignal : stage=SYNC //alright, empty database is in sync
+					default : 
+				}
 				//test if peer exist
 				//if so, go to warm-start
-				//else, prmiary:continue backup: bootstrap
-			WARM_START:
+				resp, err := http.Get(peerURL+"peerstartup")
+				if err==nil {
+					defer resp.Body.Close()
+					body, err2 := ioutil.ReadAll(resp.Body)
+					if string(body)=="1"{	//good
+						stage=WARM_START
+						continue
+					}
+				}
+				//peer doesn't exist; will be started later
+				if role==BACKUP {
+					stage=BOOTSTRAP
+				}
+				//primary:continue backup: ->bootstrap
+			case WARM_START:
+				select{
+					case _=<-peerSyncErrorSignal ://
+						//shouldn't have write operations during warm-start. 
+						//stay here!
+					case _=<-peerShutdownSignal : stage=BOOTSTRAP
+					case _=<-peerStartupSignal : stage=BOOTSTRAP//the other server starting up; I need to jump to bootstrap...
+					case _=<-peerInSyncSignal : stage=SYNC//What the heck? always do this...
+					default : 
+				}
 				//fetch from peer
 				//update db
-				//send sync_start request
+				//send sync_start request "/kvman/peerstartsync?hash="
 				//if success, go to SYNC; else, continue
-			BOOTSTRAP:
-				//be patient; kvman/dump as usual,
-				//syncstart channel
-				//add syncstart listener
-
-			SYNC:
-				select{
-					
+				//if any error, start over
+				resp1, err := http.Get(peerURL+"dump")
+				if err!=nil {continue}
+				defer resp1.Body.Close()
+				body1, err2 := ioutil.ReadAll(resp1.Body)
+				if err2!=nil {continue}
+				
+				db = cmap_string_string.New()//this is important; could improve performance though
+				errM:=db.UnmarshalJSON([]byte(body1))
+				if errM!=nil {
+					fmt.Println("Unmarshall failure:"+string(body1))
+					continue
 				}
-			SHUTTING_DOWN:
+				str,_:=db.MarshalJSON();
+				resp2, err3 := http.Get(peerURL+"peerstartsync?hash="+MD5(str))
+				if err3!=nil {continue}
+				defer resp2.Body.Close()
+				body2, err4 := ioutil.ReadAll(resp2.Body)
+				if err4!=nil {continue}
+				if string(body2)==MD5(str){	//sync integrity check passed!
+					stage=SYNC
+					continue
+				}	
+			case BOOTSTRAP:
+				select{
+					case _=<-peerSyncErrorSignal :
+						fmt.Println("BOOTSTRAP:  more peerSyncErrorSignal")
+						for _ = range peerSyncErrorSignal {//flush the channel
+						}
+					//No one is having sync error when bootstrapping (db read-only); may be old errors from SYNC state
+					case _=<-peerShutdownSignal ://stay here!
+					case _=<-peerStartupSignal ://perhaps the starup failed, will start over
+					case _=<-peerInSyncSignal : stage=SYNC //good
+					default : 
+				}
+				//be patient; peer will do kvman/dump as usual,
+				//listen to syncstart channel 
+				//add syncstart listener
+			case SYNC:
+				select{
+					case _=<-peerSyncErrorSignal : stage=BOOTSTRAP
+					case _=<-peerShutdownSignal : stage=BOOTSTRAP
+					case _=<-peerStartupSignal : stage=BOOTSTRAP
+					case _=<-peerInSyncSignal : continue
+					default : 
+				}
+			case SHUTTING_DOWN:
 				return
 		}
+		time.Sleep(5*time.Millisecond)
+		cmd := exec.Command("title", "DB server, role:"+strconv.Itoa(role)+"  stage:"+strconv.Itoa(stage))
+		_= cmd.Start()
 	}
 }
  
