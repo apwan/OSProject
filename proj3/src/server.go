@@ -11,10 +11,16 @@ import (
   "strconv"
   "os"
   "io/ioutil"
+  "crypto/md5"
+  "encoding/hex"
   "encoding/json"
   "./cmap_string_string"
   )
- 
+
+func MD5(text string) string {
+   hash := md5.Sum([]byte(text))
+   return hex.EncodeToString(hash[:])
+}
   
 func readConf(s string) map[string]string{
     dat, err := ioutil.ReadFile(s)
@@ -46,6 +52,7 @@ const(
  WARM_START=1
  BOOTSTRAP=2
  SYNC=3
+ SHUTTING_DOWN=-1
 )
 
 func det_role() int {
@@ -60,7 +67,7 @@ func det_role() int {
 	}
 	return 0
 }
-func find_port() (int,int){
+func find_port() (int,int,int){
 	var p,err=strconv.Atoi(conf["port"])
 		if err!=nil {
 			fmt.Println("Failed to parse port:"+conf["port"]);
@@ -73,21 +80,65 @@ func find_port() (int,int){
 		}
 		
 	if conf["primary"]!=conf["backup"]{
-		return p,p
+		return p,p,p
 	}
 	
 	if role==PRIMARY{
-		return p,bp
+		return p,p,bp
 	}
-	return bp,bp
+	return bp,p,bp
+}
+func find_URL() (string,string,string){
+	prim := "http://"+conf["primary"]+":"+strconv.Itoa(primaryPort)+"/kvman/"
+	back := "http://"+conf["backup"]+":"+strconv.Itoa(backupPort)+"/kvman/"
+	if role==PRIMARY{
+		return back,prim,back
+	}
+	return prim,prim,back
 }
 var(
  role = det_role() //PRIMARY, SECONDARY
- stage = COLD_START // COLD_START=0 WARM_START=1 BOOTSTRAP=2 SYNC=3
+ stage = COLD_START // COLD_START=0 WARM_START=1 BOOTSTRAP=2 SYNC=3; SHUTTING_DOWN=-1
  conf = readConf("conf/settings.conf")
- listenPort, backupPort = find_port()
+ listenPort, primaryPort, backupPort = find_port()
+ peerURL, primaryURL, backupURL = find_URL()
  db = cmap_string_string.New()
  )
+ 
+var peerSyncErrorSignal chan int //should we use buffered channel? or let all error'd process block and respond simultaneously?
+var peerShutdownSignal chan int 
+var peerStartupSignal chan int 
+var peerInSyncSignal chan int 
+ 
+ 
+func housekeeper(){
+	for {
+		case stage{
+			COLD_START:
+				//test if peer exist
+				//if so, go to warm-start
+				//else, prmiary:continue backup: bootstrap
+			WARM_START:
+				//fetch from peer
+				//update db
+				//send sync_start request
+				//if success, go to SYNC; else, continue
+			BOOTSTRAP:
+				//be patient; kvman/dump as usual,
+				//syncstart channel
+				//add syncstart listener
+
+			SYNC:
+				select{
+					
+				}
+			SHUTTING_DOWN:
+				return
+		}
+	}
+}
+ 
+ 
  type BoolResponse struct {
     Success bool `json:"success"`
 }
@@ -109,7 +160,7 @@ var fastTransport http.RoundTripper = &http.Transport{
 var fastClient = http.Client{
         Transport: fastTransport,
     }
-var backup_furl = "http://"+conf["primary"]+":"+strconv.Itoa(backupPort)+"/kv/upsert"
+var backup_furl = "http://"+conf["backup"]+":"+strconv.Itoa(backupPort)+"/kv/upsert"
 func fastSync(key string, value string, del bool) bool{
 	var url = backup_furl+
 		"?key="+url.QueryEscape(key)+
@@ -120,15 +171,27 @@ func fastSync(key string, value string, del bool) bool{
 	//key, value, delete=true
 	resp, err := fastClient.Get(url)
 	if err != nil {
+		peerSyncErrorSignal<- 1
 		return false
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return false
+		peerSyncErrorSignal<- 1
 	}
-	return string(body)=="1" ||  string(body)== TrueResponseStr
+	if string(body)=="1" ||  string(body)== TrueResponseStr{
+		return true
+	}
+	peerSyncErrorSignal<- 1
+	return false
 }
+ 
+ //found error: kick to out-of-sync state?
+ //c chan int, send error inside
+ // go func(){ } maintenance, if found erroneous stuff, then re-sync
+ //  including initial state!
+ // add more kvman handler!!
+ // user regular HTTP client when syncing!
  
  
  //Main program started here
@@ -194,21 +257,17 @@ func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 
 func primary_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	switch stage {
-		case COLD_START, WARM_START:
-			fmt.Fprintf(w, "%s",FalseResponseStr)
-			return
 		case BOOTSTRAP, SYNC:
 			naive_kvGetHandler(w, r);
 			return
 	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
 }
 func primary_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
-	switch stage {
-		case COLD_START, WARM_START, BOOTSTRAP:
-			fmt.Fprintf(w, "%s",FalseResponseStr)
-			return
+	if stage!=SYNC {
+		fmt.Fprintf(w, "%s",FalseResponseStr)
+		return
 	}
-	//case SYNC:
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
 	if !db.Has(key) && db.Set(key,value){
@@ -224,10 +283,9 @@ func primary_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func primary_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	switch stage {
-		case COLD_START, WARM_START, BOOTSTRAP:
-			fmt.Fprintf(w, "%s",FalseResponseStr)
-			return
+	if stage!=SYNC {
+		fmt.Fprintf(w, "%s",FalseResponseStr)
+		return
 	}
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
@@ -246,10 +304,9 @@ func primary_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 }
 func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	switch stage {
-		case COLD_START, WARM_START, BOOTSTRAP:
-			fmt.Fprintf(w, "%s",FalseResponseStr)
-			return
+	if stage!=SYNC {
+		fmt.Fprintf(w, "%s",FalseResponseStr)
+		return
 	}
 	key:= r.FormValue("key")
 	if db.Has(key){
@@ -291,12 +348,44 @@ func kvmanDumpHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "DB marshalling error %s",err)
 }
 func kvmanShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	stage=SHUTTING_DOWN
+	if role==PRIMARY{
+		time.Sleep(time.Millisecond*502)
+		//allow all existing fastSync to finish
+	}
+	_,_=http.Get(peerURL+"peershutdown")
 	fmt.Fprintf(w, "Hello, %q, DB suicide",
       html.EscapeString(r.URL.Path))
-	go func(){
-		time.Sleep(1) //sleep epsilon
+	defer func(){
+		time.Sleep(time.Millisecond*1) //sleep epsilon
 		os.Exit(0)
 	}()
+}
+func kvmanPeerShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	peerShutdownSignal<- 1
+}
+func kvmanPeerStartupHandler(w http.ResponseWriter, r *http.Request) {
+	peerStartupSignal<- 1
+	fmt.Fprintf(w, "1")
+}
+func kvmanPeerStartSyncHandler(w http.ResponseWriter, r *http.Request) {
+	hash:= r.FormValue("hash")
+	str,_:= db.MarshalJSON()
+	rhash:= MD5(str)
+	if hash==rhash{
+		//reply response
+		if role==BACKUP{
+			peerInSyncSignal <- 1
+		}
+		fmt.Fprintf(w, "%s",rhash)
+		if role==PRIMARY{
+			peerInSyncSignal <- 1
+		}
+		//send in-sync signal, before(i'm back) or after(i'm prim)
+		//note: primary should go to SYNC state after secondary
+		return
+	}
+	fmt.Fprintf(w, "0")
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -344,6 +433,9 @@ func main(){
 	http.HandleFunc("/kvman/countkey", kvmanCountkeyHandler)
 	http.HandleFunc("/kvman/dump", kvmanDumpHandler)
 	http.HandleFunc("/kvman/shutdown", kvmanShutdownHandler)
+	http.HandleFunc("/kvman/peershutdown", kvmanPeerShutdownHandler)
+	http.HandleFunc("/kvman/peerstartup", kvmanPeerStartupHandler)
+	http.HandleFunc("/kvman/peerstartsync", kvmanPeerStartSyncHandler)
 	
 	if role==BACKUP{// should be if(backup)
 		http.HandleFunc("/kv/get", naive_kvGetHandler)
@@ -357,5 +449,8 @@ func main(){
 		http.HandleFunc("/kv/update", primary_kvUpdateHandler)
 		http.HandleFunc("/kv/delete", primary_kvDeleteHandler)
 	}
+	
+	go housekeeper()
+	
 	log.Fatal(s.ListenAndServe())  
 }
