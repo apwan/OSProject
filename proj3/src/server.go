@@ -10,7 +10,7 @@ import (
   "os"
   "io/ioutil"
   "encoding/json"
-  "./cmap_string_string"
+  "./concurrent_hashset"
   )
  
   
@@ -83,7 +83,7 @@ var(
  stage = COLD_START // COLD_START=0 WARM_START=1 BOOTSTRAP=2 SYNC=3
  conf = readConf("conf/settings.conf")
  listenPort = find_port()
- db = cmap_string_string.New()
+ db = mymap.New()
  )
  
  //Main program started here
@@ -101,19 +101,11 @@ type StrResponse struct {
     Value string `json:"value"`
 }
 
-func naive_kvUpsertHandler(w http.ResponseWriter, r *http.Request) {
-	key:= r.FormValue("key")
-	value:= r.FormValue("value")
-	if db.Set(key,value){
-		fmt.Fprintf(w, "%s",TrueResponseStr)
-		return
-	}
-	fmt.Fprintf(w, "%s",FalseResponseStr)
-} 
 func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
-	if !db.Has(key) && db.Set(key,value){
+	ret:= db.Insert(key,value)
+	if ret==0 {
 		fmt.Fprintf(w, "%s",TrueResponseStr)
 		return
 	}
@@ -122,7 +114,8 @@ func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
-	if db.Has(key) && db.Set(key,value){
+	ret:= db.Update(key,value)
+	if ret==0 {
 		fmt.Fprintf(w, "%s",TrueResponseStr)
 		return
 	}
@@ -130,16 +123,18 @@ func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 } 
 func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
-	if db.Has(key){
-		db.Remove(key)
-		fmt.Fprintf(w, "%s",TrueResponseStr)
-		return
-	}
-	fmt.Fprintf(w, "%s",FalseResponseStr)
+	val, okint:=db.Remove(key)
+	var ok=(okint==0)
+	ret:=&StrResponse{
+		Success:ok,
+		Value:val}
+	str,_:=json.Marshal(ret);
+	fmt.Fprintf(w, "%s",str)
 } 
 func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
-	val,ok:= db.Get(key)
+	val,okint:= db.Get(key)
+	var ok=(okint==0)
 	ret:=&StrResponse{
 		Success:ok,
 		Value:val}
@@ -158,7 +153,8 @@ func kvmanCountkeyHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "DB marshalling error %s",err)
 }
 func kvmanDumpHandler(w http.ResponseWriter, r *http.Request) {
-	var str,err=db.MarshalJSON();
+	m:=db.Marshall();
+	str,err:=json.Marshal(m)
 	if err==nil{
 		fmt.Fprintf(w, "%s",str)
 		return
@@ -205,7 +201,7 @@ func main(){
 	fmt.Println(listenPort)
 	
 	
-	db.Set("_","__");
+	db.Insert("_","__");
   
 	s := &http.Server{
 		Addr: ":"+strconv.Itoa(listenPort),
@@ -225,7 +221,7 @@ func main(){
 		http.HandleFunc("/kv/insert", naive_kvInsertHandler)
 		http.HandleFunc("/kv/update", naive_kvUpdateHandler)
 		http.HandleFunc("/kv/delete", naive_kvDeleteHandler)
-		http.HandleFunc("/kv/upsert", naive_kvUpsertHandler)
+		//http.HandleFunc("/kv/upsert", naive_kvUpsertHandler)
 	}
 	log.Fatal(s.ListenAndServe())  
 }
