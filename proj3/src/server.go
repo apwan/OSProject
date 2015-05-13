@@ -130,8 +130,11 @@ func housekeeper(){
 					case _=<-peerSyncErrorSignal ://??
 					case _=<-peerShutdownSignal : stage=BOOTSTRAP //I have priority
 					case _=<-peerStartupSignal :  
-						if role==PRIMARY{stage=BOOTSTRAP}
-						else {stage=WARM_START}
+						if role==PRIMARY{
+							stage=BOOTSTRAP
+						}else {
+							stage=WARM_START
+						}
 					//primary have priority,go to bootstrap
 					//secondary should go to warm start
 					case _=<-peerInSyncSignal : stage=SYNC //alright, empty database is in sync
@@ -149,7 +152,7 @@ func housekeeper(){
 					}
 				}
 				//peer doesn't exist; will be started later
-				if role==BACKUP {
+				if role==PRIMARY {
 					stage=BOOTSTRAP
 				}
 				//primary:continue backup: ->bootstrap
@@ -447,6 +450,10 @@ func kvmanPeerShutdownHandler(w http.ResponseWriter, r *http.Request) {
 }
 func kvmanPeerStartupHandler(w http.ResponseWriter, r *http.Request) {
 	peerStartupSignal<- 1
+	if role==SECONDARY && stage <=WARM_START { //I have no data
+		fmt.Fprintf(w, "0")
+		return
+	}
 	fmt.Fprintf(w, "1")
 }
 func kvmanPeerStartSyncHandler(w http.ResponseWriter, r *http.Request) {
