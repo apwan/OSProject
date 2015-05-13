@@ -133,7 +133,7 @@ func housekeeper(){
 				if err==nil {
 					defer resp.Body.Close()
 					body, err2 := ioutil.ReadAll(resp.Body)
-					if string(body)=="1"{	//good
+					if err2==nil && string(body)=="1"{	//good
 						stage=WARM_START
 						continue
 					}
