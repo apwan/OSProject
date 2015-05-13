@@ -135,7 +135,7 @@ func housekeeper(){
 				}
 				//test if peer exist
 				//if so, go to warm-start
-				resp, err := http.Get(peerURL+"peerstartup")
+				resp, err := fastClient.Get(peerURL+"peerstartup")
 				if err==nil {
 					defer resp.Body.Close()
 					body, err2 := ioutil.ReadAll(resp.Body)
