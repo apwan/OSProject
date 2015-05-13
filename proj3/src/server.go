@@ -116,7 +116,13 @@ var peerStartupSignal=make(chan int)
 var peerInSyncSignal=make(chan int) 
  
 func housekeeper(){
-	for {
+	for {		
+		time.Sleep(5*time.Millisecond)
+		msg :="DB server, role:"+strconv.Itoa(role)+"  stage:"+strconv.Itoa(stage)
+		fmt.Println(msg)
+		cmd := exec.Command("title", msg)
+		_= cmd.Start()
+		
 		switch stage{
 			case COLD_START:
 				fmt.Println("Cold Start...")
@@ -206,9 +212,6 @@ func housekeeper(){
 			case SHUTTING_DOWN:
 				return
 		}
-		time.Sleep(5*time.Millisecond)
-		cmd := exec.Command("title", "DB server, role:"+strconv.Itoa(role)+"  stage:"+strconv.Itoa(stage))
-		_= cmd.Start()
 	}
 }
  
@@ -493,7 +496,7 @@ func main(){
 	fmt.Println(listenPort)
 	
 	
-	db.Set("_","__");
+	//db.Set("_","__");  //dummy key for testing purpose
   
 	s := &http.Server{
 		Addr: ":"+strconv.Itoa(listenPort),
