@@ -298,6 +298,10 @@ type StrResponse struct {
 }
 
 func naive_kvUpsertHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "POST" {
+		fmt.Fprintf(w, "Bad Method: Please use POST")
+		return
+	}
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
 	delete:= r.FormValue("delete")
@@ -313,6 +317,10 @@ func naive_kvUpsertHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 } 
 func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "POST" {
+		fmt.Fprintf(w, "Bad Method: Please use POST")
+		return
+	}
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
 	if !db.Has(key) && db.Set(key,value){
@@ -322,6 +330,10 @@ func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 } 
 func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "POST" {
+		fmt.Fprintf(w, "Bad Method: Please use POST")
+		return
+	}
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
 	if db.Has(key) && db.Set(key,value){
@@ -331,6 +343,10 @@ func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 } 
 func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "POST" {
+		fmt.Fprintf(w, "Bad Method: Please use POST")
+		return
+	}
 	key:= r.FormValue("key")
 	if db.Has(key){
 		db.Remove(key)
@@ -340,6 +356,10 @@ func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 } 
 func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "GET" {
+		fmt.Fprintf(w, "Bad Method: Please use GET")
+		return
+	}
 	key:= r.FormValue("key")
 	val,ok:= db.Get(key)
 	ret:=&StrResponse{
@@ -350,6 +370,10 @@ func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 } 
 
 func primary_kvGetHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "GET" {
+		fmt.Fprintf(w, "Bad Method: Please use GET")
+		return
+	}
 	switch stage {
 		case BOOTSTRAP, SYNC:
 			naive_kvGetHandler(w, r);
@@ -358,6 +382,10 @@ func primary_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 }
 func primary_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "POST" {
+		fmt.Fprintf(w, "Bad Method: Please use POST")
+		return
+	}
 	if stage!=SYNC {
 		fmt.Fprintf(w, "%s",FalseResponseStr)
 		return
@@ -377,6 +405,10 @@ func primary_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func primary_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "POST" {
+		fmt.Fprintf(w, "Bad Method: Please use POST")
+		return
+	}
 	if stage!=SYNC {
 		fmt.Fprintf(w, "%s",FalseResponseStr)
 		return
@@ -398,6 +430,10 @@ func primary_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s",FalseResponseStr)
 }
 func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "POST" {
+		fmt.Fprintf(w, "Bad Method: Please use POST")
+		return
+	}
 	if stage!=SYNC {
 		fmt.Fprintf(w, "%s",FalseResponseStr)
 		return
@@ -424,6 +460,10 @@ func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
  
 func kvmanCountkeyHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "GET" {
+		fmt.Fprintf(w, "Bad Method: Please use GET")
+		return
+	}
 	tmp := make(map[string]int)
 	tmp["result"]=db.Count()
 	var str,err=json.Marshal(tmp)
@@ -434,6 +474,10 @@ func kvmanCountkeyHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "DB marshalling error %s",err)
 }
 func kvmanDumpHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "GET" {
+		fmt.Fprintf(w, "Bad Method: Please use GET")
+		return
+	}
 	var str,err=db.MarshalJSON();
 	if err==nil{
 		fmt.Fprintf(w, "%s",str)
