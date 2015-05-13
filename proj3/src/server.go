@@ -161,8 +161,16 @@ func housekeeper(){
 					case _=<-peerSyncErrorSignal ://
 						//shouldn't have write operations during warm-start. 
 						//stay here!
-					case _=<-peerShutdownSignal : stage=BOOTSTRAP
-					case _=<-peerStartupSignal : stage=BOOTSTRAP//the other server starting up; I need to jump to bootstrap...
+					case _=<-peerShutdownSignal:
+						continue
+						//!!!! could be a test case.
+					case _=<-peerStartupSignal : 
+					if role==PRIMARY{
+							stage=BOOTSTRAP
+						}else {
+							stage=WARM_START
+						}
+					//the other server starting up; I need to jump to bootstrap... only if i'm primary. (neither have data, then primary can cross the border line WARM|BOOTSTRAP)
 					case _=<-peerInSyncSignal : stage=SYNC//What the heck? always do this...
 					default : 
 				}
@@ -450,7 +458,7 @@ func kvmanPeerShutdownHandler(w http.ResponseWriter, r *http.Request) {
 }
 func kvmanPeerStartupHandler(w http.ResponseWriter, r *http.Request) {
 	peerStartupSignal<- 1
-	if role==SECONDARY && stage <=WARM_START { //I have no data
+	if (role==BACKUP) && ((stage==WARM_START)||(stage==COLD_START)) { //I have no data
 		fmt.Fprintf(w, "0")
 		return
 	}
