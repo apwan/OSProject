@@ -129,7 +129,11 @@ func housekeeper(){
 				select{//when waiting as a primary...
 					case _=<-peerSyncErrorSignal ://??
 					case _=<-peerShutdownSignal : stage=BOOTSTRAP //I have priority
-					case _=<-peerStartupSignal :  stage=BOOTSTRAP //I have priority
+					case _=<-peerStartupSignal :  
+						if role==PRIMARY{stage=BOOTSTRAP}
+						else {stage=WARM_START}
+					//primary have priority,go to bootstrap
+					//secondary should go to warm start
 					case _=<-peerInSyncSignal : stage=SYNC //alright, empty database is in sync
 					default : 
 				}
