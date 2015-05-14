@@ -99,9 +99,7 @@ func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) 
 		data_enc+"\r\n"
 	}	
 	reqstr+="\r\n" //double line-break for end-of-request
-	
-	print(reqstr)
-	
+	//print(reqstr)
 	_, err = conn.Write([]byte(reqstr))
     if err != nil {
         //println("Write to server failed:", err.Error())
@@ -125,7 +123,7 @@ func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) 
 		}
 	}
 	index:=strings.Index(ret,"\r\n\r\n")
-	return ret[index:],nil
+	return ret[index+4:],nil
 }
 
  
