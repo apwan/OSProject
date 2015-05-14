@@ -5,6 +5,7 @@ import(
   "fmt"
   "time"
   "strconv"
+  "sort"
   "os"
   "strings"
   "io/ioutil"
@@ -78,7 +79,18 @@ func do_insert(key string, value string, c chan time.Duration){
 	c<- time.Since(start)
 } 
 //func do_remove 
+
+
+
+
+type duration_slice []time.Duration
+func (a duration_slice) Len() int { return len(a) }
+func (a duration_slice) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a duration_slice) Less(i, j int) bool { return a[i] < a[j] }
+
 func main(){
+  N:=10000
+  
   ret,err := naive_HTTP(kvmanURL+"dump","",false)
   if err!=nil{
     fmt.Println(err)
@@ -89,17 +101,22 @@ func main(){
   for i:=0; i<1000;i++ {
 	dummy=dummy+ string(i%26+65)
   }
-  //fmt.Println(dummy)
-  
-  N:=10000
   
   perf:=make(chan time.Duration, N)
   
   for i:=0; i<N;i++ {
 	go do_insert(dummy+strconv.Itoa(i),strconv.Itoa(i)+dummy, perf)
   }
-  for i:=0; i<N;i++ {
-	fmt.Println(<-perf)
-  }
   
+  stat:=make(duration_slice, N)  // [N]time.Duration
+  //stat:=make([]int64, N)
+  for i:=0; i<N;i++ {
+	stat[i]= <-perf
+  }
+  sort.Sort(stat)
+  
+  for i:=1;i<=9;i++ {
+	fmt.Print(strconv.Itoa(i*10)+"% Percentile:")
+	fmt.Println(stat[i*N/10])
+  }
 }
