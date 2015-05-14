@@ -114,7 +114,7 @@ func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
 	value:= r.FormValue("value")
-	ret:= db.Update(key,value)
+	_,ret:= db.Update(key,value) //ignore previous value in naive mode; should care when in primary mode
 	if ret==0 {
 		fmt.Fprintf(w, "%s",TrueResponseStr)
 		return
