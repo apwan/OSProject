@@ -8,6 +8,7 @@ import(
   "sort"
   "os"
   "strings"
+  "regexp"
   "io/ioutil"
   "encoding/json"
   )
@@ -73,13 +74,8 @@ func naive_HTTP(url string, data_enc string, post bool) (string, error) {
 		return string(body), nil
 	}
 }*/
- 
-func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) {
-	conn, err := net.DialTimeout("tcp", host, time.Second*5) 
-	if err!=nil{
-		return "",err
-	}
-	conn.SetDeadline(time.Now().Add(time.Second*5))
+
+func make_HTTP_request(queryurl string, data_enc string, post bool) (string) {
 	reqstr:=""
 	if post{
 		reqstr="POST "+queryurl+" HTTP/1.1\r\n"
@@ -89,7 +85,9 @@ func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) 
 	reqstr+=
 		"Host: "+host+"\r\n"+
 		"User-Agent: Team7-Golang-TCP"+"\r\n"+
-		"Connection: close"+"\r\n"
+		"Connection: keep-alive"+"\r\n"+
+		"Keep-Alive: max=10000, timeout=120"+"\r\n"
+		//"Connection: close"+"\r\n"
 		//conn close for HTTP once
 	if post{
 		reqstr+=
@@ -99,33 +97,83 @@ func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) 
 		data_enc+"\r\n"
 	}	
 	reqstr+="\r\n" //double line-break for end-of-request
-	//print(reqstr)
+	return reqstr
+}
+ 
+func make_fastconn() (net.Conn, error) {
+	conn, err := net.DialTimeout("tcp", host, time.Second*5) 
+	conn.SetDeadline(time.Now().Add(time.Second*5))
+	return conn, err
+} 
+func make_longconn() (net.Conn, error) {
+	conn, err := net.Dial("tcp", host) 
+	return conn, err
+} 
+
+func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) {
+	conn, err := make_fastconn()    
+	if err != nil {return "", err}
+	reqstr:=make_HTTP_request(queryurl, data_enc, post) 
 	_, err = conn.Write([]byte(reqstr))
-    if err != nil {
-        //println("Write to server failed:", err.Error())
-        return "", err
-    }
-	const bufsize=1024
+    if err != nil {return "", err}
+		const bufsize=1024
 	ret:=""
 	for {
 		reply := make([]byte, bufsize)
 		cnt, err := conn.Read(reply)
+		println("read:",string(cnt))
 		if err!=nil{
-			//println("Read from server failed:", err.Error())
-			return "", err
+			return ret,err
 		}
-		//println("Readed data:")
-		//println(cnt)
-		//println(reply)
 		ret+= string(reply[:cnt])
 		if(cnt<bufsize){
 			break
 		}
 	}
 	index:=strings.Index(ret,"\r\n\r\n")
+	defer conn.Close()
 	return ret[index+4:],nil
 }
 
+func tcp_HTTP_multirep(queryurl string, data_enc []string, post bool){
+	conn, _ := make_longconn()    
+	//if err != nil {return "", err}
+	reqstr:=""
+	for i:=0;i<len(data_enc);i++ {
+		reqstr+=make_HTTP_request(queryurl, data_enc[i], post)
+	}
+	println("sending...:",reqstr)
+	_, err := conn.Write([]byte(reqstr))
+	if err!=nil{
+		println("err",err,err.Error())
+		return
+	}
+	const bufsize=1024
+	ret:=""
+	words:= regexp.MustCompile("\\r\\n\\r\\n")
+    for {
+		reply := make([]byte, bufsize)
+		cnt, err := conn.Read(reply)
+		println("read:",string(cnt))
+		if err!=nil && err.Error()!="EOF"{
+			println("err",err,err.Error())
+		//	return
+		}
+		ret+= string(reply[:cnt])
+		//if(cnt<bufsize){
+		rncnt:=len(words.FindAll([]byte(ret), -1))
+		println("rncnt:",rncnt)
+		if( rncnt == len(data_enc) ) {
+			break
+		}
+		time.Sleep(1000*time.Millisecond)
+	}
+	
+	println(ret)
+}
+func tcp_HTTP_multi(queryurl []string, data_enc []string, post []bool){
+	
+}
  
 func do_insert(key string, value string, c chan time.Duration){
 	start := time.Now()
@@ -142,7 +190,7 @@ func (a duration_slice) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a duration_slice) Less(i, j int) bool { return a[i] < a[j] }
 
 func main(){
-  N:=10000
+  N:=10
   
   ret,err := tcp_HTTP_once("/kvman/dump","",false)
   if err!=nil{
@@ -150,6 +198,13 @@ func main(){
 	os.Exit(-1)
   }
   fmt.Println(ret)
+  
+  data_enc:=make([]string,N)
+  for i:=0; i<N;i++ {
+	data_enc[i]="key="+strconv.Itoa(i)+"&value="+strconv.Itoa(i)
+  }
+  tcp_HTTP_multirep("/kv/insert",data_enc,true)
+
   /*
   dummy:="TEST keyvalue long string................"
   for i:=0; i<1000;i++ {
