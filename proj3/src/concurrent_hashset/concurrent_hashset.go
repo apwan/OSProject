@@ -1,7 +1,7 @@
 package mymap
 
 import (
-	"sync"
+    "sync"
     "time"
 )
 
@@ -47,14 +47,14 @@ func _new(_p, _q, _r, _lim int) (m *MyMap) {
 }
 
 func New() *MyMap {
-    return _new(101, 10007, 1000000007, 100000)
+    return _new(1103, 10007, 1000000007, 10000)
 }
 
 func build(e *entry, _q, _lim int) {
     e.q, e.lim = _q, _lim
     e.k = make([]string, e.lim)
     e.v = make([]string, e.lim)
-    e.h = make([]int, e.lim)
+    e.h = make([]int, e.q)
     e.l = make([]int, e.lim)
 }
 
@@ -64,7 +64,7 @@ func (m *MyMap) Insert(s, t string) int {
     e := &m.e[pv]
     e.tot.RLock()
     var f int
-    for i := e.h[qv]; i != 0; i++ {
+    for i := e.h[qv]; i != 0; i = e.l[i] {
         if e.k[i] == s {
             e.tot.RUnlock()
             return -1
@@ -89,22 +89,25 @@ func (m *MyMap) Insert(s, t string) int {
     return 0
 }
 
-func (m *MyMap) Update(s, t string) int {
+func (m *MyMap) Update(s, t string) (r string, ok int) {
     hv := m.hash(s)
     pv, qv := hv % m.p, hv % m.q
     e := &m.e[pv]
     e.tot.RLock()
-    for i := e.h[qv]; i != 0; i++ {
+    for i := e.h[qv]; i != 0; i = e.l[i] {
         if e.k[i] == s {
+        ok = 0
             e.tot.RUnlock()
             e.tot.Lock()
+            r = e.v[i]
             e.v[i] = t
             e.tot.Unlock()
-            return 0
+            return
         }
     }
+    r, ok = "", -1
     e.tot.RUnlock()
-    return -1
+    return
 }
 
 func (m *MyMap) Remove(s string) (r string, ok int) {
@@ -112,7 +115,7 @@ func (m *MyMap) Remove(s string) (r string, ok int) {
     pv, qv := hv % m.p, hv % m.q
     e := &m.e[pv]
     e.tot.RLock()
-    for i := e.h[qv]; i != 0; i++ {
+    for i := e.h[qv]; i != 0; i = e.l[i] {
         if e.k[i] == s {
             e.tot.RUnlock()
             e.tot.Lock()
@@ -133,15 +136,15 @@ func (m *MyMap) Get(s string) (r string, ok int) {
     pv, qv := hv % m.p, hv % m.q
     e := &m.e[pv]
     e.tot.RLock()
-    defer e.tot.RUnlock()
-    for i := e.h[qv]; i != 0; i++ {
+    for i := e.h[qv]; i != 0; i = e.l[i] {
         if e.k[i] == s {
             r, ok = e.v[i], 0
+            e.tot.RUnlock()
             return
         }
     }
-    e.tot.RUnlock()
     r, ok = "", -1
+    e.tot.RUnlock()
     return
 }
 
