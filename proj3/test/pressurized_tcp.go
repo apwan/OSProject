@@ -7,6 +7,7 @@ import(
   "strconv"
   "sort"
   "os"
+  "strings"
   "io/ioutil"
   "encoding/json"
   )
@@ -97,7 +98,6 @@ func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) 
 		"\r\n"+
 		data_enc+"\r\n"
 	}	
-	reqstr+="\r\n" 
 	reqstr+="\r\n" //double line-break for end-of-request
 	
 	print(reqstr)
@@ -124,7 +124,8 @@ func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) 
 			break
 		}
 	}
-	return ret,nil
+	index:=strings.Index(ret,"\r\n\r\n")
+	return ret[index:],nil
 }
 
  
