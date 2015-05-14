@@ -100,12 +100,11 @@ func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) 
 	reqstr+="\r\n" 
 	reqstr+="\r\n" //double line-break for end-of-request
 	
-	fmt.Print(reqstr)
-	
+	print(reqstr)
 	
 	_, err = conn.Write([]byte(reqstr))
     if err != nil {
-        println("Write to server failed:", err.Error())
+        //println("Write to server failed:", err.Error())
         return "", err
     }
 	const bufsize=1024
@@ -114,11 +113,13 @@ func tcp_HTTP_once(queryurl string, data_enc string, post bool) (string, error) 
 		reply := make([]byte, bufsize)
 		cnt, err := conn.Read(reply)
 		if err!=nil{
-			println("Read from server failed:", err.Error())
+			//println("Read from server failed:", err.Error())
 			return "", err
 		}
-		println("Readed data:", reply)
-		ret+= string(reply)
+		//println("Readed data:")
+		//println(cnt)
+		//println(reply)
+		ret+= string(reply[:cnt])
 		if(cnt<bufsize){
 			break
 		}
