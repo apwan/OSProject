@@ -137,9 +137,8 @@ func (a duration_slice) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a duration_slice) Less(i, j int) bool { return a[i] < a[j] }
 
 func main(){
-  N:=20
-  
-  //fmt.Println(dummy,"\nkey:",get_key(1),"\nvalue:",get_value(1))
+  N:=4000
+   //fmt.Println(dummy,"\nkey:",get_key(1),"\nvalue:",get_value(1))
   
   ret,err := naive_HTTP(kvmanURL+"dump","",false)
   if err!=nil || ret!="{}"&& ret!="{\"_\":\"__\"}"{
@@ -169,22 +168,31 @@ func main(){
   sort.Sort(get_stat)
   
   time.Sleep(time.Millisecond)
-  println("Insertion: ",insert_succ,"/",N)
+  //println("Insertion: ",insert_succ,"/",N)
+  println("Insertion: ",get_succ,"/",N)
   //println("get succ:",get_succ)
   
   var sum_inst=time.Duration(0)
   var sum_get=time.Duration(0)
-  for i:=1;i<=N;i++ {
+  for i:=0;i<N;i++ {
 	sum_inst+=time.Duration(int(insert_stat[i])/N)
 	sum_get+=time.Duration(int(get_stat[i])/N)
   }
-  println("Average latency: ",sum_inst,"/",sum_get)
+  fmt.Print("Average latency: ")
+  fmt.Print(sum_inst)
+  fmt.Print(" / ")
+  fmt.Print(sum_get)
+  println()
   
   print("Percentile latency: ")
   
   for i:=2;i<=9;i+=2 {
+	//fmt.Print(strconv.Itoa(i*10)+"% Percentile:")
+	fmt.Print(insert_stat[i*N/10])
+	fmt.Print(" / ")
+	fmt.Print(get_stat[i*N/10])
+	if(i!=9){print(", ")}
 	if(i==2){i++}
-	fmt.Print(strconv.Itoa(i*10)+"% Percentile:")
-	fmt.Println(insert_stat[i*N/10])
   }
+  println()
 }
