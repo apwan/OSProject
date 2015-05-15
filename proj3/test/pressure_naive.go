@@ -107,7 +107,7 @@ func do_get(i int, c chan time.Duration){
 } 
 var dummy=func()(string){
   dummy:="TEST keyvalue long string................"
-  for i:=0; i<25;i++ {
+  for i:=0; i<1025;i++ {
 	dummy=dummy+ string(i%26+65)
   }
   r := rand.New(rand.NewSource(time.Now().UnixNano()))
