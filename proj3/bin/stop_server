@@ -6,7 +6,7 @@ if($argc<2){
 if($argv[1]=='-p')$isprim=true;
 else if($argv[1]=='-b')$isprim=false;
 else die('Unknown parameter; use -p|-b');
-$conf=json_decode(file_get_contents('../conf/settings.conf'),1);
+$conf=json_decode(file_get_contents('./conf/settings.conf'),1);
 $port=$conf['port'];
 if($isprim==false && $conf['primary']==$conf['backup'])$port=$conf['back_port'];
 if($isprim)$ip=$conf['primary'];
