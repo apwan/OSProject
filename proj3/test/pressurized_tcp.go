@@ -94,9 +94,10 @@ func make_HTTP_request(queryurl string, data_enc string, post bool) (string) {
 		"Content-Type: application/x-www-form-urlencoded"+"\r\n"+
 		"Content-Length: "+strconv.Itoa(len(data_enc))+"\r\n"+
 		"\r\n"+
-		data_enc+"\r\n"
-	}	
-	reqstr+="\r\n" //double line-break for end-of-request
+		data_enc
+	}else{
+		reqstr+="\r\n" //double line-break for end-of-request
+	}
 	return reqstr
 }
  
@@ -142,7 +143,7 @@ func tcp_HTTP_multirep(queryurl string, data_enc []string, post bool){
 	for i:=0;i<len(data_enc);i++ {
 		reqstr+=make_HTTP_request(queryurl, data_enc[i], post)
 	}
-	println("sending...:",reqstr)
+	//println("sending...:",reqstr)
 	_, err := conn.Write([]byte(reqstr))
 	if err!=nil{
 		println("err",err,err.Error())
@@ -154,15 +155,15 @@ func tcp_HTTP_multirep(queryurl string, data_enc []string, post bool){
     for {
 		reply := make([]byte, bufsize)
 		cnt, err := conn.Read(reply)
-		println("read:",string(cnt))
+		//println("read:",string(cnt))
 		if err!=nil && err.Error()!="EOF"{
 			println("err",err,err.Error())
-		//	return
+			return
 		}
 		ret+= string(reply[:cnt])
 		//if(cnt<bufsize){
 		rncnt:=len(words.FindAll([]byte(ret), -1))
-		println("rncnt:",rncnt)
+		//println("rncnt:",rncnt)
 		if( rncnt == len(data_enc) ) {
 			break
 		}
@@ -190,21 +191,23 @@ func (a duration_slice) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a duration_slice) Less(i, j int) bool { return a[i] < a[j] }
 
 func main(){
-  N:=10
+  N:=1000
   
-  ret,err := tcp_HTTP_once("/kvman/dump","",false)
+  _,err := tcp_HTTP_once("/kvman/dump","",false)
   if err!=nil{
     fmt.Println(err)
 	os.Exit(-1)
   }
-  fmt.Println(ret)
+  //fmt.Println(ret)
   
   data_enc:=make([]string,N)
   for i:=0; i<N;i++ {
 	data_enc[i]="key="+strconv.Itoa(i)+"&value="+strconv.Itoa(i)
   }
+  start := time.Now()
   tcp_HTTP_multirep("/kv/insert",data_enc,true)
-
+  cost:=time.Since(start)
+  fmt.Println(cost)
   /*
   dummy:="TEST keyvalue long string................"
   for i:=0; i<1000;i++ {
