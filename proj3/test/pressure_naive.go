@@ -140,9 +140,9 @@ func main(){
   N:=4000
    //fmt.Println(dummy,"\nkey:",get_key(1),"\nvalue:",get_value(1))
   
-  ret,err := naive_HTTP(kvmanURL+"dump","",false)
-  if err!=nil || ret!="{}"&& ret!="{\"_\":\"__\"}"{
-    fmt.Println(ret,err)
+  _,err := naive_HTTP(kvmanURL+"dump","",false)
+  if err!=nil {
+    fmt.Println(err)
 	os.Exit(-1)
   }
   //fmt.Println(ret)

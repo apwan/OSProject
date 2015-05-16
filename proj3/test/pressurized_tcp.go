@@ -155,7 +155,7 @@ func tcp_HTTP_multirep(queryurl string, data_enc []string, post bool){
     for {
 		reply := make([]byte, bufsize)
 		cnt, err := conn.Read(reply)
-		//println("read:",string(cnt))
+		println("read:",string(reply))
 		if err!=nil && err.Error()!="EOF"{
 			println("err",err,err.Error())
 			return
@@ -167,7 +167,7 @@ func tcp_HTTP_multirep(queryurl string, data_enc []string, post bool){
 		if( rncnt == len(data_enc) ) {
 			break
 		}
-		time.Sleep(1000*time.Millisecond)
+		//time.Sleep(1*time.Millisecond)
 	}
 	
 	println(ret)
@@ -191,7 +191,7 @@ func (a duration_slice) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a duration_slice) Less(i, j int) bool { return a[i] < a[j] }
 
 func main(){
-  N:=1000
+  N:=2000
   
   _,err := tcp_HTTP_once("/kvman/dump","",false)
   if err!=nil{
