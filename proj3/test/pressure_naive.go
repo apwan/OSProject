@@ -141,13 +141,9 @@ func main(){
   
   
 	arg_num := len(os.Args)
-	for i := 0 ; i < arg_num ;i++{
-		switch os.Args[i] {
-			//case "-p": 
-			//	return PRIMARY
-			//case "-b": 
-			//	return BACKUP
-		}
+	if arg_num==0 {
+		println("Please specify any argument")
+		os.Exit(-1)
 	}
   
   
