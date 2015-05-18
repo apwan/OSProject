@@ -150,6 +150,7 @@ func main(){
   insert_perf:=make(chan time.Duration, N)
   for i:=0; i<N;i++ {
 	go do_insert(i, insert_perf)
+	time.Sleep(time.Microsecond*50)
   }
   insert_stat:=make(duration_slice, N) 
   for i:=0; i<N;i++ {
@@ -160,6 +161,7 @@ func main(){
   get_perf:=make(chan time.Duration, N)
   for i:=0; i<N;i++ {
 	go do_get(i, get_perf)
+	time.Sleep(time.Microsecond*50)
   }
   get_stat:=make(duration_slice, N) 
   for i:=0; i<N;i++ {
