@@ -138,7 +138,18 @@ func (a duration_slice) Less(i, j int) bool { return a[i] < a[j] }
 
 func main(){
   N:=4000
-   //fmt.Println(dummy,"\nkey:",get_key(1),"\nvalue:",get_value(1))
+  
+  
+	arg_num := len(os.Args)
+	for i := 0 ; i < arg_num ;i++{
+		switch os.Args[i] {
+			//case "-p": 
+			//	return PRIMARY
+			//case "-b": 
+			//	return BACKUP
+		}
+	}
+  
   
   _,err := naive_HTTP(kvmanURL+"dump","",false)
   if err!=nil {
