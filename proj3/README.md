@@ -19,3 +19,27 @@ Launching without flag: `bin/start_server`.
 
 Use `bin/test`.
 Test `/kv` and `/kvman`
+
+## Implementations
+
+1. Synchonization
+
+There is a state machine to synchronize the primary server and back up server.
+The state machine have five states: 'cold start', 'warm start', 'bootstrap', 'sync' and 'shutting down'.
+The server will be in 'cold start' state, if it cannot find another server.
+The server will be in 'warm start' state, if it can find another server.
+When the server contains data but the another does not, it will be in 'bootstrap' state.
+The server go to 'shutting down' state when it receives shutdown signal.
+
+2. Data Structure
+
+To increase the performance, only part of the table is locked for each insert or update operation.
+The table is partitioned to 32 bucket. After hashing, each key will be put in exactly one bucket.
+Only one bucket need to be locked when a key-value is update.
+
+3. Tester
+
+We writed a tester in golang to facilitating the testing procedure. 
+The testcases are put in a .test file in a specific format. 
+The tester reads the files and fires operations to the server parallelly or sequentially.
+The tester can also execute other programs and scripts.
