@@ -12,41 +12,12 @@ import (
   "os"
   "os/exec"
   "io/ioutil"
-  "crypto/md5"
-  "encoding/hex"
   "encoding/json"
-  "./cmap_string_string"
+  // our lib
+  DB "cmap_string_string"
+  . "kvlib"
   )
 
-func str_MD5(text string) string {
-   hash := md5.Sum([]byte(text))
-   return hex.EncodeToString(hash[:])
-}
-func MD5(text []byte) string {
-   hash := md5.Sum(text)
-   return hex.EncodeToString(hash[:])
-}
-  
-func readConf(s string) map[string]string{
-    dat, err := ioutil.ReadFile(s)
-	if err != nil {
-        panic(err)
-    }
-    //fmt.Println(dat)
-	var udat map[string]interface{}
-	if err := json.Unmarshal(dat, &udat); err != nil {
-        panic(err)
-    }
-	ret:=make(map[string]string)
-	
-	for idx, val := range udat {
-		var str=val.(string)
-		ret[idx]=str
-    }
-    //fmt.Println("parsed config:")
-	//fmt.Println(ret)
-	return ret
-}
 
 const(
  PRIMARY=1
@@ -66,9 +37,9 @@ func det_role() int {
 	arg_num := len(os.Args)
 	for i := 0 ; i < arg_num ;i++{
 		switch os.Args[i] {
-			case "-p": 
+			case "-p":
 				return PRIMARY
-			case "-b": 
+			case "-b":
 				return BACKUP
 		}
 	}
@@ -85,11 +56,11 @@ func find_port() (int,int,int){
 			fmt.Println("Failed to parse back_port:"+conf["back_port"]);
 			panic(err2)
 		}
-		
+
 	if conf["primary"]!=conf["backup"]{
 		return p,p,p
 	}
-	
+
 	if role==PRIMARY{
 		return p,p,bp
 	}
@@ -103,35 +74,36 @@ func find_URL() (string,string,string){
 	}
 	return prim,prim,back
 }
+// GLOBAL VARS
 var(
  role = det_role() //PRIMARY, SECONDARY
  stage = COLD_START // COLD_START=0 WARM_START=1 BOOTSTRAP=2 SYNC=3; SHUTTING_DOWN=-1
- conf = readConf("conf/settings.conf")
+ conf = ReadJson("conf/settings.conf")
  listenPort, primaryPort, backupPort = find_port()
  peerURL, primaryURL, backupURL = find_URL()
- db = cmap_string_string.New()
+ db = DB.New()
  )
- 
+
 var peerSyncErrorSignal=make(chan int) //should we use buffered channel? or let all error'd process block and respond simultaneously?
 var peerShutdownSignal=make(chan int)
 var peerStartupSignal=make(chan int)
-var peerInSyncSignal=make(chan int) 
- 
+var peerInSyncSignal=make(chan int)
+
 func housekeeper(){
-	for {		
+	for {
 		time.Sleep(5*time.Millisecond)
 		msg :="DB server, role:"+strconv.Itoa(role)+"  stage:"+strconv.Itoa(stage)
 		fmt.Println(msg)
 		cmd := exec.Command("title", msg)
 		_= cmd.Start()
-		
+
 		switch stage{
 			case COLD_START:
 				fmt.Println("Cold Start...")
 				select{//when waiting as a primary...
 					case _=<-peerSyncErrorSignal ://??
 					case _=<-peerShutdownSignal : stage=BOOTSTRAP //I have priority
-					case _=<-peerStartupSignal :  
+					case _=<-peerStartupSignal :
 						if role==PRIMARY{
 							stage=BOOTSTRAP
 						}else {
@@ -140,7 +112,7 @@ func housekeeper(){
 					//primary have priority,go to bootstrap
 					//secondary should go to warm start
 					case _=<-peerInSyncSignal : stage=SYNC //alright, empty database is in sync
-					default : 
+					default :
 				}
 				//test if peer exist
 				//if so, go to warm-start
@@ -161,12 +133,12 @@ func housekeeper(){
 			case WARM_START:
 				select{
 					case _=<-peerSyncErrorSignal ://
-						//shouldn't have write operations during warm-start. 
+						//shouldn't have write operations during warm-start.
 						//stay here!
 					case _=<-peerShutdownSignal:
 						continue
 						//!!!! could be a test case.
-					case _=<-peerStartupSignal : 
+					case _=<-peerStartupSignal :
 					if role==PRIMARY{
 							stage=BOOTSTRAP
 						}else {
@@ -174,7 +146,7 @@ func housekeeper(){
 						}
 					//the other server starting up; I need to jump to bootstrap... only if i'm primary. (neither have data, then primary can cross the border line WARM|BOOTSTRAP)
 					case _=<-peerInSyncSignal : stage=SYNC//What the heck? always do this...
-					default : 
+					default :
 				}
 				//fetch from peer
 				//update db
@@ -186,8 +158,8 @@ func housekeeper(){
 				defer resp1.Body.Close()
 				body1, err2 := ioutil.ReadAll(resp1.Body)
 				if err2!=nil {continue}
-				
-				db = cmap_string_string.New()//this is important; could improve performance though
+
+				db = DB.New()//this is important; could improve performance though
 				errM:=db.UnmarshalJSON([]byte(body1))
 				if errM!=nil {
 					fmt.Println("Unmarshall failure:"+string(body1))
@@ -202,7 +174,7 @@ func housekeeper(){
 				if string(body2)==MD5(str){	//sync integrity check passed!
 					stage=SYNC
 					continue
-				}	
+				}
 			case BOOTSTRAP:
 				select{
 					case _=<-peerSyncErrorSignal :
@@ -213,10 +185,10 @@ func housekeeper(){
 					case _=<-peerShutdownSignal ://stay here!
 					case _=<-peerStartupSignal ://perhaps the starup failed, will start over
 					case _=<-peerInSyncSignal : stage=SYNC //good
-					default : 
+					default :
 				}
 				//be patient; peer will do kvman/dump as usual,
-				//listen to syncstart channel 
+				//listen to syncstart channel
 				//add syncstart listener
 			case SYNC:
 				select{
@@ -224,15 +196,15 @@ func housekeeper(){
 					case _=<-peerShutdownSignal : stage=BOOTSTRAP
 					case _=<-peerStartupSignal : stage=BOOTSTRAP
 					case _=<-peerInSyncSignal : continue
-					default : 
+					default :
 				}
 			case SHUTTING_DOWN:
 				return
 		}
 	}
 }
- 
- 
+
+
  type BoolResponse struct {
     Success bool `json:"success"`
 }
@@ -240,8 +212,8 @@ var (
 	TrueResponseStr = "{\"success\":true}"
 	FalseResponseStr = "{\"success\":false}"
 )// in high-performance setting, TRS="1", FRS="0" !!!
- 
- 
+
+
 var short_timeout = time.Duration(500 * time.Millisecond)
 func dialTimeout(network, addr string) (net.Conn, error) {
     return net.DialTimeout(network, addr, short_timeout)
@@ -279,15 +251,15 @@ func fastSync(key string, value string, del bool) bool{
 	peerSyncErrorSignal<- 1
 	return false
 }
- 
+
  //found error: kick to out-of-sync state?
  //c chan int, send error inside
  // go func(){ } maintenance, if found erroneous stuff, then re-sync
  //  including initial state!
  // add more kvman handler!!
  // user regular HTTP client when syncing!
- 
- 
+
+
  //Main program started here
  //methods: insert,delete,update; get (via GET)
 
@@ -315,7 +287,7 @@ func naive_kvUpsertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "%s",FalseResponseStr)
-} 
+}
 func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 	if check_HTTP_method && r.Method != "POST" {
 		fmt.Fprintf(w, "Bad Method: Please use POST")
@@ -328,7 +300,7 @@ func naive_kvInsertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "%s",FalseResponseStr)
-} 
+}
 func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	if check_HTTP_method && r.Method != "POST" {
 		fmt.Fprintf(w, "Bad Method: Please use POST")
@@ -341,7 +313,7 @@ func naive_kvUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "%s",FalseResponseStr)
-} 
+}
 func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	if check_HTTP_method && r.Method != "POST" {
 		fmt.Fprintf(w, "Bad Method: Please use POST")
@@ -354,7 +326,7 @@ func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "%s",FalseResponseStr)
-} 
+}
 func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	if check_HTTP_method && r.Method != "GET" {
 		fmt.Fprintf(w, "Bad Method: Please use GET")
@@ -367,7 +339,7 @@ func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 		Value:val}
 	str,_:=json.Marshal(ret);
 	fmt.Fprintf(w, "%s",str)
-} 
+}
 
 func primary_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	if check_HTTP_method && r.Method != "GET" {
@@ -458,7 +430,7 @@ func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
- 
+
 func kvmanCountkeyHandler(w http.ResponseWriter, r *http.Request) {
 	if check_HTTP_method && r.Method != "GET" {
 		fmt.Fprintf(w, "Bad Method: Please use GET")
@@ -553,10 +525,33 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	kvmanDumpHandler(w,r);
 }
 
+var kvmanHandlers = map[string]func(http.ResponseWriter, *http.Request){
+  "countkey": kvmanCountkeyHandler,
+	"dump": kvmanDumpHandler,
+	"shutdown": kvmanShutdownHandler,
+	"peershutdown": kvmanPeerShutdownHandler,
+	"peerstartup": kvmanPeerStartupHandler,
+	"peerstartsync": kvmanPeerStartSyncHandler,
+}
+
+var kvBackupHandlers = map[string]func(http.ResponseWriter, *http.Request){
+  "get": naive_kvGetHandler,
+  "insert": naive_kvInsertHandler,
+  "udpate": naive_kvUpdateHandler,
+  "delete": naive_kvDeleteHandler,
+  "upsert": naive_kvUpsertHandler,
+}
+var kvPrimaryHandlers = map[string]func(http.ResponseWriter, *http.Request){
+  "get": primary_kvGetHandler,
+  "insert": primary_kvInsertHandler,
+  "update": primary_kvUpdateHandler,
+  "delete": primary_kvDeleteHandler,
+}
+
 func main(){
 	fmt.Println("Initialized with conf:");
 	fmt.Println(conf);
-	
+
 	fmt.Print("My role:");
 	switch role{
 		case PRIMARY:
@@ -569,10 +564,10 @@ func main(){
 	}
 	fmt.Print("listenPort:")
 	fmt.Println(listenPort)
-	
-	
+
+
 	//db.Set("_","__");  //dummy key for testing purpose
-  
+
 	s := &http.Server{
 		Addr: ":"+strconv.Itoa(listenPort),
 		Handler: nil,
@@ -582,27 +577,23 @@ func main(){
 	}
 	//http.HandleFunc("/kv", kvHandler)
 	http.HandleFunc("/", homeHandler)
-	http.HandleFunc("/kvman/countkey", kvmanCountkeyHandler)
-	http.HandleFunc("/kvman/dump", kvmanDumpHandler)
-	http.HandleFunc("/kvman/shutdown", kvmanShutdownHandler)
-	http.HandleFunc("/kvman/peershutdown", kvmanPeerShutdownHandler)
-	http.HandleFunc("/kvman/peerstartup", kvmanPeerStartupHandler)
-	http.HandleFunc("/kvman/peerstartsync", kvmanPeerStartSyncHandler)
-	
+  for key,val := range kvmanHandlers{
+    http.HandleFunc("/kvman/"+key, val)
+  }
+
 	if role==BACKUP{// should be if(backup)
-		http.HandleFunc("/kv/get", naive_kvGetHandler)
-		http.HandleFunc("/kv/insert", naive_kvInsertHandler)
-		http.HandleFunc("/kv/update", naive_kvUpdateHandler)
-		http.HandleFunc("/kv/delete", naive_kvDeleteHandler)
-		http.HandleFunc("/kv/upsert", naive_kvUpsertHandler)
+    for key,val := range kvBackupHandlers {
+      http.HandleFunc("/kv/"+key, val)
+    }
+
 	}else{
-		http.HandleFunc("/kv/get", primary_kvGetHandler)
-		http.HandleFunc("/kv/insert", primary_kvInsertHandler)
-		http.HandleFunc("/kv/update", primary_kvUpdateHandler)
-		http.HandleFunc("/kv/delete", primary_kvDeleteHandler)
+    for key,val := range kvPrimaryHandlers {
+      http.HandleFunc("/kv/"+key, val)
+    }
+
 	}
-	
+
 	go housekeeper()
-	
-	log.Fatal(s.ListenAndServe())  
+
+	log.Fatal(s.ListenAndServe())
 }
