@@ -52,10 +52,19 @@ func find_port() (int,int,int){
 			panic(err)
 		}
 	var bp,err2=strconv.Atoi(conf["back_port"])
+
 		if err!=nil{
 			fmt.Println("Failed to parse back_port:"+conf["back_port"]);
 			panic(err2)
 		}
+		// Set the default value of back up port
+		if (bp == 0 ){
+			bp = p + 1;
+			if (bp > 65535){
+				bp = p - 1;
+			}
+		}
+
 
 	if conf["primary"]!=conf["backup"]{
 		return p,p,p
