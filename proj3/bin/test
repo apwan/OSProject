@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 # This should be run at root directory
-./build/client;
+./build/regularTester conf/test.conf;

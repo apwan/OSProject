@@ -3,4 +3,5 @@ echo "start compiling ...";
 mkdir build; cd build;
 go build ../src/server.go;
 go build ../test/client.go;
+go build ../OSTester/regularTester.go;
 echo "compiled.";

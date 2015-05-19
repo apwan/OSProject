@@ -16,3 +16,6 @@ hs_err_pid*
 */doc/*
 */mips/*
 */src/nachos/test/test*.coff
+
+proj3/OSTester
+proj3/build/*
