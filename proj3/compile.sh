@@ -3,7 +3,7 @@
 ROOT_DIR=`pwd`;
 prog_src=(
 src/main/server
-test/client
+src/main/stop_server
 OSTester/regularTester
 )
 echo "start compiling ...";

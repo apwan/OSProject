@@ -3,6 +3,7 @@ package kvlib
 import(
   "encoding/json"
   "io/ioutil"
+  "net/http"
 )
 
 func ReadJson(s string) (map[string]string){
@@ -36,4 +37,18 @@ func WriteJson(s string, udat map[string]string)(error){
     panic(err)
   }
   return err
+}
+
+func DecodeJson(resp *http.Response) map[string]interface{} {
+  var ret map[string]interface{}
+  body, _ := ioutil.ReadAll(resp.Body)
+  resp.Body.Close()
+  json.Unmarshal(body, &ret)
+  return ret
+}
+
+func DecodeStr(resp *http.Response) string {
+  body,_ := ioutil.ReadAll(resp.Body)
+  resp.Body.Close()
+  return string(body)
 }
