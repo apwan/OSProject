@@ -31,7 +31,7 @@ const(
  SHUTTING_DOWN=-1
 )
 
-const check_HTTP_method = false //should be true for safety reasons
+const check_HTTP_method = true //should be true for safety reasons
 
 func det_role() int {
 	arg_num := len(os.Args)
