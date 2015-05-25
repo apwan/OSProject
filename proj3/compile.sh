@@ -5,6 +5,7 @@ prog_src=(
 src/main/server
 src/main/stop_server
 OSTester/regularTester
+OSTester/test
 )
 echo "start compiling ...";
 mkdir build; cd build;

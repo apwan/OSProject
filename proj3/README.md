@@ -37,8 +37,9 @@ To increase the performance, only part of the table is locked for each insert or
 The table is partitioned to 32 bucket. After hashing, each key will be put in exactly one bucket.
 Only one bucket need to be locked when a key-value is update.
 
-3. Tester
+3. OSTester
 
+We also carry out some pressure test. Note that the project rubric do not allow tests that exhaust memory, so we did not put them into the OSTester.
 We writed a tester in golang to facilitating the testing procedure. 
 The testcases are put in a .test file in a specific format. 
 The tester reads the files and fires operations to the server parallelly or sequentially.
