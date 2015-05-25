@@ -19,62 +19,9 @@ import (
   )
 
 
-const(
- PRIMARY=1
- BACKUP=2
-)
-const(
- COLD_START=0
- WARM_START=1
- BOOTSTRAP=2
- SYNC=3
- SHUTTING_DOWN=-1
-)
 
 const check_HTTP_method = true //should be true for safety reasons
 
-func det_role() int {
-	arg_num := len(os.Args)
-	for i := 0 ; i < arg_num ;i++{
-		switch os.Args[i] {
-			case "-p":
-				return PRIMARY
-			case "-b":
-				return BACKUP
-		}
-	}
-	return 0
-}
-func find_port() (int,int,int){
-	var p,err=strconv.Atoi(conf["port"])
-		if err!=nil {
-			fmt.Println("Failed to parse port:"+conf["port"]);
-			panic(err)
-		}
-	var bp,err2=strconv.Atoi(conf["back_port"])
-
-		if err!=nil{
-			fmt.Println("Failed to parse back_port:"+conf["back_port"]);
-			panic(err2)
-		}
-		// Set the default value of back up port
-		if (bp == 0 ){
-			bp = p + 1;
-			if (bp > 65535){
-				bp = p - 1;
-			}
-		}
-
-
-	if conf["primary"]!=conf["backup"]{
-		return p,p,p
-	}
-
-	if role==PRIMARY{
-		return p,p,bp
-	}
-	return bp,p,bp
-}
 func find_URL() (string,string,string){
 	prim := "http://"+conf["primary"]+":"+strconv.Itoa(primaryPort)+"/kvman/"
 	back := "http://"+conf["backup"]+":"+strconv.Itoa(backupPort)+"/kvman/"
@@ -85,12 +32,13 @@ func find_URL() (string,string,string){
 }
 // GLOBAL VARS
 var(
- role = det_role() //PRIMARY, SECONDARY
+ role = Det_role() //PRIMARY, SECONDARY
  stage = COLD_START // COLD_START=0 WARM_START=1 BOOTSTRAP=2 SYNC=3; SHUTTING_DOWN=-1
  conf = ReadJson("conf/settings.conf")
- listenPort, primaryPort, backupPort = find_port()
+ listenPort, primaryPort, backupPort = Find_port(role, conf)
  peerURL, primaryURL, backupURL = find_URL()
  db = DB.New()
+ htime = time.Millisecond*5 // default
  )
 
 var peerSyncErrorSignal=make(chan int) //should we use buffered channel? or let all error'd process block and respond simultaneously?
@@ -100,7 +48,7 @@ var peerInSyncSignal=make(chan int)
 
 func housekeeper(){
 	for {
-		time.Sleep(5*time.Millisecond)
+		time.Sleep(htime)
 		msg :="DB server, role:"+strconv.Itoa(role)+"  stage:"+strconv.Itoa(stage)
 		fmt.Println(msg)
 		cmd := exec.Command("title", msg)
@@ -485,6 +433,8 @@ func kvmanShutdownHandler(w http.ResponseWriter, r *http.Request) {
 	_,_=http.Get(peerURL+"peershutdown")
 	fmt.Fprintf(w, "Hello, %q, DB suicide",
       html.EscapeString(r.URL.Path))
+  //io.WriteString(w, "Hello, "+html.EscapeString(r.URL.Path)+", DB suicide")
+
 	go func(){
 		time.Sleep(time.Millisecond*1) //sleep epsilon
 		os.Exit(0)
@@ -601,6 +551,10 @@ func main(){
     }
 
 	}
+  h,err := strconv.Atoi(conf["htime"])
+  if err == nil {
+    htime = time.Duration(h) * time.Millisecond
+  }
 
 	go housekeeper()
 
