@@ -35,9 +35,17 @@ The following step needs to be done to make the tester work in other group's pro
   4. copy the whole `test/` directory (containing all the test cases) to the root directory of other group's project
 
 Note 1: Our test case use the `bin/start_server` and `bin/stop_server`,
-make sure the correct scripts is executed when our tester run in other project.
+make sure the correct scripts is executed when our tester run in other project (thus the server program and test program should run on the same local server). 
 
 Note2: There are other parameters in `test.conf`. Setting `with_err_msg` to be true will allow the tester to print out the output of each test case. And `concur_num` specifies the number of concurrent request. If it is too large, some operations may return false beacuse the table is locked.
+
+Note3:  Here's some result we obtained on Ubuntu 12.04, while on Mac the successful concurrent requests are much less
+Insersion: 1938 / 2000
+Average latency: 1.64876161s / 682.722474ms
+Percentile latency: 1.098262941s / 569.368189ms, 1.845220664s / 704.984195ms, 1.902223645s / 759.749287ms, 2.100795738s / 803.975318ms
+
+Note4: With flag `-direct`, the tester is able to purely test the insert/get performance without start/stop server (thus can be used to test remote servers). (Of course the urls in `conf/test.conf` should be correctly configured)
+
 
 
 

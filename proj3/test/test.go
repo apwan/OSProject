@@ -491,7 +491,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
 
 func main() {
     confname := "conf/test.conf";
-    if len(os.Args)>1{
+    if len(os.Args)>1 && os.Args[1]!="-direct" {
       confname = os.Args[1];
     }
     conf := ReadJson(confname);
@@ -499,6 +499,14 @@ func main() {
     backup := "http://" + conf["backup"]
     tot,_ := strconv.Atoi(conf["total"])
     cnt := tot
+
+    jump := false
+    if len(os.Args)>1 && os.Args[1]=="-direct"{
+      // without starting/stoping server, only test the performance
+      jump = true
+      tot = 0
+      cnt = 0
+    }
 
     for i := 0; i < tot; i++ {
       testname := conf["pre"]+strconv.Itoa(i)+".test"
@@ -531,8 +539,11 @@ func main() {
     kvURL := primary+"/kv/"
 
 
-    StartServer("-p")
-    StartServer("-b")
+    if !jump{
+      StartServer("-p")
+      StartServer("-b")
+    }
+
     time.Sleep(500*time.Millisecond)
     N,err := strconv.Atoi(conf["concur_num"])
     if err != nil {
@@ -541,9 +552,11 @@ func main() {
 
     TestPerformance(N, kvURL)
 
+    if !jump{
+      StopServer("-p")
+      StopServer("-b")
+    }
 
-    StopServer("-p")
-    StopServer("-b")
 
 
 }
