@@ -17,9 +17,23 @@ Launching without flag: `bin/start_server`.
 
 ## Testing
 
-Use `bin/test`.
+The following step need to be done to make the tester work in other group's project
+1. copy bin/test to bin/ in other project
+2. copy conf/test.conf to conf/ in other project
+3. modify the parameters in conf/test.conf, such as the ip and port of server
+4. copy the whole test directory to the root directory of other group's project
+
+Note 1: Our test case use the bin/start_server and bin/stop_server,
+make sure the correct scripts is executed when our tester run in other project.
+Note 2: Some operations may return false if the number of concurrent request is too large.
+It is beacuse the table is locked.
+
+To run the testcase.
+Run compile.sh
+Run bin/test
 
 ## Test Cases:
+
 0.test: basic insert, delete and update
 1.test: concurrent insert, delete and update
 2.test: restart server repeatly, to test backup function
@@ -27,8 +41,9 @@ Use `bin/test`.
 5.test: restart server before basic insert, delete and update.
 6.test: restart server before concurrent insert, delete and update.
 7.test: test backup function, focus on backup server
-8.test: try to get some record which does not exists, sequencially and concurrently
+8.test: try to get some records which does not exists, sequencially and concurrently
 9.test: restart server after sequenceial and concurrent insert, delete and update.
+
 ## Implementations
 
 1. Synchonization
