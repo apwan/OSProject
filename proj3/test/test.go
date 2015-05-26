@@ -529,7 +529,6 @@ func main() {
     }
 
     kvURL := primary+"/kv/"
-    fmt.Println(kvURL)
 
 
     StartServer("-p")
