@@ -20,7 +20,7 @@ import (
 
 
 
-const check_HTTP_method = true //should be true for safety reasons
+const check_HTTP_method = false //should be true for safety reasons
 
 func find_URL() (string,string,string){
 	prim := "http://"+conf["primary"]+":"+strconv.Itoa(primaryPort)+"/kvman/"
@@ -162,13 +162,7 @@ func housekeeper(){
 }
 
 
- type BoolResponse struct {
-    Success bool `json:"success"`
-}
-var (
-	TrueResponseStr = "{\"success\":true}"
-	FalseResponseStr = "{\"success\":false}"
-)// in high-performance setting, TRS="1", FRS="0" !!!
+
 
 
 var short_timeout = time.Duration(500 * time.Millisecond)
@@ -220,11 +214,6 @@ func fastSync(key string, value string, del bool) bool{
  //Main program started here
  //methods: insert,delete,update; get (via GET)
 
-
-type StrResponse struct {
-	Success bool `json:"success"`
-    Value string `json:"value"`
-}
 
 func naive_kvUpsertHandler(w http.ResponseWriter, r *http.Request) {
 	if check_HTTP_method && r.Method != "POST" {

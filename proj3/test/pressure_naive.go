@@ -8,34 +8,15 @@ import(
   "strconv"
   "math/rand"
   "sort"
-  "os"
   "strings"
-  "io/ioutil"
   "encoding/json"
+  "os"
+  . "kvlib"
   )
 
 
-var conf = readConf("conf/settings.conf") 
-func readConf(s string) map[string]string{
-    dat, err := ioutil.ReadFile(s)
-	if err != nil {
-        panic(err)
-    }
-    //fmt.Println(dat)
-	var udat map[string]interface{}
-	if err := json.Unmarshal(dat, &udat); err != nil {
-        panic(err)
-    }
-	ret:=make(map[string]string)
-	
-	for idx, val := range udat {
-		var str=val.(string)
-		ret[idx]=str
-    }
-    //fmt.Println("parsed config:")
-	//fmt.Println(ret)
-	return ret
-}  
+var conf = ReadJson("conf/settings.conf")
+
 var(
  rootURL="http://"+conf["primary"]+":"+conf["port"]+"/"
  kvURL=rootURL+"kv/"
@@ -50,14 +31,8 @@ func naive_HTTP(url string, data_enc string, post bool) (string, error) {
 		if err != nil {
 			return "",err
 		}
-			 
-		defer resp.Body.Close()
-		body, err2 := ioutil.ReadAll(resp.Body)
-		if err2 != nil {
-			return "",err
-		}
-		return string(body), nil
-    }else{
+		return DecodeStr(resp), nil
+  }else{
 		if data_enc != "" {
 			url+="?"+data_enc
 		}
@@ -65,32 +40,30 @@ func naive_HTTP(url string, data_enc string, post bool) (string, error) {
 		if err != nil {
 			return "",err
 		}
-			 
-		defer resp.Body.Close()
-		body, err2 := ioutil.ReadAll(resp.Body)
-		if err2 != nil {
-			return "",err
-		}
-		return string(body), nil
+		return DecodeStr(resp), nil
 	}
 }
- 
-var insert_succ=0 
-func do_insert(i int, c chan time.Duration){
+
+var insert_succ=0
+func do_insert(i int, c chan time.Duration, suc chan int){
 	key,value:=get_key(i),get_value(i)
+  fmt.Println(key,value)
 	start := time.Now()
 	ret,err:=naive_HTTP(kvURL+"insert","key="+url.QueryEscape(key)+"&value="+url.QueryEscape(value),true)
 	c<- time.Since(start)
 	if err==nil {
 		var udat map[string]interface{}
+
 		if err2 := json.Unmarshal([]byte(ret), &udat); err2 == nil {
+      fmt.Println(udat["success"])
 			if udat["success"]== true {
 				insert_succ+=1
+
 			}
-		}	
+		}
 	}
-} 
-var get_succ=0 
+}
+var get_succ=0
 func do_get(i int, c chan time.Duration){
 	key,value:=get_key(i),get_value(i)
 	start := time.Now()
@@ -102,12 +75,12 @@ func do_get(i int, c chan time.Duration){
 			if udat["success"]== true && udat["value"]==value {
 				get_succ+=1
 			}
-		}	
+		}
 	}
-} 
+}
 var dummy=func()(string){
   dummy:="TEST keyvalue long string................"
-  for i:=0; i<1025;i++ {
+  for i:=0; i<10;i++ {
 	dummy=dummy+ string(i%26+65)
   }
   r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -115,6 +88,7 @@ var dummy=func()(string){
   return dummy
 }()
 func get_key(i int)(string){
+  return "kvmanCountkeyHandler"+strconv.Itoa(i)
 	if i%10 ==0  && i<len(dummy){
 		copy:=""+dummy
 		buf:=[]byte(copy)
@@ -127,6 +101,7 @@ func get_key(i int)(string){
 	return dummy+strconv.Itoa(i)
 }
 func get_value(i int)(string){
+  return "val"+strconv.Itoa(i)
 	return strconv.Itoa(i)+dummy+strconv.Itoa(i)
 }
 
@@ -137,41 +112,45 @@ func (a duration_slice) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a duration_slice) Less(i, j int) bool { return a[i] < a[j] }
 
 func main(){
-  N:=4000
+  StartServer("-p");
+  StartServer("-b");
+  time.Sleep(500*time.Millisecond)
+  N:=500
+  if len(os.Args)>1 {
+    N,_ = strconv.Atoi(os.Args[1])
+  }
    //fmt.Println(dummy,"\nkey:",get_key(1),"\nvalue:",get_value(1))
-  
-  ret,err := naive_HTTP(kvmanURL+"dump","",false)
-  if err!=nil || ret!="{}"&& ret!="{\"_\":\"__\"}"{
-    fmt.Println(ret,err)
-	os.Exit(-1)
-  }
+
+
   //fmt.Println(ret)
-  
+
   insert_perf:=make(chan time.Duration, N)
+  var suc = make(chan int)
   for i:=0; i<N;i++ {
-	go do_insert(i, insert_perf)
+	go do_insert(i, insert_perf, suc)
   }
-  insert_stat:=make(duration_slice, N) 
+  insert_stat:=make(duration_slice, N)
   for i:=0; i<N;i++ {
 	insert_stat[i]= <-insert_perf
   }
+
   sort.Sort(insert_stat)
-  
+
   get_perf:=make(chan time.Duration, N)
   for i:=0; i<N;i++ {
 	go do_get(i, get_perf)
   }
-  get_stat:=make(duration_slice, N) 
+  get_stat:=make(duration_slice, N)
   for i:=0; i<N;i++ {
 	get_stat[i]= <-get_perf
   }
   sort.Sort(get_stat)
-  
+
   time.Sleep(time.Millisecond)
   //println("Insertion: ",insert_succ,"/",N)
   println("Insertion: ",get_succ,"/",N)
   //println("get succ:",get_succ)
-  
+
   var sum_inst=time.Duration(0)
   var sum_get=time.Duration(0)
   for i:=0;i<N;i++ {
@@ -183,9 +162,9 @@ func main(){
   fmt.Print(" / ")
   fmt.Print(sum_get)
   println()
-  
+
   print("Percentile latency: ")
-  
+
   for i:=2;i<=9;i+=2 {
 	//fmt.Print(strconv.Itoa(i*10)+"% Percentile:")
 	fmt.Print(insert_stat[i*N/10])
@@ -195,4 +174,6 @@ func main(){
 	if(i==2){i++}
   }
   println()
+  StopServer("-p")
+  StopServer("-b")
 }

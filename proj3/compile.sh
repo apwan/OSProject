@@ -4,8 +4,8 @@ ROOT_DIR=`pwd`;
 prog_src=(
 src/main/server
 src/main/stop_server
-OSTester/regularTester
-OSTester/test
+test/test
+test/pressure_naive
 )
 echo "start compiling ...";
 mkdir build; cd build;
