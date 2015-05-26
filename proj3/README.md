@@ -18,8 +18,17 @@ Launching without flag: `bin/start_server`.
 ## Testing
 
 Use `bin/test`.
-Test `/kv` and `/kvman`
 
+## Test Cases:
+0.test: basic insert, delete and update
+1.test: concurrent insert, delete and update
+2.test: restart server repeatly, to test backup function
+4.test: test backup function, focus on primary server
+5.test: restart server before basic insert, delete and update.
+6.test: restart server before concurrent insert, delete and update.
+7.test: test backup function, focus on backup server
+8.test: try to get some record which does not exists, sequencially and concurrently
+9.test: restart server after sequenceial and concurrent insert, delete and update.
 ## Implementations
 
 1. Synchonization
