@@ -4,6 +4,8 @@ import(
   "os"
   "fmt"
   "strconv"
+  "time"
+  "math/rand"
 )
 
 const(
@@ -31,6 +33,20 @@ type StrResponse struct {
     Value string `json:"value"`
 }
 
+type Duration_slice []time.Duration
+func (a Duration_slice) Len() int { return len(a) }
+func (a Duration_slice) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a Duration_slice) Less(i, j int) bool { return a[i] < a[j] }
+
+func GenLongStr()(string){
+  dummy:="TEST kv long str ......"
+  for i:=0; i<10;i++ {
+	dummy=dummy+ string(i%26+65)
+  }
+  r := rand.New(rand.NewSource(time.Now().UnixNano()))
+  dummy=fmt.Sprintf("rand%lf", r.Float64())+dummy+fmt.Sprintf("rand%lf", r.Float64())+":"
+  return dummy
+}
 
 func Det_role() int {
 	arg_num := len(os.Args)

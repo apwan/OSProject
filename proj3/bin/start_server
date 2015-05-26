@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# This should be run at root directory
-./build/server $1&

@@ -1,0 +1,19 @@
+Exec bin/start_server -p
+Switch primary
+Sleep 500
+Exec bin/start_server -b
+Switch backup
+Sleep 500
+Insert 100 59
+Get 68
+Update 5 73
+Get 19
+Get 18
+Update 62 95
+Remove 76
+Block
+Get 9
+Remove 2
+Update 19 95
+Endblock
+Sleep 500

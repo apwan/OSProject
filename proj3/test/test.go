@@ -27,44 +27,6 @@ func checkDump(t map[string]string, d map[string]interface{}) int {
     return 0
 }
 
-func kvGet(k string, addr string, id int, c chan int, r chan string, start chan bool){
-  <-start
-  resp, err := http.Get(addr+"/kv/get?key="+k);
-  if err == nil {
-    r<- DecodeStr(resp)
-  }else{
-    c<- id
-  }
-}
-func kvInsert(k string, v string, addr string, id int, c chan int, r chan string, start chan bool){
-  <- start
-  resp, err := http.PostForm(addr + "/kv/insert", url.Values{"key": {k}, "value": {v}})
-  if err == nil {
-    r<- DecodeStr(resp)
-  }else{
-    c<- id
-  }
-}
-
-func kvUpdate(k string, v string, addr string, id int, c chan int, r chan string, start chan bool){
-  <- start
-  resp, err := http.PostForm(addr + "/kv/update", url.Values{"key": {k}, "value": {v}})
-  if err == nil {
-    r<- DecodeStr(resp)
-  }else{
-    c<- id
-  }
-}
-
-func kvDelete(k string, addr string, id int, c chan int, r chan string, start chan bool){
-  <- start
-  resp, err := http.PostForm(addr + "/kv/delete", url.Values{"key": {k}})
-  if err == nil {
-    r<- DecodeStr(resp)
-  }else{
-    c<- id
-  }
-}
 
 
 
@@ -389,8 +351,6 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                         r += fmt.Sprintf("Illegal instruction: key appeared twice in a block.\n")
                     } else {
                         tableBlock[s[1]] = 1
-                        ins <- s
-                        cnt++
                         go func(s [4]string) {
                             resp, err := http.Get(p + "/kv/get?key=" + s[1])
                             if err == nil {
@@ -527,75 +487,10 @@ func TestUnit(p, b, fn string) (r string, fail int) {
     }
 }
 
-func testInsert(total_insert int, primary string){
-  start := make(chan bool)
-  r := make(chan string)
-  ch := make(chan int)
-  count_fail := 0
-  count_success := 0
-  for i:=0; i<total_insert; i++ {
-    go kvInsert("insert"+strconv.Itoa(i), "res"+strconv.Itoa(i), primary, i, ch, r, start)
-  }
-  close(start)
-  t0 := time.Now()
-  for {
-    select{
-      case f:=<-ch :
-        fmt.Println("failed: %d\n", f)
-         count_fail ++
-      case res:=<-r :
-         fmt.Println(res)
-         count_success ++
-      default:
 
-    }
-    if count_fail+count_success>=total_insert{
-      break
-    }
-  }
-  t1 := time.Now()
-  t := t1.Sub(t0)
-  avg := t.Seconds()*1000.0/float64(total_insert)
-  fmt.Printf("elapsed %f ms\n", avg)
-
-}
-
-func testGet(total_get int, primary string){
-  start := make(chan bool)
-  r := make(chan string)
-  ch := make(chan int)
-  count_fail := 0
-  count_success := 0
-  for i:=0; i<total_get; i++ {
-    go kvGet("insert"+strconv.Itoa(i), primary, i, ch, r, start)
-  }
-  close(start)
-  t0 := time.Now()
-  for {
-    select{
-      case f:=<-ch :
-        fmt.Println("failed: %d\n", f)
-         count_fail ++
-      case res:=<-r :
-         fmt.Println(res)
-         count_success ++
-      default:
-
-    }
-    if count_fail+count_success>=total_get{
-      break
-    }
-  }
-  t1 := time.Now()
-  t := t1.Sub(t0)
-  avg := t.Seconds()*1000.0/float64(total_get)
-  fmt.Printf("elapsed %f ms\n", avg )
-
-
-}
 
 func main() {
-    confname := "test.conf";
+    confname := "conf/test.conf";
     if len(os.Args)>1{
       confname = os.Args[1];
     }
@@ -605,32 +500,25 @@ func main() {
     tot,_ := strconv.Atoi(conf["total"])
     cnt := tot
 
-    fmt.Println(StartServer("-p"))
-    fmt.Println(StartServer("-b"))
-
-    testInsert(100, primary)
-    testGet(100, primary)
-
-    fmt.Println("stop primary: "+StopServer("-p"))
-    fmt.Println("stop backup: "+StopServer("-b"))
-
-    fmt.Printf("total: %d\n", tot)
-
     for i := 0; i < tot; i++ {
       testname := conf["pre"]+strconv.Itoa(i)+".test"
 
-      if conf["fmt"] != "true"{
-        testname = conf[strconv.Itoa(i)]
+      if conf["fmt"] != "true"{ //no need to specify each test case name
+        testname = conf["pre"]+conf[strconv.Itoa(i)]
       }
-      fmt.Println(testname)
         res, fail := TestUnit(primary, backup, testname)
-        fmt.Printf("%s", res)
-        if fail == 0 {
-            fmt.Printf("\nTest case %d: success!\n\n", i)
-        } else {
-            fmt.Printf("\nTest case %d: failed!\n\n", i)
+        if conf["with_err_msg"]=="true"{
+          fmt.Printf("%s", res)
+          if fail == 0 {
+              fmt.Printf("\nTest case %d: success!\n\n", i)
+          } else {
+              fmt.Printf("\nTest case %d: failed!\n\n", i)
+          }
+
+
         }
         cnt -= fail
+
     }
 
 
@@ -639,5 +527,24 @@ func main() {
     } else {
         fmt.Printf("fail\n")
     }
+
+    kvURL := primary+"/kv/"
+    fmt.Println(kvURL)
+
+
+    StartServer("-p")
+    StartServer("-b")
+    time.Sleep(500*time.Millisecond)
+    N,err := strconv.Atoi(conf["concur_num"])
+    if err != nil {
+      N = 125
+    }
+
+    TestPerformance(N, kvURL)
+
+
+    fmt.Println("stop primary: "+StopServer("-p"))
+    fmt.Println("stop backup: "+StopServer("-b"))
+
 
 }

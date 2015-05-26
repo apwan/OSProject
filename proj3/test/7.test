@@ -1,0 +1,22 @@
+Exec bin/start_server -p
+Switch primary
+Sleep 500
+Exec bin/start_server -b
+Switch backup
+Sleep 500
+Remove 44
+Exec bin/stop_server -b
+Switch backup
+Sleep 500
+Insert 54 90
+Update 76 13
+Remove 33
+Insert 74 26
+Exec bin/start_server -b
+Switch backup
+Sleep 500
+Remove 91
+Insert 39 8
+Remove 30
+Insert 20 56
+Remove 20
