@@ -542,8 +542,8 @@ func main() {
     TestPerformance(N, kvURL)
 
 
-    fmt.Println("stop primary: "+StopServer("-p"))
-    fmt.Println("stop backup: "+StopServer("-b"))
+    StopServer("-p")
+    StopServer("-b")
 
 
 }
