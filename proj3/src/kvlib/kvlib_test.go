@@ -2,6 +2,7 @@ package kvlib
 
 import(
   "fmt"
+  "time"
   "testing"
 )
 func Test1(t *testing.T) {

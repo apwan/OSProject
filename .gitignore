@@ -19,3 +19,4 @@ hs_err_pid*
 
 proj3/OSTester
 proj3/build/*
+proj3/bin/*

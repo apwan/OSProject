@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# This should be run at root directory
-./build/stop_server $1
