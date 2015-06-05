@@ -45,7 +45,7 @@ func Do_insert(i int, kvURL string, c chan time.Duration, insert_succ *int){
 
 		if err2 := json.Unmarshal([]byte(ret), &udat); err2 == nil {
       //fmt.Println(udat["success"])
-			if udat["success"]== true {
+			if udat["success"]== "true" {
 				*insert_succ+=1
 
 			}
@@ -61,7 +61,7 @@ func Do_get(i int, kvURL string, c chan time.Duration, get_succ *int){
 	if err==nil {
 		var udat map[string]interface{}
 		if err := json.Unmarshal([]byte(ret), &udat); err == nil {
-			if udat["success"]== true && udat["value"]==value {
+			if udat["success"]== "true" && udat["value"]==value {
 				*get_succ+=1
 			}
 		}
