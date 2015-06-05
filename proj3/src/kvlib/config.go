@@ -24,12 +24,12 @@ type BoolResponse struct {
    Success bool `json:"success"`
 }
 var (
- TrueResponseStr = "{\"success\":true}"
- FalseResponseStr = "{\"success\":false}"
+ TrueResponseStr = "{\"success\":\"true\"}"
+ FalseResponseStr = "{\"success\":\"false\"}"
 )// in high-performance setting, TRS="1", FRS="0" !!!
 
 type StrResponse struct {
-	Success bool `json:"success"`
+	Success string `json:"success"`
     Value string `json:"value"`
 }
 

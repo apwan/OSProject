@@ -280,8 +280,14 @@ func naive_kvGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	key:= r.FormValue("key")
 	val,ok:= db.Get(key)
+	var okStr=""
+	if ok {
+		okStr="true"
+	}else{
+		okStr="false"
+	}
 	ret:=&StrResponse{
-		Success:ok,
+		Success:okStr,
 		Value:val}
 	str,_:=json.Marshal(ret);
 	fmt.Fprintf(w, "%s",str)
@@ -363,7 +369,7 @@ func primary_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		ret:= fastSync(key,"",true)
 		if ret{
 			ret:=&StrResponse{
-				Success:true,
+				Success:"true",
 				Value:recover}
 			str,_:=json.Marshal(ret);
 			fmt.Fprintf(w, "%s",str)
