@@ -1,0 +1,15 @@
+Exec bin/start_server -p
+Exec bin/start_server -b
+Sleep 500
+Switch primary
+Switch backup
+Block
+Insert hello world
+Insert shut down
+Remove hello
+Get shut
+Insert hey you
+Endblock
+Get shut
+Update hello mydear
+Remove hello

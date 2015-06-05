@@ -1,0 +1,1240 @@
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Get 11
+Insert 56 8
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Remove 27
+Remove 90
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Get 67
+Update 68 57
+Insert 96 8
+Remove 84
+Remove 63
+Update 71 14
+Update 27 50
+Insert 49 24
+Get 51
+Insert 15 27
+Update 17 16
+Remove 28
+Insert 37 82
+Remove 98
+Get 42
+Update 25 52
+Remove 58
+Get 98
+Insert 46 59
+Remove 47
+Insert 99 84
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Insert 53 88
+Remove 80
+Update 59 95
+Update 7 1
+Get 7
+Remove 98
+Insert 19 84
+Remove 94
+Remove 1
+Block
+Update 98 89
+Remove 53
+Endblock
+Sleep 1000
+Insert 36 94
+Get 47
+Insert 96 43
+Get 99
+Remove 95
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Insert 65 53
+Insert 55 67
+Update 33 70
+Update 13 52
+Get 13
+Update 88 55
+Get 79
+Update 57 56
+Update 30 1
+Get 58
+Get 20
+Get 4
+Update 72 63
+Update 95 51
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Insert 16 4
+Get 90
+Insert 12 19
+Get 1
+Insert 57 69
+Update 35 5
+Block
+Remove 26
+Insert 51 52
+Remove 12
+Get 58
+Endblock
+Sleep 1000
+Update 93 92
+Update 71 88
+Remove 83
+Get 30
+Insert 94 55
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Get 96
+Remove 66
+Block
+Remove 46
+Remove 76
+Insert 43 37
+Update 84 7
+Get 89
+Update 3 45
+Get 21
+Remove 61
+Remove 85
+Insert 87 59
+Insert 28 39
+Get 85
+Remove 95
+Get 24
+Update 93 97
+Remove 97
+Update 20 69
+Insert 63 41
+Update 58 78
+Update 32 61
+Insert 85 40
+Get 20
+Get 49
+Remove 61
+Get 98
+Remove 69
+Remove 72
+Remove 60
+Insert 57 11
+Update 6 16
+Remove 9
+Get 78
+Insert 32 62
+Insert 46 6
+Remove 36
+Insert 29 84
+Get 41
+Insert 26 5
+Insert 94 69
+Remove 24
+Insert 7 6
+Update 22 87
+Remove 80
+Get 41
+Get 82
+Remove 98
+Remove 53
+Update 2 88
+Remove 58
+Insert 30 56
+Get 36
+Remove 2
+Get 51
+Remove 48
+Remove 99
+Update 78 7
+Get 57
+Endblock
+Sleep 1000
+Update 44 84
+Get 34
+Update 84 82
+Update 79 36
+Remove 97
+Update 29 14
+Get 61
+Update 41 46
+Update 32 20
+Get 21
+Remove 46
+Update 11 92
+Update 56 100
+Get 82
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Update 85 77
+Update 60 61
+Update 11 67
+Update 12 24
+Update 81 31
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Insert 43 34
+Remove 84
+Remove 16
+Remove 79
+Insert 69 67
+Remove 60
+Remove 19
+Update 34 90
+Remove 90
+Remove 10
+Remove 52
+Remove 73
+Get 34
+Get 74
+Get 88
+Insert 19 50
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Remove 33
+Block
+Insert 45 98
+Update 61 9
+Update 14 66
+Get 90
+Remove 41
+Update 80 99
+Remove 62
+Insert 30 41
+Remove 50
+Update 29 65
+Remove 19
+Insert 34 47
+Remove 49
+Remove 77
+Remove 66
+Remove 2
+Get 93
+Get 82
+Insert 83 76
+Insert 56 53
+Update 32 76
+Update 4 59
+Update 38 15
+Remove 28
+Get 90
+Update 95 82
+Endblock
+Sleep 1000
+Update 54 57
+Update 92 63
+Remove 41
+Get 60
+Update 70 8
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Update 75 44
+Get 94
+Block
+Insert 63 72
+Get 35
+Insert 100 10
+Endblock
+Sleep 1000
+Get 49
+Update 98 47
+Get 83
+Insert 99 24
+Get 86
+Remove 100
+Remove 18
+Get 47
+Remove 53
+Insert 51 69
+Update 49 78
+Insert 71 17
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Update 49 41
+Insert 64 46
+Insert 72 78
+Insert 45 7
+Remove 34
+Get 79
+Get 48
+Remove 44
+Remove 19
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Insert 20 51
+Insert 18 7
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Insert 53 59
+Remove 61
+Get 32
+Update 3 35
+Insert 13 61
+Remove 33
+Get 92
+Get 90
+Update 25 13
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Get 79
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Remove 100
+Get 64
+Update 38 100
+Insert 89 91
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Get 68
+Update 92 38
+Remove 50
+Get 54
+Insert 30 65
+Update 62 88
+Insert 29 60
+Update 13 57
+Remove 61
+Get 57
+Insert 16 87
+Update 94 82
+Update 17 86
+Update 26 77
+Insert 56 43
+Get 90
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Get 33
+Update 98 59
+Insert 59 80
+Remove 72
+Update 29 13
+Remove 82
+Remove 3
+Get 59
+Update 99 24
+Get 41
+Remove 73
+Insert 90 16
+Insert 85 4
+Get 28
+Insert 16 98
+Remove 23
+Block
+Update 64 89
+Insert 22 33
+Get 74
+Get 86
+Update 69 80
+Insert 21 96
+Update 9 52
+Get 3
+Remove 53
+Insert 87 34
+Insert 17 40
+Update 72 40
+Update 39 29
+Update 69 20
+Get 59
+Insert 65 28
+Get 83
+Get 91
+Insert 94 39
+Get 77
+Remove 98
+Insert 87 21
+Remove 24
+Insert 75 45
+Remove 93
+Update 53 41
+Remove 73
+Update 38 84
+Endblock
+Sleep 1000
+Update 49 27
+Remove 36
+Update 19 15
+Update 90 38
+Remove 34
+Update 47 26
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Remove 93
+Get 61
+Get 93
+Remove 71
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Get 41
+Remove 6
+Update 35 15
+Update 42 66
+Get 96
+Get 6
+Insert 15 44
+Get 42
+Remove 82
+Get 66
+Remove 14
+Insert 34 12
+Update 62 42
+Insert 62 64
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Insert 28 79
+Remove 46
+Update 10 60
+Remove 3
+Remove 49
+Update 29 33
+Remove 16
+Insert 80 67
+Remove 78
+Update 58 96
+Insert 20 18
+Get 31
+Get 31
+Update 76 51
+Insert 91 100
+Remove 17
+Update 81 84
+Block
+Remove 91
+Insert 9 80
+Update 65 34
+Remove 81
+Remove 84
+Insert 7 16
+Get 65
+Get 55
+Insert 69 49
+Update 41 61
+Get 40
+Remove 8
+Insert 12 75
+Get 29
+Update 46 35
+Insert 50 9
+Remove 42
+Remove 15
+Update 29 30
+Remove 59
+Update 84 62
+Remove 20
+Remove 5
+Get 85
+Remove 88
+Get 100
+Update 15 49
+Get 90
+Get 3
+Remove 1
+Get 53
+Update 19 93
+Remove 37
+Remove 34
+Insert 8 21
+Get 42
+Update 46 55
+Get 87
+Remove 70
+Get 24
+Remove 69
+Remove 42
+Get 57
+Insert 22 56
+Get 86
+Update 77 67
+Insert 60 17
+Update 65 23
+Remove 36
+Insert 22 87
+Insert 100 36
+Get 56
+Remove 25
+Update 83 77
+Update 26 42
+Get 1
+Insert 47 12
+Remove 83
+Get 16
+Update 62 76
+Get 85
+Remove 34
+Get 91
+Insert 100 91
+Get 78
+Remove 82
+Insert 15 7
+Remove 82
+Insert 20 53
+Update 88 79
+Update 85 14
+Remove 44
+Update 81 39
+Endblock
+Sleep 1000
+Get 13
+Insert 87 84
+Get 78
+Remove 73
+Get 72
+Remove 99
+Update 64 87
+Remove 66
+Insert 47 38
+Get 88
+Get 19
+Block
+Update 77 8
+Insert 89 91
+Get 66
+Get 21
+Insert 79 39
+Insert 96 59
+Get 88
+Insert 22 10
+Get 90
+Get 21
+Endblock
+Sleep 1000
+Remove 56
+Get 14
+Update 13 90
+Remove 2
+Update 44 55
+Remove 90
+Insert 85 42
+Get 45
+Update 52 25
+Get 31
+Insert 79 37
+Get 85
+Insert 60 76
+Get 58
+Update 75 98
+Remove 74
+Insert 7 12
+Remove 33
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Remove 52
+Block
+Insert 37 47
+Insert 5 99
+Get 70
+Get 67
+Endblock
+Sleep 1000
+Remove 20
+Update 42 44
+Remove 29
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Get 66
+Insert 18 34
+Update 86 25
+Insert 1 91
+Update 86 56
+Remove 68
+Remove 67
+Update 44 29
+Update 68 53
+Remove 47
+Update 96 3
+Remove 80
+Remove 22
+Get 1
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Remove 38
+Remove 36
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Remove 52
+Update 100 58
+Update 86 19
+Insert 81 85
+Remove 89
+Insert 79 88
+Get 46
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Remove 99
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Get 45
+Remove 15
+Get 43
+Insert 2 28
+Remove 88
+Update 72 34
+Insert 9 18
+Get 55
+Get 10
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Block
+Get 100
+Update 71 96
+Remove 79
+Get 52
+Insert 45 35
+Update 54 8
+Remove 39
+Get 44
+Insert 78 6
+Get 20
+Insert 34 72
+Get 88
+Get 66
+Get 35
+Insert 80 19
+Update 36 44
+Insert 21 63
+Insert 9 30
+Get 5
+Get 98
+Get 89
+Get 22
+Update 72 6
+Update 100 70
+Remove 53
+Update 59 82
+Update 43 59
+Endblock
+Sleep 1000
+Remove 67
+Update 67 56
+Update 72 5
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Remove 8
+Get 58
+Update 58 62
+Remove 1
+Get 76
+Get 67
+Get 86
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Update 71 10
+Update 38 36
+Block
+Update 89 38
+Update 24 68
+Insert 60 88
+Update 10 49
+Remove 21
+Remove 45
+Update 74 87
+Insert 91 44
+Get 27
+Remove 6
+Update 36 68
+Get 10
+Insert 80 31
+Update 3 4
+Get 51
+Get 31
+Endblock
+Sleep 1000
+Update 12 82
+Remove 70
+Get 95
+Remove 65
+Remove 23
+Remove 92
+Insert 28 78
+Insert 99 69
+Insert 78 39
+Insert 67 5
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Update 98 77
+Get 82
+Get 90
+Update 77 78
+Update 52 63
+Insert 70 10
+Get 29
+Update 43 69
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Update 56 66
+Remove 87
+Get 19
+Update 17 100
+Get 5
+Block
+Update 98 5
+Update 13 97
+Insert 82 88
+Get 23
+Update 36 90
+Update 35 54
+Update 19 65
+Insert 64 76
+Get 50
+Update 57 18
+Endblock
+Sleep 1000
+Remove 85
+Block
+Get 26
+Insert 61 47
+Update 69 84
+Update 12 67
+Get 60
+Insert 61 96
+Remove 49
+Get 97
+Get 20
+Remove 82
+Endblock
+Sleep 1000
+Get 21
+Remove 100
+Block
+Get 92
+Update 56 85
+Insert 6 64
+Update 82 5
+Insert 53 89
+Insert 1 17
+Update 88 49
+Update 3 17
+Update 70 13
+Update 77 35
+Update 4 96
+Get 43
+Insert 25 92
+Update 18 83
+Endblock
+Sleep 1000
+Insert 42 48
+Get 2
+Insert 97 7
+Insert 28 97
+Update 40 59
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Update 90 71
+Insert 99 42
+Get 44
+Get 3
+Insert 21 65
+Insert 4 59
+Get 81
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Get 96
+Insert 6 6
+Get 53
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Remove 58
+Update 29 33
+Insert 43 41
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Block
+Update 85 85
+Update 88 90
+Get 26
+Update 19 37
+Update 5 99
+Update 71 93
+Get 40
+Remove 89
+Insert 98 48
+Get 7
+Insert 93 12
+Update 87 98
+Insert 28 13
+Endblock
+Sleep 1000
+Insert 21 38
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Remove 38
+Insert 35 88
+Get 3
+Insert 83 91
+Get 99
+Remove 53
+Get 95
+Update 13 17
+Get 64
+Insert 75 91
+Update 16 12
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Get 23
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Remove 4
+Get 91
+Insert 7 28
+Get 14
+Block
+Update 25 79
+Update 39 52
+Update 53 67
+Update 84 37
+Get 67
+Get 49
+Remove 50
+Update 21 95
+Insert 90 24
+Get 34
+Update 74 45
+Remove 55
+Insert 38 78
+Update 94 31
+Endblock
+Sleep 1000
+Get 68
+Get 91
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Update 30 63
+Update 21 26
+Get 76
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Insert 16 92
+Insert 40 98
+Update 48 96
+Remove 98
+Insert 88 86
+Get 47
+Remove 23
+Update 89 6
+Insert 62 19
+Block
+Remove 12
+Insert 50 81
+Update 51 38
+Get 30
+Insert 78 94
+Insert 2 7
+Insert 48 81
+Insert 71 3
+Update 66 36
+Get 31
+Remove 56
+Remove 63
+Insert 32 24
+Insert 67 49
+Update 79 79
+Remove 15
+Remove 39
+Update 17 91
+Update 74 91
+Remove 57
+Update 74 85
+Update 6 9
+Update 48 11
+Update 77 39
+Insert 24 76
+Insert 83 45
+Update 20 22
+Get 97
+Insert 96 20
+Insert 35 15
+Remove 14
+Update 94 21
+Remove 74
+Insert 58 91
+Get 97
+Update 54 50
+Insert 40 74
+Update 49 53
+Endblock
+Sleep 1000
+Update 11 94
+Get 7
+Remove 89
+Update 61 1
+Remove 46
+Update 82 7
+Insert 91 1
+Update 2 72
+Insert 1 15
+Remove 15
+Remove 13
+Remove 10
+Insert 74 33
+Insert 69 20
+Insert 58 44
+Remove 67
+Update 1 79
+Update 9 90
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Remove 81
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Get 35
+Get 74
+Insert 13 78
+Insert 16 9
+Update 9 68
+Get 80
+Insert 37 53
+Remove 80
+Update 99 31
+Update 72 25
+Update 16 94
+Insert 19 25
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Update 3 35
+Update 90 72
+Insert 92 100
+Get 9
+Get 27
+Remove 74
+Get 32
+Insert 63 97
+Insert 22 33
+Remove 38
+Insert 43 6
+Update 51 4
+Get 56
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Get 56
+Get 98
+Get 73
+Remove 80
+Insert 74 51
+Get 49
+Insert 54 36
+Get 27
+Update 19 33
+Remove 3
+Remove 56
+Get 65
+Update 95 67
+Remove 46
+Update 41 27
+Get 32
+Get 33
+Update 94 45
+Get 94
+Remove 99
+Insert 73 73
+Get 16
+Insert 16 18
+Remove 7
+Remove 68
+Insert 80 42
+Update 28 77
+Insert 1 25
+Insert 13 9
+Update 20 64
+Update 50 69
+Block
+Remove 80
+Update 84 29
+Update 53 88
+Get 73
+Remove 90
+Remove 85
+Remove 67
+Remove 31
+Remove 46
+Get 62
+Remove 66
+Endblock
+Sleep 1000
+Remove 29
+Remove 21
+Remove 75
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Get 28
+Remove 58
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Update 11 95
+Get 86
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Remove 25
+Insert 2 69
+Remove 76
+Get 42
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Update 66 71
+Insert 25 88
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Remove 20
+Insert 43 71
+Get 46
+Get 8
+Insert 3 9
+Update 72 45
+Get 14
+Insert 38 86
+Insert 19 16
+Update 64 46
+Update 63 27
+Update 37 29
+Remove 80
+Remove 12
+Remove 7
+Insert 19 76
+Insert 58 83
+Get 81
+Get 8
+Remove 9
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Get 59
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Insert 56 77
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Insert 58 56
+Remove 24
+Exec bin/stop_server -p
+Switch primary
+Sleep 1000
+Update 73 34
+Insert 21 7
+Update 35 59
+Update 96 57
+Insert 21 36
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
+Get 80
+Remove 39
+Update 6 32
+Insert 48 79
+Get 87
+Block
+Remove 69
+Update 97 35
+Get 76
+Get 94
+Insert 87 37
+Update 65 27
+Update 79 95
+Get 27
+Remove 70
+Update 16 52
+Update 31 65
+Get 11
+Insert 97 6
+Get 17
+Update 18 91
+Remove 60
+Update 56 39
+Get 65
+Update 72 82
+Update 27 15
+Insert 97 100
+Get 2
+Remove 86
+Remove 34
+Remove 60
+Get 74
+Remove 67
+Insert 38 14
+Update 97 10
+Update 1 54
+Insert 29 8
+Remove 94
+Insert 38 73
+Remove 69
+Insert 88 45
+Get 27
+Insert 92 63
+Remove 9
+Insert 4 26
+Get 74
+Remove 15
+Get 52
+Update 69 31
+Get 68
+Remove 41
+Update 78 41
+Update 83 56
+Update 25 99
+Remove 27
+Remove 90
+Insert 58 31
+Remove 21
+Remove 73
+Remove 85
+Update 66 54
+Get 20
+Update 21 33
+Remove 93
+Insert 97 72
+Update 85 82
+Get 91
+Get 36
+Insert 6 94
+Insert 38 53
+Get 28
+Remove 43
+Remove 58
+Insert 17 67
+Update 65 77
+Update 81 6
+Update 99 59
+Insert 41 28
+Update 87 74
+Update 72 45
+Get 6
+Remove 24
+Remove 29
+Update 22 37
+Update 42 63
+Update 24 5
+Get 33
+Update 16 52
+Update 43 99
+Update 23 40
+Remove 84
+Get 85
+Update 99 87
+Get 40
+Remove 6
+Update 7 96
+Insert 49 66
+Insert 46 79
+Get 4
+Update 49 97
+Get 34
+Remove 70
+Get 30
+Insert 35 7
+Update 42 21
+Remove 18
+Get 31
+Update 40 66
+Remove 2
+Remove 98
+Update 4 77
+Get 85
+Get 14
+Remove 1
+Remove 94
+Update 93 69
+Update 28 26
+Remove 85
+Insert 51 16
+Get 22
+Get 97
+Get 8
+Endblock
+Sleep 1000
+Get 71
+Insert 17 60
+Update 97 34
+Insert 22 43
+Remove 9
+Insert 58 47
+Get 85
+Remove 78
+Get 30
+Update 86 93
+Insert 77 87
+Exec bin/start_server -p
+Switch primary
+Sleep 1000
+Insert 40 24
+Exec bin/stop_server -b
+Switch backup
+Sleep 1000
+Update 69 52
+Remove 31
+Remove 43
+Get 99
+Remove 18
+Get 81
+Block
+Update 78 60
+Remove 53
+Remove 85
+Remove 80
+Get 75
+Remove 83
+Remove 17
+Update 68 86
+Insert 32 38
+Update 64 30
+Get 42
+Update 85 95
+Endblock
+Sleep 1000
+Exec bin/start_server -b
+Switch backup
+Sleep 1000
