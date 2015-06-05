@@ -1,6 +1,6 @@
 Exec bin/start_server -p
 Exec bin/start_server -b
-Sleep 500
+Sleep 1000
 Switch primary
 Switch backup
 Block

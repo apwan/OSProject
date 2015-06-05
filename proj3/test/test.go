@@ -425,7 +425,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                 if inBlock == 0 {
                     flag := 1
                     go CmdWaiter(exec.Command(s[1], s[2], s[3]), &r, &flag)
-                    time.Sleep(500*time.Millisecond)
+                    time.Sleep(1000*time.Millisecond)
                     if flag == 1{
                       r += fmt.Sprintf("Exec time exceed!\n")
                       flag = 0

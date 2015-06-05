@@ -1,6 +1,6 @@
 Exec bin/start_server -b
 Exec bin/start_server -p
-Sleep 500
+Sleep 1000
 Switch primary
 Switch backup
 --
@@ -30,13 +30,13 @@ Get key
 --
 Exec bin/start_server -b
 Switch backup
-Sleep 200 
+Sleep 200
 --
-Switch primary 
+Switch primary
 Exec bin/stop_server -p
 Sleep 200
 --
-Switch primary 
+Switch primary
 Exec bin/start_server -p
 Sleep 200
 --
