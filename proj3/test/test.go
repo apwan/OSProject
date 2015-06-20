@@ -106,7 +106,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                             resp, err := http.PostForm(p + "/kv/insert", url.Values{"key": {s[1]}, "value": {s[2]}})
                             if err == nil {
                                 res := DecodeJson(resp)
-                                if res["success"] == true {
+                                if res["success"] == "true" {
                                     if backup == 0 {
                                         ch <- 1
                                     } else if _, ok := table[s[1]]; ok == true {
@@ -136,7 +136,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                 if err == nil {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
-                    if res["success"] == true {
+                    if res["success"] == "true" {
                         if backup == 0 {
                             r += fmt.Sprintf("Backup is down.\n")
                             r += fmt.Sprintf("Unexpected insertion success.\n")
@@ -187,7 +187,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                             resp, err := http.PostForm(p + "/kv/update", url.Values{"key": {s[1]}, "value": {s[2]}})
                             if err == nil {
                                 res := DecodeJson(resp)
-                                if res["success"] == true {
+                                if res["success"] == "true" {
                                     if backup == 0 {
                                         ch <- 1
                                     } else if _, ok := table[s[1]]; ok == false {
@@ -217,7 +217,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                 if err == nil {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
-                    if res["success"] == true {
+                    if res["success"] == "true" {
                         if backup == 0 {
                             r += fmt.Sprintf("Backup is down.\n")
                             r += fmt.Sprintf("Unexpected updating success.\n")
@@ -268,7 +268,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                             resp, err := http.PostForm(p + "/kv/delete", url.Values{"key": {s[1]}})
                             if err == nil {
                                 res := DecodeJson(resp)
-                                if res["success"] == true {
+                                if res["success"] == "true" {
                                     if backup == 0 {
                                         ch <- 1
                                     } else if _, ok := table[s[1]]; ok == false {
@@ -302,7 +302,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                 if err == nil {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
-                    if res["success"] == true {
+                    if res["success"] == "true" {
                         if backup == 0 {
                             r += fmt.Sprintf("Backup is down.\n")
                             r += fmt.Sprintf("Unexpected deleting success.\n")
@@ -355,7 +355,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                             resp, err := http.Get(p + "/kv/get?key=" + s[1])
                             if err == nil {
                                 res := DecodeJson(resp)
-                                if res["success"] == true {
+                                if res["success"] == "true" {
                                     if _, ok := table[s[1]]; ok == false {
                                         ch <- 1
                                     } else {
@@ -387,7 +387,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                 if err == nil {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
-                    if res["success"] == true {
+                    if res["success"] == "true" {
                         if _, ok := table[s[1]]; ok == false {
                             r += fmt.Sprintf("Unexpected getting success.\n")
                             fail = 1
@@ -425,7 +425,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
                 if inBlock == 0 {
                     flag := 1
                     go CmdWaiter(exec.Command(s[1], s[2], s[3]), &r, &flag)
-                    time.Sleep(500*time.Millisecond)
+                    time.Sleep(1000*time.Millisecond)
                     if flag == 1{
                       r += fmt.Sprintf("Exec time exceed!\n")
                       flag = 0
@@ -491,7 +491,7 @@ func TestUnit(p, b, fn string) (r string, fail int) {
 
 func main() {
     confname := "conf/test.conf";
-    if len(os.Args)>1{
+    if len(os.Args)>1 && os.Args[1]!="-direct" {
       confname = os.Args[1];
     }
     conf := ReadJson(confname);
@@ -499,6 +499,14 @@ func main() {
     backup := "http://" + conf["backup"]
     tot,_ := strconv.Atoi(conf["total"])
     cnt := tot
+
+    jump := false
+    if len(os.Args)>1 && os.Args[1]=="-direct"{
+      // without starting/stoping server, only test the performance
+      jump = true
+      tot = 0
+      cnt = 0
+    }
 
     for i := 0; i < tot; i++ {
       testname := conf["pre"]+strconv.Itoa(i)+".test"
@@ -529,11 +537,13 @@ func main() {
     }
 
     kvURL := primary+"/kv/"
-    fmt.Println(kvURL)
 
 
-    StartServer("-p")
-    StartServer("-b")
+    if !jump{
+      StartServer("-p")
+      StartServer("-b")
+    }
+
     time.Sleep(500*time.Millisecond)
     N,err := strconv.Atoi(conf["concur_num"])
     if err != nil {
@@ -542,9 +552,11 @@ func main() {
 
     TestPerformance(N, kvURL)
 
+    if !jump{
+      StopServer("-p")
+      StopServer("-b")
+    }
 
-    fmt.Println("stop primary: "+StopServer("-p"))
-    fmt.Println("stop backup: "+StopServer("-b"))
 
 
 }

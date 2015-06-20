@@ -1,8 +1,8 @@
 #!/bin/bash
 killall server
 #start server
-build/server -p > /dev/null &
-build/server -b > /dev/null &
+bin/start_server -p > /dev/null &
+bin/start_server -b > /dev/null &
 sleep 1
 
 PORT=8088 # port used by primrary server
@@ -52,7 +52,7 @@ echo "restart backup"
 curl localhost:$BPORT/kvman/shutdown
 echo
 sleep 1
-build/server -b > /dev/null &
+bin/start_server -b > /dev/null &
 sleep 1
 
 
@@ -75,7 +75,7 @@ kill -9 $(lsof -i:$PORT -sTCP:LISTEN -t)
 # curl localhost:$PORT/kvman/shutdown
 echo
 sleep 1
-build/server -p > /dev/null &
+bin/start_server -p > /dev/null &
 sleep 1
 
 
