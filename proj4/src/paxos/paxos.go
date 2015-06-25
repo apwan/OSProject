@@ -20,15 +20,18 @@ package paxos
 // px.Min() int -- instances before this seq have been forgotten
 //
 
-import "net"
-import "net/rpc"
-import "log"
-import "os"
-import "syscall"
-import "sync"
-import "fmt"
-import "math/rand"
-import "time"
+import (
+  "net"
+  "net/rpc"
+  "log"
+  "os"
+  "syscall"
+  "sync"
+  "fmt"
+  "math/rand"
+  "time"
+
+  )
 
 const (
   REJECT = "reject"
@@ -37,7 +40,7 @@ const (
 
 // debug message setting
 const (
-  DEBUG     = true
+  DEBUG     = false
   DEBUG_INI = false
   DEBUG_PRE = false
   DEBUG_ACC = false
@@ -80,7 +83,7 @@ func (p *PaxosInstance) toString() string{
   ret := fmt.Sprintf("Instance{Max Number:%d," , p.maxPrepareNum )
   if p.decided {
     ret += "Decided "
-  } else { 
+  } else {
     ret += "Accepted "
   }
   ret += p.acceptedProposal.toString()
@@ -125,7 +128,7 @@ func (px *Paxos) MakePaxosInstance(seq int) {
   defer px.mu.Unlock();
   if _, exists := px.instances[seq]; !exists {
     if DEBUG && DEBUG_INI{
-      fmt.Printf("%d create new paxos instance[%d]\n",px.me ,seq) 
+      fmt.Printf("%d create new paxos instance[%d]\n",px.me ,seq)
     }
     px.instances[seq] = PaxosInstance{decided: false, maxPrepareNum: -1, acceptedProposal: PaxosProposal{PaxosNum: -1, Value: nil}}
     // handle max?
@@ -158,7 +161,7 @@ func call(srv string, name string, args interface{}, reply interface{}) bool {
     return false
   }
   defer c.Close()
-    
+
   err = c.Call(name, args, reply)
   if err == nil {
     return true
@@ -185,12 +188,12 @@ func (px *Paxos) Start(seq int, v interface{}) {
       // Create if not exist
       px.MakePaxosInstance(seq)
 
-      for !px.dead { 
-        // Generate Paxos Number 
+      for !px.dead {
+        // Generate Paxos Number
         px.mu.Lock() // protect px.instances[seq].maxPrepareNum
         paxosNum := px.instances[seq].maxPrepareNum + rand.Intn(len(px.peers)) + 1
         px.mu.Unlock()
-        
+
         // Prepare phase
         isAccept, replyProposal := px.sendPrepare(seq, paxosNum)
 
@@ -199,7 +202,7 @@ func (px *Paxos) Start(seq int, v interface{}) {
           replyProposal.Value = v
         }
         // Replace the paxos number accpeted proposal to new paxosNum
-        replyProposal.PaxosNum = paxosNum 
+        replyProposal.PaxosNum = paxosNum
 
         if isAccept {
           isAccept = px.sendAccept(seq, replyProposal)
@@ -238,7 +241,7 @@ func (px *Paxos) sendPrepare(seq int, paxosNum int) (bool, PaxosProposal){
         isAccept = (reply.State == ACCEPT) // true = accept
       }
     }
-  
+
     if isAccept {
       if DEBUG && DEBUG_PRE{
         fmt.Printf("%d accept prepare number %d from %d\n", index, paxosNum ,px.me )
@@ -340,7 +343,7 @@ func (px *Paxos) HandleAccept(args *PaxosArgs, reply *PaxosReply) error {
 }
 
 func (px *Paxos) sendDecide(seq int, proposal PaxosProposal) {
-  
+
   args := PaxosArgs{Seq: seq, Proposal: proposal, Sender:px.me, Done:px.dones[px.me]}
   reply := PaxosReply{State:REJECT}
 
@@ -372,12 +375,12 @@ func (px *Paxos) sendDecide(seq int, proposal PaxosProposal) {
 }
 
 func (px *Paxos) HandleDecide(args *PaxosArgs, reply *PaxosReply) error {
-  
+
   seq := args.Seq
   px.dones[args.Sender] = args.Done
   proposal := args.Proposal
   reply.State = REJECT
-  
+
   // Create if not exist
   px.MakePaxosInstance(seq)
 
@@ -451,7 +454,7 @@ func (px *Paxos) Max() int {
 // life, it will need to catch up on instances that it
 // missed -- the other peers therefor cannot forget these
 // instances.
-// 
+//
 func (px *Paxos) Min() int {
   // You code here.
   //tmp
@@ -527,7 +530,7 @@ func Make(peers []string, me int, rpcs *rpc.Server) *Paxos {
     px.dones[i] = -1
   }
   if DEBUG && DEBUG_INI{
-    fmt.Printf("%d majority: %d/%d\n",px.me, px.majority, len(peers)) 
+    fmt.Printf("%d majority: %d/%d\n",px.me, px.majority, len(peers))
   }
   // End of initialization code
 
@@ -546,10 +549,10 @@ func Make(peers []string, me int, rpcs *rpc.Server) *Paxos {
       log.Fatal("listen error: ", e);
     }
     px.l = l
-    
+
     // please do not change any of the following code,
     // or do anything to subvert it.
-    
+
     // create a thread to accept RPC connections
     go func() {
       for px.dead == false {
