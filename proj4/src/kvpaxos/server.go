@@ -25,11 +25,10 @@ type Op struct {
   // Your definitions here.
   // Field names must start with capital letters,
   // otherwise RPC will break.
-
-  // type *for debugging*
-  // key
-  // value
-  // who *for debugging*
+  IsPut bool // type
+  Key string
+  Value string
+  Who int
 }
 
 type KVPaxos struct {
@@ -79,38 +78,52 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
   // Your code here.
-	//Put need to obtain previous value!
-	/* step1: get paxos slot
-	while(1)
-	{
-		new paxos position: ID
-		wait while not done
-		check if it's mine
-		if so, break
-	}
-	 step2: ensure no empty slot before ID
-	  for(i=ID-1;i>0;i--)
-	  {
-		while(localcache[i]) empty
-		{
-			try from peer A, skip if I'm A
-			try from peer B, skip if...
-			try from peer C, ...
-      sleep(1us)
-		}
-		if(localcache[i].key==key)
-		{
-			latestvalue=localcache[i].value;
+  kv.mu.Lock(); // Protect px.instances
+  defer kv.mu.Unlock();
+  //step1: get the agreement!
+  var myop Op
+  myop.IsPut=true
+  myop.Key=args.Key
+  myop.Value=args.Value
+  myop.Who=kv.me
+  var ID int
+  var value Op
+  var decided bool
+  for true {
+	ID=kv.px.Min()
+	kv.px.Start(ID,myop)
+	time.Sleep(10)
+	for true {
+		decided,value = kv.px.Status(ID)
+		if decided {
 			break;
 		}
-	  }
-	step3: save information to that slot
-	localcache[ID]=
-		type=put, key=key, value=val, 
-	step3: try broadcasting this slot. once is enough.	
-	return latestvalue as previous value.
-		*/
-	
+		time.Sleep(100*time.Millisecond())
+	}
+	if value==myop {//succeeded
+		break;
+	}
+	var scale=(kv.me+ID)%3
+	time.Sleep((rand.Int63() % (scale*100))*time.Millisecond())
+  }
+  //We got ID!
+  //Step2: trace back for previous value
+  var latestVal string
+  for i:=ID-1;i>=0;i--{ //i>=latest snapshot!
+	de,op:=kv.px.Status(i)
+	while(de==false){
+	  time.Sleep(10*time.Millisecond())
+	  de,op=kv.px.Status(i)
+	}
+	if op.IsPut==false{
+	  continue;
+	}
+	if op.Key==myop.Key{
+	  latestVal=op.Value
+	  break
+	}
+  }
+  PutReply.PreviousValue=latestVal
   return nil
 }
 
