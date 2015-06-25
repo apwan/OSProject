@@ -50,6 +50,18 @@ func GenLongStr()(string){
 
 func Det_role() int {
 	arg_num := len(os.Args)
+  if arg_num <= 1 {
+    return -1
+  }
+  if os.Args[1]=="-m"{ // for main tester
+    return 0
+  }
+  ret,err := strconv.Atoi(os.Args[1])
+  if(err!=nil){
+    return -1
+  }else{
+    return ret
+  }
 	for i := 0 ; i < arg_num ;i++{
 		switch os.Args[i] {
 			case "-p":
