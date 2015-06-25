@@ -31,13 +31,18 @@ import "math/rand"
 import "time"
 
 const (
+  REJECT = "reject"
+  ACCEPT = "accept"
+)
+
+// debug message setting
+const (
   DEBUG     = true
   DEBUG_INI = false
   DEBUG_PRE = true
   DEBUG_ACC = true
   DEBUG_DEC = true
-  REJECT = "reject"
-  ACCEPT = "accept"
+  DEBUG_ARG = false
 )
 
 type Paxos struct {
@@ -62,7 +67,7 @@ type PaxosProposal struct{
 }
 
 func (p *PaxosProposal) toString() string{
-  return fmt.Sprintf("p(%d,%v),", p.PaxosNum, p.Value)
+  return fmt.Sprintf("Proposal(Number:%d, Value:%v)", p.PaxosNum, p.Value)
 }
 
 type PaxosReply struct {
@@ -71,13 +76,31 @@ type PaxosReply struct {
 }
 
 func (p *PaxosReply) toString() string{
-  return fmt.Sprintf("%s ", p.State) + p.Proposal.toString() 
+  ret := "Reply(State:"
+  if p.State == ACCEPT {
+    ret += "ACCEPT"
+  }else if p.State == REJECT{
+    ret += "REJECT"
+  }
+  ret += ", " + p.Proposal.toString() + ")"
+  return ret
 }
 
 type PaxosInstance struct {
   decided  bool // is consensus reached?
   maxPrepareNum int // the highest seen paxos number
   acceptedProposal PaxosProposal // accepted proposal
+}
+
+func (p *PaxosInstance) toString() string{
+  ret := fmt.Sprintf("Instance{Max Number:%d," , p.maxPrepareNum )
+  if p.decided {
+    ret += "Decided "
+  } else { 
+    ret += "Accepted "
+  }
+  ret += p.acceptedProposal.toString()
+  return ret
 }
 
 // args struct for RPC
@@ -87,7 +110,7 @@ type PaxosArgs struct {
 }
 
 func (p *PaxosArgs) toString() string{
-  return fmt.Sprintf("seq(%d) ", p.Seq) + p.Proposal.toString() 
+  return fmt.Sprintf("Args(seq:%d,%s) ", p.Seq, p.Proposal.toString() )
 }
 
 
@@ -103,7 +126,7 @@ func (px *Paxos) MakePaxosInstance(seq int) {
   px.mu.Lock(); // Protect px.instances
   defer px.mu.Unlock();
   if _, exists := px.instances[seq]; !exists {
-    if DEBUG {
+    if DEBUG && DEBUG_INI{
       fmt.Printf("%d create new paxos instance[%d]\n",px.me ,seq) 
     }
     px.instances[seq] = PaxosInstance{decided: false, maxPrepareNum: -1, acceptedProposal: PaxosProposal{PaxosNum: -1, Value: nil}}
@@ -159,24 +182,24 @@ func (px *Paxos) Start(seq int, v interface{}) {
   // Your code here.
   go func() {
     // px.Min() return the minimum valid seq number, so >=, not >
+    time.Sleep(time.Duration(rand.Intn(10)*100))
     if seq >= px.Min(){
       // Create if not exist
       px.MakePaxosInstance(seq)
 
       for !px.dead { 
-        time.Sleep(time.Duration(rand.Intn(1000)))
         // Generate Paxos Number 
         px.mu.Lock() // protect px.instances[seq].maxPrepareNum
         paxosNum := px.instances[seq].maxPrepareNum + rand.Intn(len(px.peers)) + 1
         px.mu.Unlock()
         
         // Prepare phase
-        // fmt.Printf("%d prepare phase\n",px.me);
         isAccept, replyProposal := px.sendPrepare(seq, paxosNum)
 
         // Accept phase
+        // Replace the paxos number accpeted proposal to new paxosNum
+        replyProposal.PaxosNum = paxosNum 
         if replyProposal.PaxosNum == -1 {
-          replyProposal.PaxosNum = paxosNum
           replyProposal.Value = v
         }
         if isAccept {
@@ -194,9 +217,6 @@ func (px *Paxos) Start(seq int, v interface{}) {
 
 // does not need proposal in prepare phase
 func (px *Paxos) sendPrepare(seq int, paxosNum int) (bool, PaxosProposal){
-  if DEBUG {
-    // fmt.Printf("%d send prepare(%d) on instance %d\n", px.me ,paxosNum, seq);
-  }
 
   proposal := PaxosProposal{PaxosNum: paxosNum, Value: nil} // initialize
   args := PaxosArgs{Seq: seq, Proposal: proposal}
@@ -205,7 +225,10 @@ func (px *Paxos) sendPrepare(seq int, paxosNum int) (bool, PaxosProposal){
   replyNum := 0
 
   for index, acceptor := range px.peers {
-    // fmt.Printf("%d %s\n",index,acceptor);
+    if DEBUG && DEBUG_PRE {
+      fmt.Printf("%d send prepare(%d) to %d\n", px.me ,paxosNum, index);
+    }
+
     isAccept := false
     if index == px.me{
       px.HandlePrepare(&args, &reply)
@@ -216,14 +239,19 @@ func (px *Paxos) sendPrepare(seq int, paxosNum int) (bool, PaxosProposal){
         isAccept = (reply.State == ACCEPT) // true = accept
       }
     }
-    if DEBUG {
-      fmt.Printf("%d reply from %d: %s\n", px.me, index,reply.toString())
-    }
+  
     if isAccept {
+      if DEBUG && DEBUG_PRE{
+        fmt.Printf("%d accept prepare number %d from %d\n", index, paxosNum ,px.me )
+      }
       replyNum++
       // get the proposal with largest paxos number
       if reply.Proposal.PaxosNum > replyProposal.PaxosNum{
         replyProposal = reply.Proposal
+      }
+    } else {
+      if DEBUG && DEBUG_PRE{
+        fmt.Printf("%d reject prepare number %d from %d\n", index, paxosNum ,px.me )
       }
     }
   }
@@ -233,8 +261,8 @@ func (px *Paxos) sendPrepare(seq int, paxosNum int) (bool, PaxosProposal){
 
 // It is RPC
 func (px *Paxos) HandlePrepare(args *PaxosArgs, reply *PaxosReply) error {
-  if DEBUG {
-    fmt.Printf("%d HandlePrepare args:%s\n", px.me, args.toString());
+  if DEBUG && DEBUG_ARG {
+    fmt.Printf("%d HandlePrepare %s\n", px.me, args.toString());
   }
   proposal := args.Proposal
   seq := args.Seq
@@ -251,27 +279,23 @@ func (px *Paxos) HandlePrepare(args *PaxosArgs, reply *PaxosReply) error {
     obj.maxPrepareNum = proposal.PaxosNum
     px.instances[seq] = obj
     reply.Proposal = px.instances[seq].acceptedProposal
-
     reply.State = ACCEPT
-  } else {
-    if DEBUG {
-      fmt.Printf("%d preapre number too small: %d,%d \n",px.me ,proposal.PaxosNum, px.instances[seq].maxPrepareNum);
-    }    
   }
 
   return nil
 }
 
 func (px *Paxos) sendAccept(seq int, proposal PaxosProposal) (bool){
-  if DEBUG {
-    fmt.Printf("%d send accept(%s) on instance %d\n",px.me ,proposal.toString(), seq);
-  }
+
 
   args := PaxosArgs{Seq: seq, Proposal: proposal}
   reply := PaxosReply{State:REJECT}
   replyNum := 0
 
   for index, acceptor := range px.peers {
+    if DEBUG && DEBUG_ACC{
+      fmt.Printf("%d send accept(%s) to %d\n",px.me ,proposal.toString(), index);
+    }
     isAccept := false
     if index == px.me{
       px.HandleAccept(&args, &reply)
@@ -283,7 +307,14 @@ func (px *Paxos) sendAccept(seq int, proposal PaxosProposal) (bool){
       }
     }
     if isAccept {
+      if DEBUG && DEBUG_ACC{
+        fmt.Printf("%d accept %s from %d\n", index, proposal.toString() ,px.me )
+      }
       replyNum++
+    } else {
+      if DEBUG && DEBUG_ACC{
+        fmt.Printf("%d reject %s from %d\n", index, proposal.toString() ,px.me )
+      }
     }
   }
   return replyNum >= px.majority
@@ -299,14 +330,11 @@ func (px *Paxos) HandleAccept(args *PaxosArgs, reply *PaxosReply) error {
 
   px.mu.Lock()
   defer px.mu.Unlock()
-  if ((proposal.PaxosNum >= px.instances[seq].maxPrepareNum) && (proposal.PaxosNum > px.instances[seq].acceptedProposal.PaxosNum)) {
-    // px.instances[seq].acceptedProposal = proposal
-    // px.instances[seq].maxPrepareNum = proposal.paxosNum
-    obj := px.instances[seq]
+  obj := px.instances[seq]
+  if ((proposal.PaxosNum >= obj.maxPrepareNum) && (proposal.PaxosNum > obj.acceptedProposal.PaxosNum)) {
     obj.acceptedProposal = proposal
     obj.maxPrepareNum = proposal.PaxosNum
     px.instances[seq] = obj
-
     reply.State = ACCEPT
   }
   return nil
@@ -318,6 +346,9 @@ func (px *Paxos) sendDecide(seq int, proposal PaxosProposal) {
   reply := PaxosReply{State:REJECT}
 
   for index, acceptor := range px.peers {
+    if DEBUG && DEBUG_DEC{
+      fmt.Printf("%d send decide(%s) to %d\n",px.me ,proposal.toString(), index);
+    }
     isAccept := false
     if index == px.me{
       px.HandleDecide(&args, &reply)
@@ -325,9 +356,19 @@ func (px *Paxos) sendDecide(seq int, proposal PaxosProposal) {
     }else{
       isAccept = call(acceptor, "Paxos.HandleDecide", &args, &reply) // true = get reply
       if isAccept {
+        if DEBUG && DEBUG_ACC{
+          fmt.Printf("%d decided %s on instance %d\n", index, proposal.toString() , seq )
+        }
         isAccept = (reply.State == ACCEPT) // true = accept
       }
     }
+
+    if isAccept {
+      if DEBUG && DEBUG_ACC{
+        fmt.Printf("%d decided %s on instance %d\n", index, proposal.toString() , seq )
+      }
+    }
+
   }
 }
 
@@ -352,7 +393,7 @@ func (px *Paxos) HandleDecide(args *PaxosArgs, reply *PaxosReply) error {
   reply.State = ACCEPT
 
 
-  // Done ?
+  // Update Done 
   me := px.me
   if px.dones[me] < seq {
     px.dones[me] = seq
@@ -368,6 +409,9 @@ func (px *Paxos) HandleDecide(args *PaxosArgs, reply *PaxosReply) error {
 //
 func (px *Paxos) Done(seq int) {
   // Your code here.
+  if px.dones[px.me] < seq {
+    px.dones[px.me] = seq
+  }
 }
 
 //
@@ -378,9 +422,9 @@ func (px *Paxos) Done(seq int) {
 func (px *Paxos) Max() int {
   // Your code here.
   max := -1
-  for k, _ := range px.instances {
-    if k > max{
-      max = k
+  for num := range px.instances {
+    if num > max{
+      max = num
     }
   }
   return max
@@ -419,20 +463,20 @@ func (px *Paxos) Min() int {
   //tmp
   px.mu.Lock()
   defer px.mu.Unlock()
-  min_point := px.dones[px.me]
-  for k := range px.dones{
-    if min_point > px.dones[k]{
-      min_point = px.dones[k]
+  min := px.dones[px.me]
+  for k := range px.dones {
+    if min > px.dones[k] {
+      min = px.dones[k]
     }
   }
 
-  for k, _ := range px.instances{
-    if k <= min_point && px.instances[k].decided{
+  for k := range px.instances{
+    if k <= min && px.instances[k].decided {
       delete(px.instances, k)
     }
   }
 
-  return min_point + 1
+  return min + 1
 }
 
 //
@@ -451,7 +495,7 @@ func (px *Paxos) Status(seq int) (bool, interface{}) {
   }
   px.mu.Lock()
   defer px.mu.Unlock()
-  if _, exist := px.instances[seq]; !exist{
+  if _, exists := px.instances[seq]; !exists {
     return false, nil
   }
   return px.instances[seq].decided, px.instances[seq].acceptedProposal.Value
@@ -485,7 +529,7 @@ func Make(peers []string, me int, rpcs *rpc.Server) *Paxos {
   px.majority = len(peers)/2+1
   px.instances = map[int]PaxosInstance{}
   px.dones = make([]int, len(peers))
-  for i := range peers{
+  for i := range peers {
     px.dones[i] = -1
   }
   if DEBUG && DEBUG_INI{
