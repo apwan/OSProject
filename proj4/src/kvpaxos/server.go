@@ -31,6 +31,13 @@ type Op struct {
   Who int
 }
 
+func DeepCompareOps(a Op, b Op) (bool){
+	return a.IsPut==b.IsPut &&
+	a.Key==b.Key &&
+	a.Value==b.Value &&
+	a.Who==b.Who
+}
+
 type KVPaxos struct {
   mu sync.Mutex
   l net.Listener
