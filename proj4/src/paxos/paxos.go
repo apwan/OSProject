@@ -39,8 +39,8 @@ const (
 const (
   DEBUG     = true
   DEBUG_INI = false
-  DEBUG_PRE = true
-  DEBUG_ACC = true
+  DEBUG_PRE = false
+  DEBUG_ACC = false
   DEBUG_DEC = true
   DEBUG_ARG = false
 )
@@ -70,22 +70,6 @@ func (p *PaxosProposal) toString() string{
   return fmt.Sprintf("Proposal(Number:%d, Value:%v)", p.PaxosNum, p.Value)
 }
 
-type PaxosReply struct {
-  State string
-  Proposal PaxosProposal
-}
-
-func (p *PaxosReply) toString() string{
-  ret := "Reply(State:"
-  if p.State == ACCEPT {
-    ret += "ACCEPT"
-  }else if p.State == REJECT{
-    ret += "REJECT"
-  }
-  ret += ", " + p.Proposal.toString() + ")"
-  return ret
-}
-
 type PaxosInstance struct {
   decided  bool // is consensus reached?
   maxPrepareNum int // the highest seen paxos number
@@ -103,23 +87,37 @@ func (p *PaxosInstance) toString() string{
   return ret
 }
 
-// args struct for RPC
+// RPC  structs
 type PaxosArgs struct {
   Seq int
   Proposal PaxosProposal
+  Sender int // the index of sender in peers
+  Done int // piggybacking px.dones[Sender]
 }
 
 func (p *PaxosArgs) toString() string{
   return fmt.Sprintf("Args(seq:%d,%s) ", p.Seq, p.Proposal.toString() )
 }
 
-
-func Assert(condition bool, msg string){
-  if !condition {
-    fmt.Printf("ASSERT: %s\n",msg);
-    os.Exit(-1)
-  }
+type PaxosReply struct {
+  State string
+  Proposal PaxosProposal
+  Sender int // the index of sender in peers
+  Done int // piggybacking px.dones[Sender]
 }
+
+func (p *PaxosReply) toString() string{
+  ret := "Reply(State:"
+  if p.State == ACCEPT {
+    ret += "ACCEPT"
+  }else if p.State == REJECT{
+    ret += "REJECT"
+  }
+  ret += ", " + p.Proposal.toString() + ")"
+  return ret
+}
+
+// end of RPC  structs
 
 // handle exist
 func (px *Paxos) MakePaxosInstance(seq int) {
@@ -197,11 +195,12 @@ func (px *Paxos) Start(seq int, v interface{}) {
         isAccept, replyProposal := px.sendPrepare(seq, paxosNum)
 
         // Accept phase
-        // Replace the paxos number accpeted proposal to new paxosNum
-        replyProposal.PaxosNum = paxosNum 
         if replyProposal.PaxosNum == -1 {
           replyProposal.Value = v
         }
+        // Replace the paxos number accpeted proposal to new paxosNum
+        replyProposal.PaxosNum = paxosNum 
+
         if isAccept {
           isAccept = px.sendAccept(seq, replyProposal)
         }
@@ -219,7 +218,7 @@ func (px *Paxos) Start(seq int, v interface{}) {
 func (px *Paxos) sendPrepare(seq int, paxosNum int) (bool, PaxosProposal){
 
   proposal := PaxosProposal{PaxosNum: paxosNum, Value: nil} // initialize
-  args := PaxosArgs{Seq: seq, Proposal: proposal}
+  args := PaxosArgs{Seq: seq, Proposal: proposal, Sender:px.me, Done:px.dones[px.me]}
   replyProposal := PaxosProposal{PaxosNum: -1, Value: nil} // initialize
   reply := PaxosReply{State:REJECT}
   replyNum := 0
@@ -288,7 +287,7 @@ func (px *Paxos) HandlePrepare(args *PaxosArgs, reply *PaxosReply) error {
 func (px *Paxos) sendAccept(seq int, proposal PaxosProposal) (bool){
 
 
-  args := PaxosArgs{Seq: seq, Proposal: proposal}
+  args := PaxosArgs{Seq: seq, Proposal: proposal, Sender:px.me, Done:px.dones[px.me]}
   reply := PaxosReply{State:REJECT}
   replyNum := 0
 
@@ -342,7 +341,7 @@ func (px *Paxos) HandleAccept(args *PaxosArgs, reply *PaxosReply) error {
 
 func (px *Paxos) sendDecide(seq int, proposal PaxosProposal) {
   
-  args := PaxosArgs{Seq: seq, Proposal: proposal}
+  args := PaxosArgs{Seq: seq, Proposal: proposal, Sender:px.me, Done:px.dones[px.me]}
   reply := PaxosReply{State:REJECT}
 
   for index, acceptor := range px.peers {
@@ -375,6 +374,7 @@ func (px *Paxos) sendDecide(seq int, proposal PaxosProposal) {
 func (px *Paxos) HandleDecide(args *PaxosArgs, reply *PaxosReply) error {
   
   seq := args.Seq
+  px.dones[args.Sender] = args.Done
   proposal := args.Proposal
   reply.State = REJECT
   
@@ -392,12 +392,6 @@ func (px *Paxos) HandleDecide(args *PaxosArgs, reply *PaxosReply) error {
   px.instances[seq] = obj
   reply.State = ACCEPT
 
-
-  // Update Done 
-  me := px.me
-  if px.dones[me] < seq {
-    px.dones[me] = seq
-  }
   return nil
 }
 
