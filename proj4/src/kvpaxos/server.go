@@ -117,6 +117,29 @@ func (kv *KVPaxos) kill() {
   kv.px.Kill()
 }
 
+func (kv *KVPaxos) housekeeper() {
+	//launched at startup; to call paxos.done()
+	/* int pointer=0, latest=0
+	while(1){
+		sleep for a while!
+		latest=paxos latest minimum;
+		for(;pointer<latest-10;pointer++)//only care about old entries
+		{
+			while(localcache[pointer] is missing)
+			{
+				try getting it from peer A,B,C
+			}
+			1. Myself have [pointer], know its key
+			while(1){
+			2. Ask peer B and C about [pointer]
+			3. If A&B&C both have it, then call paxos.Done for [pointer]; break
+			4. otherwise, sleep for a while, and ask again!
+			}
+		}
+	} */
+}
+
+
 //
 // servers[] contains the ports of the set of
 // servers that will cooperate via Paxos to
