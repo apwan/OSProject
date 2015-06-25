@@ -65,8 +65,7 @@ type Paxos struct {
 }
 
 type PaxosProposal struct{
-  //Value interface{}
-  Value kvpaxos.Op
+  Value interface{}
   PaxosNum int
 }
 
