@@ -74,7 +74,7 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
   // Your code here.
-	//put does not need to wait...
+	//Put need to obtain previous value!
 	/* step1: get paxos slot
 	while(1)
 	{
@@ -83,10 +83,26 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
 		check if it's mine
 		if so, break
 	}
-	step2: save information to that slot
+	 step2: ensure no empty slot before ID
+	  for(i=ID-1;i>0;i--)
+	  {
+		while(localcache[i]) empty
+		{
+			try from peer A, skip if I'm A
+			try from peer B, skip if...
+			try from peer C, ...
+		}
+		if(localcache[i].key==key)
+		{
+			latestvalue=localcache[i].value;
+			break;
+		}
+	  }
+	step3: save information to that slot
 	localcache[ID]=
 		type=put, key=key, value=val, 
 	step3: try broadcasting this slot. once is enough.	
+	return latestvalue as previous value.
 		*/
 	
   return nil
