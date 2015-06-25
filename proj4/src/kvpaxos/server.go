@@ -25,6 +25,11 @@ type Op struct {
   // Your definitions here.
   // Field names must start with capital letters,
   // otherwise RPC will break.
+
+  // type *for debugging*
+  // key
+  // value
+  // who *for debugging*
 }
 
 type KVPaxos struct {
@@ -91,6 +96,7 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
 			try from peer A, skip if I'm A
 			try from peer B, skip if...
 			try from peer C, ...
+      sleep(1us)
 		}
 		if(localcache[i].key==key)
 		{
@@ -155,6 +161,8 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.me = me
 
   // Your initialization code here.
+  
+  // End of initialization code
 
   rpcs := rpc.NewServer()
   rpcs.Register(kv)
