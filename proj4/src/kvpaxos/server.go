@@ -107,7 +107,7 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
 		}
 		time.Sleep(100*time.Millisecond())
 	}
-	if value==myop {//succeeded
+	if DeepCompareOps(value,myop) {//succeeded
 		break;
 	}
 	var scale=(kv.me+ID)%3
