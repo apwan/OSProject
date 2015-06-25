@@ -104,7 +104,7 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
 		break;
 	}
 	var scale=(kv.me+ID)%3
-	time.Sleep((rand.Int63() % (scale*100))*time.Millisecond())
+	time.Sleep((rand.Int63() % 100)*scale*time.Millisecond())
   }
   //We got ID!
   //Step2: trace back for previous value
