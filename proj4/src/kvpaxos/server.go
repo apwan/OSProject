@@ -10,6 +10,7 @@ import "os"
 import "syscall"
 import "encoding/gob"
 import "math/rand"
+import "time"
 
 const Debug=0
 
@@ -78,9 +79,9 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
   step3: fill information
   localcache[ID]=
 	type=get, key=key, value=val, 
-  return nil */
+  r */
   
-  
+  return nil
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
@@ -94,7 +95,7 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
   myop.Value=args.Value
   myop.Who=kv.me
   var ID int
-  var value Op
+  var value interface{}
   var decided bool
   for true {
 	ID=kv.px.Min()
@@ -105,32 +106,33 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
 		if decided {
 			break;
 		}
-		time.Sleep(100*time.Millisecond())
+		time.Sleep(100*time.Millisecond)
 	}
-	if DeepCompareOps(value,myop) {//succeeded
+	if DeepCompareOps(value.(Op),myop) {//succeeded
 		break;
 	}
 	var scale=(kv.me+ID)%3
-	time.Sleep((rand.Int63() % 100)*scale*time.Millisecond())
+	time.Sleep(time.Duration(rand.Intn(100*scale)*int(time.Millisecond)))
   }
   //We got ID!
   //Step2: trace back for previous value
   var latestVal string
   for i:=ID-1;i>=0;i--{ //i>=latest snapshot!
 	de,op:=kv.px.Status(i)
-	while(de==false){
-	  time.Sleep(10*time.Millisecond())
+	for de==false {
+	  time.Sleep(10*time.Millisecond)
 	  de,op=kv.px.Status(i)
 	}
-	if op.IsPut==false{
+  var optt=op.(Op)
+	if optt.IsPut==false{
 	  continue;
 	}
-	if op.Key==myop.Key{
-	  latestVal=op.Value
+	if optt.Key==myop.Key{
+	  latestVal=optt.Value
 	  break
 	}
   }
-  PutReply.PreviousValue=latestVal
+  reply.PreviousValue=latestVal
   return nil
 }
 
