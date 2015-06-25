@@ -11,6 +11,7 @@ import "syscall"
 import "encoding/gob"
 import "math/rand"
 import "time"
+import "errors"
 
 const Debug=0
 
@@ -53,34 +54,64 @@ type KVPaxos struct {
 
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
   // Your code here.
-  //Get need to recover empty slots. Empty slot means 
-  
-  /* step1: get paxos slot
-  while(1)
-  {
-	...
-	got ID
+  kv.mu.Lock(); // Protect px.instances
+  defer kv.mu.Unlock();
+  //step1: get the agreement!
+  var myop Op
+  myop.IsPut=false
+  myop.Key=args.Key
+  myop.Who=kv.me
+  var ID int
+  var value interface{}
+  var decided bool
+  for true {
+  ID=kv.px.Min()
+  kv.px.Start(ID,myop)
+  time.Sleep(10)
+  for true {
+    decided,value = kv.px.Status(ID)
+    if decided {
+      break;
+    }
+    time.Sleep(100*time.Millisecond)
   }
-  step2: ensure no empty slot before ID
-  for(i=ID-1;i>0;i--)
-  {
-	while(localcache[i]) empty
-	{
-		try from peer A, skip if I'm A
-		try from peer B, skip if...
-		try from peer C, ...
-	}
-	if(localcache[i].key==key)
-	{
-		latestvalue=localcache[i].value;
-		break;
-	}
+  if DeepCompareOps(value.(Op),myop) {//succeeded
+    break;
   }
-  step3: fill information
-  localcache[ID]=
-	type=get, key=key, value=val, 
-  r */
-  
+  var scale=(kv.me+ID)%3
+  time.Sleep(time.Duration(rand.Intn(100*scale)*int(time.Millisecond)))
+  }
+  //We got ID!
+  //Step2: trace back for previous value
+  var latestVal string
+  var latestValFound=false
+
+  for i:=ID-1;i>=0;i--{ //i>=latest snapshot!
+  de,op:=kv.px.Status(i)
+  for de==false {
+    time.Sleep(10*time.Millisecond)
+    de,op=kv.px.Status(i)
+  }
+  optt,found:=op.(Op)
+  if found==false{
+    return errors.New("Not Found type .(Op)")
+  }
+  if optt.IsPut==false{
+    continue;
+  }
+  if optt.Key==myop.Key{
+    latestVal=optt.Value
+    latestValFound=true
+    break
+  }
+  }
+  if latestValFound==false {//equivalently, i<0
+    reply.Err="Key Not Found"
+    return nil
+  }
+
+
+  reply.Value=latestVal
   return nil
 }
 
@@ -123,7 +154,10 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
 	  time.Sleep(10*time.Millisecond)
 	  de,op=kv.px.Status(i)
 	}
-  var optt=op.(Op)
+  optt,found:=op.(Op)
+  if found==false{
+    return errors.New("Not Found type .(Op)")
+  }
 	if optt.IsPut==false{
 	  continue;
 	}
