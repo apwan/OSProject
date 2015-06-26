@@ -55,11 +55,11 @@ type KVPaxos struct {
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
   // Your code here.
 
-  println("GET Step0")
+   println("GET Step0")
   kv.mu.Lock(); // Protect px.instances
   defer kv.mu.Unlock();
 
-  println("GET Step1")
+   println("GET Step1")
   //step1: get the agreement!
   var myop Op
   myop.IsPut=false
@@ -83,10 +83,10 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
     break;
   }
   var scale=(kv.me+ID)%3
-  time.Sleep(time.Duration(rand.Intn(100)*scale*int(time.Millisecond)))
+  time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
   }
 
-  println("GET Step2")
+   println("GET Step2")
   //We got ID!
   //Step2: trace back for previous value
   var latestVal string
@@ -123,12 +123,12 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
   // Your code here.
-  println("PUT Step0")
+   println("PUT Step0")
   kv.mu.Lock(); // Protect px.instances
   defer kv.mu.Unlock();
   //step1: get the agreement!
 
-  println("PUT Step1")
+   println("PUT Step1")
   var myop Op
   myop.IsPut=true
   myop.Key=args.Key
@@ -139,12 +139,12 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
   var decided bool
   for true {
 	ID=kv.px.Max()+1
-  fmt.Printf("Try to propose Min ID:%d\n",ID)
+  // fmt.Printf("Try to propose Min ID:%d\n",ID)
 
 	kv.px.Start(ID,myop)
 	time.Sleep(10)
 	for true {
-    print("decided?")
+    // print("decided?")
 		decided,value = kv.px.Status(ID)
 		if decided {
 			break;
@@ -155,11 +155,11 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
 		break;
 	}
 	var scale=(kv.me+ID)%3
-	time.Sleep(time.Duration(rand.Intn(100)*scale*int(time.Millisecond)))
+	time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
   }
 
 
-  println("PUT Step2")
+   println("PUT Step2")
   //We got ID!
   //Step2: trace back for previous value
   var latestVal string
@@ -182,8 +182,8 @@ func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
 	}
   }
 
-  println("PUT Step3")
-  println(latestVal)
+  // println("PUT Step3")
+  // println(latestVal)
   reply.PreviousValue=latestVal
   return nil
 }

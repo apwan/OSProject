@@ -20,7 +20,7 @@ func MakeClerk(servers []string) *Clerk {
   rand.Seed( time.Now().UTC().UnixNano())
   ck.myID = rand.Int()
 
-    fmt.Printf("Client %d created\n",ck.myID);
+    // fmt.Printf("Client %d created\n",ck.myID);
   return ck
 }
 
@@ -69,15 +69,15 @@ func (ck *Clerk) Get(key string) string {
   args = GetArgs{Key:key, OpID:rand.Int(), ClientID:ck.myID}
   ok := false
   for !ok {
-    server := 0 // always pick the first server for debuggin purpose
-    // server := rand.Int() % len(ck.servers)
+    //server := 0 // always pick the first server for debuggin purpose
+    server := rand.Int() % len(ck.servers)
     ok = call(ck.servers[server], "KVPaxos.Get", args, &reply)
-    time.Sleep(time.Second) // sleep one second before next call
-    if ok {
-      fmt.Println("Done")
-    } else {
-      fmt.Println("Fail")
-    }
+    time.Sleep(time.Millisecond) // sleep one second before next call
+    // if ok {
+    //   fmt.Println("Done")
+    // } else {
+    //   fmt.Println("Fail")
+    // }
   }
   return reply.Value
 }
@@ -93,15 +93,15 @@ func (ck *Clerk) PutExt(key string, value string, dohash bool) string {
   args = PutArgs{Key:key, Value:value, DoHash:dohash, OpID:rand.Int(), ClientID:ck.myID}
   ok := false
   for !ok {
-    server := 0 // always pick the first server for debuggin purpose
-    // server := rand.Int() % len(ck.servers)
+    //server := 0 // always pick the first server for debuggin purpose
+    server := rand.Int() % len(ck.servers)
     ok = call(ck.servers[server], "KVPaxos.Put", args, &reply)
-    time.Sleep(time.Second) // sleep one second before next call
-    if ok {
-      fmt.Println("Done")
-    } else {
-      fmt.Println("Fail")
-    }
+    time.Sleep(time.Millisecond) // sleep one second before next call
+    // if ok {
+    //   fmt.Println("Done")
+    // } else {
+    //   fmt.Println("Fail")
+    // }
   }
   return reply.PreviousValue
 }
