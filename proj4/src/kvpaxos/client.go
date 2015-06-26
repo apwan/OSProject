@@ -3,16 +3,25 @@ package kvpaxos
 import "net/rpc"
 import "fmt"
 
+import "math/rand"
+import "time"
+
 type Clerk struct {
   servers []string
   // You will have to modify this struct.
+  myID int
 }
-
 
 func MakeClerk(servers []string) *Clerk {
   ck := new(Clerk)
   ck.servers = servers
   // You'll have to add code here.
+  // seed for random client id and operation id
+  rand.Seed( time.Now().UTC().UnixNano())
+  ck.myID = rand.Int()
+  if DEBUG {
+    fmt.Printf("Client %d created\n",ck.myID);
+  }
   return ck
 }
 
@@ -56,7 +65,22 @@ func call(srv string, rpcname string,
 //
 func (ck *Clerk) Get(key string) string {
   // You will have to modify this function.
-  return ""
+  var args GetArgs
+  var reply GetReply
+  args = GetArgs{Key:key, OpID:rand.Int(), ClientID:ck.myID}
+  ok := false
+  for !ok {
+    server := 0 // always pick the first server for debuggin purpose
+    // server := rand.Int() % len(ck.servers)
+    ok = call(ck.servers[server], "KVPaxos.Get", args, &reply)
+    time.Sleep(time.Second) // sleep one second before next call
+    if ok {
+      fmt.Println("Done")
+    } else {
+      fmt.Println("Fail")
+    }
+  }
+  return reply.Value
 }
 
 //
@@ -65,7 +89,22 @@ func (ck *Clerk) Get(key string) string {
 //
 func (ck *Clerk) PutExt(key string, value string, dohash bool) string {
   // You will have to modify this function.
-  return ""
+  var args PutArgs
+  var reply PutReply
+  args = PutArgs{Key:key, Value:value, DoHash:dohash, OpID:rand.Int(), ClientID:ck.myID}
+  ok := false
+  for !ok {
+    server := 0 // always pick the first server for debuggin purpose
+    // server := rand.Int() % len(ck.servers)
+    ok = call(ck.servers[server], "KVPaxos.Put", args, &reply)
+    time.Sleep(time.Second) // sleep one second before next call
+    if ok {
+      fmt.Println("Done")
+    } else {
+      fmt.Println("Fail")
+    }
+  }
+  return reply.PreviousValue
 }
 
 func (ck *Clerk) Put(key string, value string) {
