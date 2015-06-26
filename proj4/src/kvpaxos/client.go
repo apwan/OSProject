@@ -19,9 +19,8 @@ func MakeClerk(servers []string) *Clerk {
   // seed for random client id and operation id
   rand.Seed( time.Now().UTC().UnixNano())
   ck.myID = rand.Int()
-  if DEBUG {
+
     fmt.Printf("Client %d created\n",ck.myID);
-  }
   return ck
 }
 
