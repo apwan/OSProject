@@ -197,6 +197,24 @@ func (kv *KVPaxos) kill() {
   kv.px.Kill()
 }
 
+func (kv *KVPaxos) DumpInfo() string {
+	r:=""
+	r+=fmt.Sprintf("I'm %d\n",kv.me)
+	r+=fmt.Sprintf("Max pxID=%d\n",kv.px.Max())
+	r+=fmt.Sprintf("Min pxID=%d\n",kv.px.Min())
+	ID:=kv.px.Max()
+	for i=0;i<=ID;i++ {
+		de,op=kv.px.Status(i)
+		o,found:=op.(Op)
+		if de {
+			r+=fmt.Sprintf("Op[%d] IsPut%d %s=%s by%d  \n",i,o.IsPut?1:0,o.Key,o.Value,o.Who)
+		}else{
+			r+=fmt.Sprintf("Op[%d] undecided  \n",i)
+		}
+	}
+}
+
+
 func (kv *KVPaxos) housekeeper() {
 	//launched at startup; to call paxos.done()
 	/* int pointer=0, latest=0
@@ -219,18 +237,24 @@ func (kv *KVPaxos) housekeeper() {
 	} */
 }
 
-//HTTP handlers:
-func kvDumpHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%s","")
+//HTTP handlers generator; to create a closure for kvpaxos instance
+func kvDumpHandlerGC(kv *KVPaxos) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "%s",kv.DumpInfo())
+	}
 }
-func kvPutHandler(w http.ResponseWriter, r *http.Request) {
-	key:= r.FormValue("key")
-	value:= r.FormValue("value")
-	fmt.Fprintf(w, "%s","")
+func kvPutHandlerGC(kv *KVPaxos) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		key:= r.FormValue("key")
+		value:= r.FormValue("value")
+		fmt.Fprintf(w, "%s","")
+	}
 }
-func kvGetHandler(w http.ResponseWriter, r *http.Request) {
-	key:= r.FormValue("key")
-	fmt.Fprintf(w, "%s","")
+func kvGetHandlerGC(kv *KVPaxos) {
+	return func(kv *KVPaxos, w http.ResponseWriter, r *http.Request) {
+		key:= r.FormValue("key")
+		fmt.Fprintf(w, "%s","")
+	}
 }
 //end HTTP handlers
 
@@ -252,10 +276,10 @@ func StartServer(servers []string, me int) *KVPaxos {
   // Your initialization code here.
   
   //HTTP initialization
-	var kvHandlers = map[string]func(http.ResponseWriter, *http.Request){
-		"dump": kvDumpHandler,
-		"put": kvPutHandler,
-		"get": kvGetHandler
+	var kvHandlerGCs = map[string]func(http.ResponseWriter, *http.Request){
+		"dump": kvDumpHandlerGC,
+		"put": kvPutHandlerGC,
+		"get": kvGetHandlerGC
 	}
 	listenPort:=30000+me //temporary, should read from conf file!!
 	s := &http.Server{
@@ -265,8 +289,8 @@ func StartServer(servers []string, me int) *KVPaxos {
 		WriteTimeout: 30 * time.Second,
 		MaxHeaderBytes: 1<<20,
 	}
-	for key,val := range kvHandlers{
-		http.HandleFunc("/"+key, val)
+	for key,val := range kvHandlerGCs{
+		http.HandleFunc("/"+key, val(kv))
 	}
 	
 	go func(){
