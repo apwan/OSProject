@@ -381,7 +381,8 @@ func StartServer(servers []string, me int) *KVPaxos {
       serveMux.HandleFunc("/"+key, val(kv))
     }
 
-    listenPort:=30000+me //temporary, should read from conf file!!
+    conf:= kvlib.ReadJson("conf/settings.conf")
+    listenPort:=kvlib.Find_Port(me,conf) 
     s := &http.Server{
       //Addr: ":"+strconv.Itoa(listenPort),
       Handler: serveMux,

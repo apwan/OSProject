@@ -15,10 +15,28 @@ import(
 	"kvpaxos"
 )
 
-var conf = kvlib.ReadJson("conf/settings.conf")
+func RPC_Addr(me int, conf map[string]string) string {
+	ip,ok := conf["n"+strconv.Itoa(me)]
+		if !ok {
+			fmt.Println("Failed to find IP :"+"n"+strconv.Itoa(me));
+			panic(conf)
+		}
 
-func RPCport(N int, me int) string {
-	return "127.0.0.1:"+strconv.Itoa(40000+me)
+	if conf["use_same_port"] == "true" {
+		p,err := strconv.Atoi(conf["RPCport"])
+		if err != nil {
+			println("Failed to parse conf[port]")
+			panic(err)
+		}
+		return ip+":"+strconv.Itoa(p)
+	}
+
+	p,err := strconv.Atoi(conf["RPC_port_n"+strconv.Itoa(me)])
+		if err != nil {
+			fmt.Println("Failed to parse :"+"RPC_port_n"+strconv.Itoa(me)+":"+conf["port_n"+strconv.Itoa(me)]);
+			panic(err)
+		}
+	return ip+":"+strconv.Itoa(p)	
 }
 
 func main(){
@@ -28,8 +46,9 @@ func main(){
 	var kva []*kvpaxos.KVPaxos = make([]*kvpaxos.KVPaxos, nservers)
 	var kvh []string = make([]string, nservers)
 
+	conf:=kvlib.ReadJson("conf/settings.conf")
 	for i := 0; i < nservers; i++ {
-		kvh[i] = RPCport(nservers,i)
+		kvh[i] = RPC_Addr(i,conf)
 	}
 	for i := 0; i < nservers; i++ {
 		kva[i] = kvpaxos.StartServer(kvh, i)
