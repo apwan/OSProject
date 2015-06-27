@@ -6,6 +6,7 @@ import(
   "strconv"
   //"time"
   //"math/rand"
+  "encoding/json"
 )
 
 
@@ -21,7 +22,19 @@ type StrResponse struct {
 	Success string `json:"success"`
     Value string `json:"value"`
 }
+type MsgResponse struct {
+	Success string `json:"success"`
+    Message string `json:"message"`
+}
 
+func JsonErr(Err string)(string){	
+  enc,_:=json.Marshal(&MsgResponse{"false",Err});
+  return string(enc)
+}
+func JsonSucc(Val string)(string){
+  enc,_:=json.Marshal(&StrResponse{"true",Val});
+  return string(enc)
+}
 
 func Find_Port(me int, conf map[string]string) (int){
 	p,err := strconv.Atoi(conf["port_n"+strconv.Itoa(me)])

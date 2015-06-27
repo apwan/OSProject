@@ -15,6 +15,7 @@ import (
   "log"
 
   "paxos"
+  "kvlib"
   "stoppableHTTPlistener"
   )
 
@@ -307,10 +308,10 @@ func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
 
     err:=kv.Put(&args,&reply)
     if err!=nil || reply.Err!=""{
-      fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
+      fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
       return
     }
-    fmt.Fprintf(w, "{success:true,value=%s}",reply.PreviousValue)
+    fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.PreviousValue))
   }
 }
 
@@ -328,10 +329,10 @@ func kvGetHandlerGC(kv *KVPaxos) http.HandlerFunc{
 
     err:=kv.Get(&args,&reply)
     if err!=nil || reply.Err!=""{
-      fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
+      fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
       return
     }
-    fmt.Fprintf(w, "{success:true,value=%s}",reply.Value)
+    fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.Value))
   }
 }
 //end HTTP handlers
