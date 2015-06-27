@@ -84,8 +84,9 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (E
     var ID int
     var value interface{}
     var decided bool
+
+    ID=kv.px_touchedPTR+1
     for true {
-        ID=kv.px.Max()+1
         kv.px.Start(ID,myop)
         time.Sleep(10)
         for true {
@@ -100,7 +101,10 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (E
         }
         var scale=(kv.me+ID)%3
         time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
+        ID++
     }
+    kv.px_touchedPTR=ID
+
     if Debug {
         println("P/G Step2")
     }
@@ -206,8 +210,8 @@ func (kv *KVPaxos) DumpInfo() string {
 
 func (kv *KVPaxos) housekeeper() {
   for true{
-    if kv.dead{
-      println("KVDB dead, housekeeper done")
+    if kv.dead {
+      if Debug{println("KVDB dead, housekeeper done") }
       break
     }
     time.Sleep(time.Second*2)
