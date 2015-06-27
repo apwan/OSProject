@@ -15,11 +15,12 @@ import (
   "log"
 
   "paxos"
+  "stoppableHTTPlistener"
   )
 
 
 const Debug=false
-const StartHTTP=false
+const StartHTTP=true
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
   if Debug {
@@ -55,6 +56,7 @@ type KVPaxos struct {
   px *paxos.Paxos
   snapshot map[string]string
   snapstart int
+  HTTPListener *stoppableHTTPlistener.StoppableListener
   // Your definitions here.
 }
 
@@ -166,6 +168,10 @@ func (kv *KVPaxos) kill() {
   kv.dead = true
   kv.l.Close()
   kv.px.Kill()
+  if StartHTTP{
+    println("Stopping HTTP...")
+    kv.HTTPListener.Stop()
+  }
 }
 
 func (kv *KVPaxos) DumpInfo() string {
@@ -194,7 +200,8 @@ func (kv *KVPaxos) DumpInfo() string {
 func (kv *KVPaxos) housekeeper() {
   for true{
     if kv.dead{
-      return
+      println("KVDB dead, housekeeper done")
+      break
     }
     time.Sleep(time.Second*2)
     curr:=kv.px.Max()-1
@@ -223,25 +230,6 @@ func (kv *KVPaxos) housekeeper() {
       if Debug {fmt.Printf("done!#%d now: max %d, min %d, snap %d...\n",kv.me,kv.px.Max(),kv.px.Min(),kv.snapstart) }   
     }
   }
-	//launched at startup; to call paxos.done()
-	/* int pointer=0, latest=0
-	while(1){
-		sleep for a while!
-		latest=paxos latest minimum;
-		for(;pointer<latest-10;pointer++)//only care about old entries
-		{
-			while(localcache[pointer] is missing)
-			{
-				try getting it from peer A,B,C
-			}
-			1. Myself have [pointer], know its key
-			while(1){
-			2. Ask peer B and C about [pointer]
-			3. If A&B&C both have it, then call paxos.Done for [pointer]; break
-			4. otherwise, sleep for a while, and ask again!
-			}
-		}
-	} */
 }
 
 //HTTP handlers generator; to create a closure for kvpaxos instance
@@ -314,7 +302,11 @@ func StartServer(servers []string, me int) *KVPaxos {
   // Your initialization code here.
 
   if StartHTTP{
+
     //HTTP initialization
+    //wait for a while, since previous server hasn't timed out on TCP!
+    time.Sleep(time.Millisecond*11)
+
     serveMux := http.NewServeMux()
 
   	var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
@@ -328,17 +320,28 @@ func StartServer(servers []string, me int) *KVPaxos {
 
   	listenPort:=30000+me //temporary, should read from conf file!!
   	s := &http.Server{
-  		Addr: ":"+strconv.Itoa(listenPort),
+  		//Addr: ":"+strconv.Itoa(listenPort),
   		Handler: serveMux,
   		ReadTimeout: 1 * time.Second,
   		WriteTimeout: 30 * time.Second,
   		MaxHeaderBytes: 1<<20,
   	}
 
-
+    originalListener, err := net.Listen("tcp", ":"+strconv.Itoa(listenPort))
+    if err!=nil {
+      panic(err)
+    }
+    sl, err := stoppableHTTPlistener.New(originalListener)
+    if err!=nil {
+      panic(err)
+    }
+    kv.HTTPListener=sl
   	go func(){
-  		log.Fatal(s.ListenAndServe())
+      fmt.Printf("Starting HTTP server: %d\n",listenPort)
+      s.Serve(sl)
+      //will be stopped by housekeeper!
   	}()
+
   }
 
 
