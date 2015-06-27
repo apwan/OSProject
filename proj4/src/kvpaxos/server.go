@@ -247,13 +247,29 @@ func kvPutHandlerGC(kv *KVPaxos) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key:= r.FormValue("key")
 		value:= r.FormValue("value")
-		fmt.Fprintf(w, "%s","")
+		
+		var args PutArgs
+		var reply PutReply
+		err:=kv.Put(args,reply)
+		if err!=nil || reply.Err!=""{
+			fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
+			return
+		}
+		fmt.Fprintf(w, "{success:true,value=%s}",reply.PreviousValue)
 	}
 }
 func kvGetHandlerGC(kv *KVPaxos) {
 	return func(kv *KVPaxos, w http.ResponseWriter, r *http.Request) {
 		key:= r.FormValue("key")
-		fmt.Fprintf(w, "%s","")
+		
+		var args PutArgs
+		var reply PutReply
+		err:=kv.Put(args,reply)
+		if err!=nil || reply.Err!=""{
+			fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
+			return
+		}
+		fmt.Fprintf(w, "{success:true,value=%s}",reply.Value)
 	}
 }
 //end HTTP handlers
