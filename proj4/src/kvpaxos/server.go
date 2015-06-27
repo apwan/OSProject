@@ -53,6 +53,7 @@ type KVPaxos struct {
   mu sync.Mutex
   l net.Listener
   me int
+  N int
   dead bool // for testing
   unreliable bool // for testing
   px *paxos.Paxos
@@ -289,14 +290,21 @@ func kvDumpHandlerGC(kv *KVPaxos) http.HandlerFunc{
     fmt.Fprintf(w, "%s",kv.DumpInfo())
   }
 }
+var globalOpsCnt=0
 func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
   return func(w http.ResponseWriter, r *http.Request) {
     key:= r.FormValue("key")
     value:= r.FormValue("value")
+    opid:= r.FormValue("id")
 
 
-    var args PutArgs = PutArgs{key,value,true,-1,-1}
+    var args PutArgs = PutArgs{key,value,true,globalOpsCnt+kv.me,-1}
+    globalOpsCnt+=kv.N
     var reply PutReply = PutReply{"",""}
+    if opid!="" {
+      args.OpID,_=strconv.Atoi(opid)
+    }
+
     err:=kv.Put(&args,&reply)
     if err!=nil || reply.Err!=""{
       fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
@@ -309,9 +317,15 @@ func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
 func kvGetHandlerGC(kv *KVPaxos) http.HandlerFunc{
   return func(w http.ResponseWriter, r *http.Request) {
     key:= r.FormValue("key")
+    opid:= r.FormValue("id")
 
-    var args GetArgs = GetArgs{key,-1,-1}
+    var args GetArgs = GetArgs{key,globalOpsCnt+kv.me,-1}
+    globalOpsCnt+=kv.N
     var reply GetReply = GetReply{"",""}
+    if opid!="" {
+      args.OpID,_=strconv.Atoi(opid)
+    }
+
     err:=kv.Get(&args,&reply)
     if err!=nil || reply.Err!=""{
       fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
@@ -336,7 +350,8 @@ func StartServer(servers []string, me int) *KVPaxos {
 
   kv := new(KVPaxos)
   kv.me = me
-  kv.px_touchedPTR=-1 //0 is untouched!
+  kv.N = len(servers) //used for universal incrementation of HTTP request OpIDs
+  kv.px_touchedPTR=-1 //0 is untouched at the beginning!
   kv.snapstart=0
   kv.snapshot=make(map[string]string)
 
