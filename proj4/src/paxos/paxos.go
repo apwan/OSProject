@@ -198,7 +198,13 @@ func (px *Paxos) Start(seq int, v interface{}) {
         isAccept, replyProposal := px.sendPrepare(seq, paxosNum)
 
         // Accept phase
-        if replyProposal.PaxosNum == -1 {
+        // sometimes the rpc does not pass the correct replyProposal.PaxosNum
+        // Cry. Buggy parameter passing
+        // some time replyProposal.PaxosNum != 0 but become -1 after parameter passing
+        // need to check replyProposal.Value == nil to make sure the proposal is not empty
+        // Do change the proposal if prepare is not accepted, it is essential
+        // There is also a hot fix in SendPrepare
+        if isAccept && (replyProposal.PaxosNum == -1) && (replyProposal.Value == nil) {
           replyProposal.Value = v
         }
         // Replace the paxos number accpeted proposal to new paxosNum
@@ -251,6 +257,16 @@ func (px *Paxos) sendPrepare(seq int, paxosNum int) (bool, PaxosProposal){
       if reply.Proposal.PaxosNum > replyProposal.PaxosNum{
         replyProposal = reply.Proposal
       }
+        // hot fix of some unknown bug
+        // Sometimes the PaxosNum number of accepted proposal become -1 after
+        // RPC. I don't know why
+        // (Value, 1234) in server 1 ---buggy RPC????---> (Value, -1) in server 2
+        // To make sure the accepter has not accept any proposal
+        // we should double check reply.Proposal.Value is not nil
+        if (reply.Proposal.PaxosNum == -1) && (reply.Proposal.Value != nil) {
+          replyProposal.Value = reply.Proposal.Value
+        }
+        // end hot fix
     } else {
       if DEBUG && DEBUG_PRE{
         fmt.Printf("%d reject prepare number %d from %d\n", index, paxosNum ,px.me )
