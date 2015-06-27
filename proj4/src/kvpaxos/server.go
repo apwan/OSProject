@@ -315,22 +315,26 @@ func StartServer(servers []string, me int) *KVPaxos {
   // Your initialization code here.
 
   //HTTP initialization
+  serveMux := http.NewServeMux()
+
 	var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
 		"dump": kvDumpHandlerGC,
 		"put": kvPutHandlerGC,
 		"get": kvGetHandlerGC,
 	}
+  for key,val := range kvHandlerGCs{
+	  serveMux.HandleFunc("/"+key, val(kv))
+	}
+
 	listenPort:=30000+me //temporary, should read from conf file!!
 	s := &http.Server{
 		Addr: ":"+strconv.Itoa(listenPort),
-		Handler: nil,
+		Handler: serveMux,
 		ReadTimeout: 1 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		MaxHeaderBytes: 1<<20,
 	}
-	for key,val := range kvHandlerGCs{
-		http.HandleFunc("/"+key, val(kv))
-	}
+
 
 	go func(){
 		log.Fatal(s.ListenAndServe())

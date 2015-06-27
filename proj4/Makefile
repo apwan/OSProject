@@ -24,7 +24,7 @@ test_Paxos:
 	@GOPATH=`pwd` go test paxos -v
 
 test_kvPaxos:
-	@GOPATH=`pwd` go test kvpaxos -test.run TestPartitioin -v
+	@GOPATH=`pwd` go test kvpaxos -v
 
 
 clean:
