@@ -219,6 +219,22 @@ func (kv *KVPaxos) housekeeper() {
 	} */
 }
 
+//HTTP handlers:
+func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	if check_HTTP_method && r.Method != "POST" {
+		fmt.Fprintf(w, "Bad Method: Please use POST")
+		return
+	}
+	key:= r.FormValue("key")
+	if db.Has(key){
+		db.Remove(key)
+		fmt.Fprintf(w, "%s",TrueResponseStr)
+		return
+	}
+	fmt.Fprintf(w, "%s",FalseResponseStr)
+}
+//end HTTP handlers
+
 
 //
 // servers[] contains the ports of the set of
@@ -235,6 +251,31 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.me = me
 
   // Your initialization code here.
+  
+  //HTTP initialization
+  var kvmanHandlers = map[string]func(http.ResponseWriter, *http.Request){
+  "countkey": kvmanCountkeyHandler,
+	"dump": kvmanDumpHandler,
+	"shutdown": kvmanShutdownHandler,
+	"peershutdown": kvmanPeerShutdownHandler,
+	"peerstartup": kvmanPeerStartupHandler,
+	"peerstartsync": kvmanPeerStartSyncHandler,
+}
+	s := &http.Server{
+		Addr: ":"+strconv.Itoa(listenPort),
+		Handler: nil,
+		ReadTimeout: 10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		MaxHeaderBytes: 1<<20,
+	}
+	//http.HandleFunc("/kv", kvHandler)
+	http.HandleFunc("/", homeHandler)
+  for key,val := range kvmanHandlers{
+    http.HandleFunc("/kvman/"+key, val)
+  }
+
+
+  
   
   // End of initialization code
 
