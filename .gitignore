@@ -22,3 +22,9 @@ proj3/build/*
 proj3/bin/*
 
 proj3/src/.DS_Store
+
+proj4/src/kvlib/kvlib_test.go
+
+proj4/src/kvlib/in.json
+
+proj4/src/kvlib/out.json
