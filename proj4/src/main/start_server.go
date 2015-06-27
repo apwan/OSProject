@@ -10,33 +10,26 @@ import(
 	"strconv"
 
 	// our lib
-	//. "kvlib"
+	"kvlib"
 	//. "paxos"
 	"kvpaxos"
 )
 
-func port(tag string, host int) string {
-  s := "/var/tmp/824-"
-  s += strconv.Itoa(os.Getuid()) + "/"
-  os.Mkdir(s, 0777)
-  s += "kv-"
-  s += strconv.Itoa(os.Getpid()) + "-"
-  s += tag + "-"
-  s += strconv.Itoa(host)
-  return s
+var conf = kvlib.ReadJson("conf/settings.conf")
+
+func RPCport(N int, me int) string {
+	return "127.0.0.1:"+strconv.Itoa(40000+me)
 }
 
 func main(){
-	//conf := ReadJson("conf/settings.conf")
-	//fmt.Println(conf["port"])
-
+	
 	runtime.GOMAXPROCS(4)
 	const nservers = 3
 	var kva []*kvpaxos.KVPaxos = make([]*kvpaxos.KVPaxos, nservers)
 	var kvh []string = make([]string, nservers)
 
 	for i := 0; i < nservers; i++ {
-		kvh[i] = port("basic", i)
+		kvh[i] = RPCport(nservers,i)
 	}
 	for i := 0; i < nservers; i++ {
 		kva[i] = kvpaxos.StartServer(kvh, i)

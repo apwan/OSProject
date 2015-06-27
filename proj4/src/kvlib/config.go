@@ -37,6 +37,15 @@ func JsonSucc(Val string)(string){
 }
 
 func Find_Port(me int, conf map[string]string) (int){
+	if conf["use_same_port"] == "true" {
+		p,err := strconv.Atoi(conf["port"])
+		if err != nil {
+			println("Failed to parse conf[port]")
+			panic(err)
+		}
+		return p
+	}
+
 	p,err := strconv.Atoi(conf["port_n"+strconv.Itoa(me)])
 		if err != nil {
 			fmt.Println("Failed to parse :"+"port_n"+strconv.Itoa(me)+":"+conf["port_n"+strconv.Itoa(me)]);

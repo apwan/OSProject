@@ -297,6 +297,10 @@ func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
     key:= r.FormValue("key")
     value:= r.FormValue("value")
     opid:= r.FormValue("id")
+    if value=="" {
+      fmt.Fprintf(w, "%s",kvlib.JsonErr("value not found, please give nonempty string"))
+      return
+    }
 
 
     var args PutArgs = PutArgs{key,value,true,globalOpsCnt+kv.me,-1}
@@ -336,6 +340,7 @@ func kvGetHandlerGC(kv *KVPaxos) http.HandlerFunc{
   }
 }
 //end HTTP handlers
+// Note: Write document-compatible handlers!!! for DELETE, UPDATE, PUT etc!!!
 
 
 //
