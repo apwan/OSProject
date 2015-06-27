@@ -220,18 +220,17 @@ func (kv *KVPaxos) housekeeper() {
 }
 
 //HTTP handlers:
-func naive_kvDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	if check_HTTP_method && r.Method != "POST" {
-		fmt.Fprintf(w, "Bad Method: Please use POST")
-		return
-	}
+func kvDumpHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%s","")
+}
+func kvPutHandler(w http.ResponseWriter, r *http.Request) {
 	key:= r.FormValue("key")
-	if db.Has(key){
-		db.Remove(key)
-		fmt.Fprintf(w, "%s",TrueResponseStr)
-		return
-	}
-	fmt.Fprintf(w, "%s",FalseResponseStr)
+	value:= r.FormValue("value")
+	fmt.Fprintf(w, "%s","")
+}
+func kvGetHandler(w http.ResponseWriter, r *http.Request) {
+	key:= r.FormValue("key")
+	fmt.Fprintf(w, "%s","")
 }
 //end HTTP handlers
 
@@ -253,26 +252,26 @@ func StartServer(servers []string, me int) *KVPaxos {
   // Your initialization code here.
   
   //HTTP initialization
-  var kvmanHandlers = map[string]func(http.ResponseWriter, *http.Request){
-  "countkey": kvmanCountkeyHandler,
-	"dump": kvmanDumpHandler,
-	"shutdown": kvmanShutdownHandler,
-	"peershutdown": kvmanPeerShutdownHandler,
-	"peerstartup": kvmanPeerStartupHandler,
-	"peerstartsync": kvmanPeerStartSyncHandler,
-}
+	var kvHandlers = map[string]func(http.ResponseWriter, *http.Request){
+		"dump": kvDumpHandler,
+		"put": kvPutHandler,
+		"get": kvGetHandler
+	}
+	listenPort:=30000+me //temporary, should read from conf file!!
 	s := &http.Server{
 		Addr: ":"+strconv.Itoa(listenPort),
 		Handler: nil,
-		ReadTimeout: 10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout: 1 * time.Second,
+		WriteTimeout: 30 * time.Second,
 		MaxHeaderBytes: 1<<20,
 	}
-	//http.HandleFunc("/kv", kvHandler)
-	http.HandleFunc("/", homeHandler)
-  for key,val := range kvmanHandlers{
-    http.HandleFunc("/kvman/"+key, val)
-  }
+	for key,val := range kvHandlers{
+		http.HandleFunc("/"+key, val)
+	}
+	
+	go func(){
+		log.Fatal(s.ListenAndServe())
+	}()
 
 
   
