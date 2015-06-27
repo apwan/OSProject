@@ -38,12 +38,14 @@ type Op struct {
   Key string
   Value string
   Who int
+  OpID int
 }
 
 func DeepCompareOps(a Op, b Op) (bool){
   return a.IsPut==b.IsPut &&
   a.Key==b.Key &&
   a.Value==b.Value &&
+  a.OpID==b.OpID &&
   a.Who==b.Who
 }
 
@@ -63,7 +65,7 @@ type KVPaxos struct {
   HTTPListener *stoppableHTTPlistener.StoppableListener
 }
 
-func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, who int) (Err,string) {//return (Err,value)
+func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, who int, opid int) (Err,string) {//return (Err,value)
     if Debug{
         fmt.Printf("P/G Step0, isput:%d\n",isput)
     }
@@ -77,6 +79,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
     var myop Op
     myop.IsPut=isput
     myop.Key=opkey
+    myop.OpID=opid
     if isput{
       myop.Value=opvalue
     }
@@ -85,25 +88,53 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
     var value interface{}
     var decided bool
 
-    ID=kv.px_touchedPTR+1
-    for true {
-        kv.px.Start(ID,myop)
-        time.Sleep(10)
-        for true {
-            decided,value = kv.px.Status(ID)
-            if decided {
-                break;
-            }
-            time.Sleep(100*time.Millisecond)
+    //check if there's existing same OP...
+    var sameID=-1
+    for i:=kv.snapstart;i<=kv.px_touchedPTR;i++{
+      decided,value = kv.px.Status(i)
+      if decided {
+        //if DeepCompareOps(value.(Op),myop){
+        if value.(Op).OpID==myop.OpID{
+          sameID=i
+          if Debug {fmt.Printf("Saw sameID! id%d opid%d sv#%d",sameID,myop.OpID,kv.me)}
+          break
         }
-        if DeepCompareOps(value.(Op),myop) {//succeeded
-            break;
-        }
-        var scale=(kv.me+ID)%3
-        time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
-        ID++
+      }else {
+        fmt.Printf("PANIC %v %v\n", value, myop);
+        panic("Not decided, but before touchPTR?!!!!!")
+      }
     }
-    kv.px_touchedPTR=ID
+    if sameID>=0{
+      ID=sameID//skip
+    }else{
+      ID=kv.px_touchedPTR+1
+      //ID=0
+      for true {
+          kv.px.Start(ID,myop)
+          time.Sleep(50)
+          for true {
+              decided,value = kv.px.Status(ID)
+              if decided {
+                  break;
+              }
+              time.Sleep(200*time.Millisecond)
+          }
+          if DeepCompareOps(value.(Op),myop) {//succeeded
+              if Debug {fmt.Printf("Saw DCSame! %v %v server%d\n",value,myop,kv.me)}
+              break;
+          }
+          if value.(Op).OpID==myop.OpID {//succeeded
+              if Debug {fmt.Printf("Saw OIDSame but DC fail! %v %v\n",value,myop)}
+              break;
+          }
+          var scale=(kv.me+ID)%3
+          time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
+          ID++
+      }
+      kv.px_touchedPTR=ID
+    }
+
+    if Debug {fmt.Printf("Decided! %d=%v server%d\n",ID,myop,kv.me)}
 
     if Debug {
         println("P/G Step2")
@@ -125,7 +156,13 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
         if optt.IsPut==false{
             continue;
         }
+        //if optt.OpID==myop.OpID{
+         //   fmt.Printf("Saw same OpID %d who %d %d val %s %s \n",myop.OpID,myop.Who,optt.Who,myop.Value,optt.Value);
+        //    fmt.Printf("Saw key %s %s \n",myop.Key,optt.Key);
+        //    continue;
+        //}
         if optt.Key==myop.Key{
+          if optt.OpID==myop.OpID{continue;}
             latestVal=optt.Value
             latestValFound=true
             break
@@ -154,7 +191,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
 } 
 
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
-  e,Value:=kv.PaxosAgreementOp(false,args.Key,"",args.ClientID)
+  e,Value:=kv.PaxosAgreementOp(false,args.Key,"",args.ClientID,args.OpID)
   reply.Err=e
   reply.Value=Value
   return nil
@@ -162,7 +199,7 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
-  e,Value:=kv.PaxosAgreementOp(true,args.Key,args.Value,args.ClientID)
+  e,Value:=kv.PaxosAgreementOp(true,args.Key,args.Value,args.ClientID,args.OpID)
   reply.Err=e
   reply.PreviousValue=Value
   return nil
@@ -189,16 +226,18 @@ func (kv *KVPaxos) DumpInfo() string {
   r+=fmt.Sprintf("I'm %d\n",kv.me)
   r+=fmt.Sprintf("Max pxID=%d\n",kv.px.Max())
   r+=fmt.Sprintf("Min pxID=%d\n",kv.px.Min())
+  r+=fmt.Sprintf("PTR pxID=%d\n",kv.px_touchedPTR)
+
   ID:=kv.px.Max()
   for i:=0;i<=ID;i++ {
     de,op:=kv.px.Status(i)
     o,_:=op.(Op)
     if de {
-      tmp := 0
+      tmp := "GET"
       if o.IsPut {
-        tmp = 1
+        tmp = "PUT"
       }
-      r+=fmt.Sprintf("Op[%d] IsPut%d %s=%s by%d  \n",i,tmp,o.Key,o.Value,o.Who)
+      r+=fmt.Sprintf("Op[%d] %s %s=%s by%d  opid%d\n",i,tmp,o.Key,o.Value,o.Who,o.OpID)
     }else{
       r+=fmt.Sprintf("Op[%d] undecided  \n",i)
     }
@@ -219,6 +258,7 @@ func (kv *KVPaxos) housekeeper() {
     mem:=kv.snapstart
     if Debug {fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem) }
     if(curr-mem> SaveMemThreshold){//start compressing...
+      println("Housekeeper GC starting...");
       kv.mu.Lock(); // Protect px.instances
         curr-=5
         for i:=kv.snapstart;i<curr;i++ {
