@@ -11,7 +11,6 @@ import (
   "math/rand"
   "time"
   "strconv"
-  "errors"
   "fmt"
   "log"
 
@@ -20,6 +19,7 @@ import (
 
 
 const Debug=0
+const StartHTTP=false
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
   if Debug > 0 {
@@ -138,153 +138,13 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
   reply.Err=Err
   reply.Value=Value
   return nil
-  /*
-  // Your code here.
-   if Debug==1{
-     println("GET Step0")
-   }
 
-  kv.mu.Lock(); // Protect px.instances
-  defer kv.mu.Unlock();
-   if Debug==1 {
-     println("GET Step1")
-   }
-
-  //step1: get the agreement!
-  var myop Op
-  myop.IsPut=false
-  myop.Key=args.Key
-  myop.Who=kv.me
-  var ID int
-  var value interface{}
-  var decided bool
-  for true {
-  ID=kv.px.Max()+1
-  kv.px.Start(ID,myop)
-  time.Sleep(10)
-  for true {
-    decided,value = kv.px.Status(ID)
-    if decided {
-      break;
-    }
-    time.Sleep(100*time.Millisecond)
-  }
-  if DeepCompareOps(value.(Op),myop) {//succeeded
-    break;
-  }
-  var scale=(kv.me+ID)%3
-  time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
-  }
-   if Debug==1 {
-     println("GET Step2")
-   }
-
-  //We got ID!
-  //Step2: trace back for previous value
-  var latestVal string
-  var latestValFound=false
-
-  for i:=ID-1;i>=0;i--{ //i>=latest snapshot!
-  de,op:=kv.px.Status(i)
-  for de==false {
-    time.Sleep(10*time.Millisecond)
-    de,op=kv.px.Status(i)
-  }
-  optt,found:=op.(Op)
-  if found==false{
-    return errors.New("Not Found type .(Op)")
-  }
-  if optt.IsPut==false{
-    continue;
-  }
-  if optt.Key==myop.Key{
-    latestVal=optt.Value
-    latestValFound=true
-    break
-  }
-  }
-  if latestValFound==false {//equivalently, i<0
-    reply.Err="Key Not Found"
-    return nil
-  }
-
-
-  reply.Value=latestVal
-  return nil*/
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
-  // Your code here.
-   if Debug==1 {
-     println("PUT Step0")
-   }
-  kv.mu.Lock(); // Protect px.instances
-  defer kv.mu.Unlock();
-  //step1: get the agreement!
-   if Debug==1 {
-     println("PUT Step1")
-   }
-
-  var myop Op
-  myop.IsPut=true
-  myop.Key=args.Key
-  myop.Value=args.Value
-  myop.Who=kv.me
-  var ID int
-  var value interface{}
-  var decided bool
-  for true {
-	ID=kv.px.Max()+1
-  // fmt.Printf("Try to propose Min ID:%d\n",ID)
-
-	kv.px.Start(ID,myop)
-	time.Sleep(10)
-	for true {
-    // print("decided?")
-		decided,value = kv.px.Status(ID)
-		if decided {
-			break;
-		}
-		time.Sleep(100*time.Millisecond)
-	}
-	if DeepCompareOps(value.(Op),myop) {//succeeded
-		break;
-	}
-	var scale=(kv.me+ID)%3
-	time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
-  }
-
-  if Debug==1 {
-    println("PUT Step2")
-  }
-
-  //We got ID!
-  //Step2: trace back for previous value
-  var latestVal string
-  for i:=ID-1;i>=0;i--{ //i>=latest snapshot!
-	de,op:=kv.px.Status(i)
-	for de==false {
-	  time.Sleep(10*time.Millisecond)
-	  de,op=kv.px.Status(i)
-	}
-  optt,found:=op.(Op)
-  if found==false{
-    return errors.New("Not Found type .(Op)")
-  }
-	if optt.IsPut==false{
-	  continue;
-	}
-	if optt.Key==myop.Key{
-	  latestVal=optt.Value
-	  break
-	}
-  }
-   if Debug==1 {
-     println("PUT Step3")
-   }
-
-  // println(latestVal)
-  reply.PreviousValue=latestVal
+  Err,Value:=kv.PaxosAgreementOp(false,args.Key,args.Value)
+  reply.Err=Err
+  reply.PreviousValue=Value
   return nil
 }
 
@@ -408,32 +268,33 @@ func StartServer(servers []string, me int) *KVPaxos {
 
   // Your initialization code here.
 
-  //HTTP initialization
-  serveMux := http.NewServeMux()
+  if StartHTTP{
+    //HTTP initialization
+    serveMux := http.NewServeMux()
 
-	var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
-		"dump": kvDumpHandlerGC,
-		"put": kvPutHandlerGC,
-		"get": kvGetHandlerGC,
-	}
-  for key,val := range kvHandlerGCs{
-	  serveMux.HandleFunc("/"+key, val(kv))
-	}
+  	var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
+  		"dump": kvDumpHandlerGC,
+  		"put": kvPutHandlerGC,
+  		"get": kvGetHandlerGC,
+  	}
+    for key,val := range kvHandlerGCs{
+  	  serveMux.HandleFunc("/"+key, val(kv))
+  	}
 
-	listenPort:=30000+me //temporary, should read from conf file!!
-	s := &http.Server{
-		Addr: ":"+strconv.Itoa(listenPort),
-		Handler: serveMux,
-		ReadTimeout: 1 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		MaxHeaderBytes: 1<<20,
-	}
+  	listenPort:=30000+me //temporary, should read from conf file!!
+  	s := &http.Server{
+  		Addr: ":"+strconv.Itoa(listenPort),
+  		Handler: serveMux,
+  		ReadTimeout: 1 * time.Second,
+  		WriteTimeout: 30 * time.Second,
+  		MaxHeaderBytes: 1<<20,
+  	}
 
 
-	go func(){
-		log.Fatal(s.ListenAndServe())
-	}()
-
+  	go func(){
+  		log.Fatal(s.ListenAndServe())
+  	}()
+  }
 
 
 
