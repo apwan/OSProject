@@ -57,8 +57,88 @@ type KVPaxos struct {
   // Your definitions here.
 }
 
+func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (Err,string) {//return (Err,value)
+    if Debug==1{
+        fmt.Printf("P/G Step0, isput:%d\n",isput)
+    }
+    kv.mu.Lock(); // Protect px.instances
+    defer kv.mu.Unlock();
+    if Debug==1 {
+        println("P/G Step1")
+    }
+
+       //step1: get the agreement!
+    var myop Op
+    myop.IsPut=isput
+    myop.Key=opkey
+    if isput{
+      myop.Value=opvalue
+    }
+    myop.Who=kv.me
+    var ID int
+    var value interface{}
+    var decided bool
+    for true {
+        ID=kv.px.Max()+1
+        kv.px.Start(ID,myop)
+        time.Sleep(10)
+        for true {
+            decided,value = kv.px.Status(ID)
+            if decided {
+                break;
+            }
+            time.Sleep(100*time.Millisecond)
+        }
+        if DeepCompareOps(value.(Op),myop) {//succeeded
+            break;
+        }
+        var scale=(kv.me+ID)%3
+        time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
+    }
+    if Debug==1 {
+        println("P/G Step2")
+    }
+    //We got ID!
+    //Step2: trace back for previous value
+    var latestVal string
+    var latestValFound=false
+    for i:=ID-1;i>=0;i--{ //i>=latest snapshot!
+        de,op:=kv.px.Status(i)
+        for de==false {
+            time.Sleep(10*time.Millisecond)
+            de,op=kv.px.Status(i)
+        }
+        optt,found:=op.(Op)
+        if found==false{
+            return "Not Found type .(Op)",""
+        }
+        if optt.IsPut==false{
+            continue;
+        }
+        if optt.Key==myop.Key{
+            latestVal=optt.Value
+            latestValFound=true
+            break
+        }
+    }
+    //returning value...
+    if isput{
+      return "",latestVal
+    }else{
+        if latestValFound==false {//equivalently, i<0
+            return "Key Not Found",""
+        }
+        return "",latestVal
+    }
+
+} 
 
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
+  Err,Value:=kv.PaxosAgreementOp(false,args.Key,"")
+  reply.Err=Err
+  reply.Value=Value
+  return nil
+  /*
   // Your code here.
    if Debug==1{
      println("GET Step0")
@@ -130,7 +210,7 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 
 
   reply.Value=latestVal
-  return nil
+  return nil*/
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
