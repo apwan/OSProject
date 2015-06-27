@@ -53,7 +53,8 @@ type KVPaxos struct {
   dead bool // for testing
   unreliable bool // for testing
   px *paxos.Paxos
-
+  kvsnapshot map[string]string
+  kvsnapstart int
   // Your definitions here.
 }
 
@@ -142,7 +143,7 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
-  Err,Value:=kv.PaxosAgreementOp(false,args.Key,args.Value)
+  Err,Value:=kv.PaxosAgreementOp(true,args.Key,args.Value)
   reply.Err=Err
   reply.PreviousValue=Value
   return nil
