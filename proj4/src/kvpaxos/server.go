@@ -1,17 +1,23 @@
 package kvpaxos
 
-import "net"
-import "fmt"
-import "net/rpc"
-import "log"
-import "paxos"
-import "sync"
-import "os"
-import "syscall"
-import "encoding/gob"
-import "math/rand"
-import "time"
-import "errors"
+import (
+  "net"
+  "net/http"
+  "net/rpc"
+  "sync"
+  "os"
+  "syscall"
+  "encoding/gob"
+  "math/rand"
+  "time"
+  "strconv"
+  "errors"
+  "fmt"
+  "log"
+
+  "paxos"
+  )
+
 
 const Debug=0
 
@@ -203,15 +209,20 @@ func (kv *KVPaxos) DumpInfo() string {
 	r+=fmt.Sprintf("Max pxID=%d\n",kv.px.Max())
 	r+=fmt.Sprintf("Min pxID=%d\n",kv.px.Min())
 	ID:=kv.px.Max()
-	for i=0;i<=ID;i++ {
-		de,op=kv.px.Status(i)
-		o,found:=op.(Op)
+	for i:=0;i<=ID;i++ {
+		de,op:=kv.px.Status(i)
+		o,_:=op.(Op)
 		if de {
-			r+=fmt.Sprintf("Op[%d] IsPut%d %s=%s by%d  \n",i,o.IsPut?1:0,o.Key,o.Value,o.Who)
+      tmp := 0
+      if o.IsPut {
+        tmp = 1
+      }
+			r+=fmt.Sprintf("Op[%d] IsPut%d %s=%s by%d  \n",i,tmp,o.Key,o.Value,o.Who)
 		}else{
 			r+=fmt.Sprintf("Op[%d] undecided  \n",i)
 		}
 	}
+  return r
 }
 
 
@@ -238,19 +249,20 @@ func (kv *KVPaxos) housekeeper() {
 }
 
 //HTTP handlers generator; to create a closure for kvpaxos instance
-func kvDumpHandlerGC(kv *KVPaxos) {
+func kvDumpHandlerGC(kv *KVPaxos) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s",kv.DumpInfo())
 	}
 }
-func kvPutHandlerGC(kv *KVPaxos) {
+func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key:= r.FormValue("key")
 		value:= r.FormValue("value")
-		
-		var args PutArgs
-		var reply PutReply
-		err:=kv.Put(args,reply)
+
+
+		var args PutArgs = PutArgs{key,value,true,-1,-1}
+		var reply PutReply = PutReply{"",""}
+		err:=kv.Put(&args,&reply)
 		if err!=nil || reply.Err!=""{
 			fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
 			return
@@ -258,18 +270,29 @@ func kvPutHandlerGC(kv *KVPaxos) {
 		fmt.Fprintf(w, "{success:true,value=%s}",reply.PreviousValue)
 	}
 }
-func kvGetHandlerGC(kv *KVPaxos) {
-	return func(kv *KVPaxos, w http.ResponseWriter, r *http.Request) {
+/*
+type KvHandler struct{
+  kv *KVPaxos
+}
+func (h *KvHandler)Handdle(w http.ResponseWriter, r *http.Request){
+
+}
+*/
+
+//type KvHandlerFunc func(*KVPaxos, http.ResponseWriter, *http.Request)
+
+func kvGetHandlerGC(kv *KVPaxos) http.HandlerFunc{
+	return func(w http.ResponseWriter, r *http.Request) {
 		key:= r.FormValue("key")
-		
-		var args PutArgs
-		var reply PutReply
-		err:=kv.Put(args,reply)
+
+		var args PutArgs = PutArgs{key,"",true,-1,-1}
+		var reply PutReply = PutReply{"",""}
+		err:=kv.Put(&args,&reply)
 		if err!=nil || reply.Err!=""{
 			fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
 			return
 		}
-		fmt.Fprintf(w, "{success:true,value=%s}",reply.Value)
+		fmt.Fprintf(w, "{success:true,value=%s}",reply.PreviousValue)
 	}
 }
 //end HTTP handlers
@@ -280,7 +303,7 @@ func kvGetHandlerGC(kv *KVPaxos) {
 // servers that will cooperate via Paxos to
 // form the fault-tolerant key/value service.
 // me is the index of the current server in servers[].
-// 
+//
 func StartServer(servers []string, me int) *KVPaxos {
   // call gob.Register on structures you want
   // Go's RPC library to marshall/unmarshall.
@@ -290,12 +313,12 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.me = me
 
   // Your initialization code here.
-  
+
   //HTTP initialization
-	var kvHandlerGCs = map[string]func(http.ResponseWriter, *http.Request){
+	var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
 		"dump": kvDumpHandlerGC,
 		"put": kvPutHandlerGC,
-		"get": kvGetHandlerGC
+		"get": kvGetHandlerGC,
 	}
 	listenPort:=30000+me //temporary, should read from conf file!!
 	s := &http.Server{
@@ -308,14 +331,14 @@ func StartServer(servers []string, me int) *KVPaxos {
 	for key,val := range kvHandlerGCs{
 		http.HandleFunc("/"+key, val(kv))
 	}
-	
+
 	go func(){
 		log.Fatal(s.ListenAndServe())
 	}()
 
 
-  
-  
+
+
   // End of initialization code
 
   rpcs := rpc.NewServer()
@@ -365,4 +388,3 @@ func StartServer(servers []string, me int) *KVPaxos {
 
   return kv
 }
-
