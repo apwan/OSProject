@@ -173,6 +173,9 @@ func (kv *KVPaxos) kill() {
     kv.HTTPListener.Stop()
   }
 }
+func (kv *KVPaxos) Kill() {//public wrapper
+  kv.kill()
+}
 
 func (kv *KVPaxos) DumpInfo() string {
 	r:=""
@@ -193,6 +196,7 @@ func (kv *KVPaxos) DumpInfo() string {
 			r+=fmt.Sprintf("Op[%d] undecided  \n",i)
 		}
 	}
+  //r+="<meta http-equiv=\"refresh\" content=\"1\">"
   return r
 }
 
