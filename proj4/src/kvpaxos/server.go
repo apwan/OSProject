@@ -20,7 +20,7 @@ import (
   )
 
 const SaveMemThreshold=10
-const Debug=false
+  const Debug=false
 const StartHTTP=true
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
@@ -63,7 +63,7 @@ type KVPaxos struct {
 
   snapshot map[string]string
   snapstart int
-  
+
   HTTPListener *stoppableHTTPlistener.StoppableListener
 }
 
@@ -190,7 +190,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
         return "",latestVal
     }
 
-} 
+}
 
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
   e,Value:=kv.PaxosAgreementOp(false,args.Key,"",args.ClientID,args.OpID)
@@ -279,8 +279,8 @@ func (kv *KVPaxos) housekeeper() {
           kv.px.Done(i)
           kv.snapstart=i+1
         }
-      kv.mu.Unlock();  
-      if Debug {fmt.Printf("done!#%d now: max %d, min %d, snap %d...\n",kv.me,kv.px.Max(),kv.px.Min(),kv.snapstart) }   
+      kv.mu.Unlock();
+      if Debug {fmt.Printf("done!#%d now: max %d, min %d, snap %d...\n",kv.me,kv.px.Max(),kv.px.Min(),kv.snapstart) }
     }
   }
 }
@@ -381,8 +381,14 @@ func StartServer(servers []string, me int) *KVPaxos {
       serveMux.HandleFunc("/"+key, val(kv))
     }
 
-    conf:= kvlib.ReadJson("conf/settings.conf")
-    listenPort:=kvlib.Find_Port(me,conf) 
+    confname := "conf/settings.conf"
+
+    if _,err:=os.Stat(confname); err!=nil && os.IsNotExist(err){
+      confname = "../../" + confname;
+    }
+
+    conf:= kvlib.ReadJson(confname)
+    listenPort:=kvlib.Find_Port(me,conf)
     s := &http.Server{
       //Addr: ":"+strconv.Itoa(listenPort),
       Handler: serveMux,
