@@ -18,7 +18,7 @@ import (
   "stoppableHTTPlistener"
   )
 
-
+const SaveMemThreshold=10000
 const Debug=false
 const StartHTTP=true
 
@@ -63,7 +63,7 @@ type KVPaxos struct {
   HTTPListener *stoppableHTTPlistener.StoppableListener
 }
 
-func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (Err,string) {//return (Err,value)
+func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, who int) (Err,string) {//return (Err,value)
     if Debug{
         fmt.Printf("P/G Step0, isput:%d\n",isput)
     }
@@ -80,7 +80,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (E
     if isput{
       myop.Value=opvalue
     }
-    myop.Who=kv.me
+    myop.Who=who
     var ID int
     var value interface{}
     var decided bool
@@ -154,16 +154,16 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (E
 } 
 
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
-  Err,Value:=kv.PaxosAgreementOp(false,args.Key,"")
-  reply.Err=Err
+  e,Value:=kv.PaxosAgreementOp(false,args.Key,"",args.ClientID)
+  reply.Err=e
   reply.Value=Value
   return nil
 
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
-  Err,Value:=kv.PaxosAgreementOp(true,args.Key,args.Value)
-  reply.Err=Err
+  e,Value:=kv.PaxosAgreementOp(true,args.Key,args.Value,args.ClientID)
+  reply.Err=e
   reply.PreviousValue=Value
   return nil
 }
@@ -218,7 +218,7 @@ func (kv *KVPaxos) housekeeper() {
     curr:=kv.px.Max()-1
     mem:=kv.snapstart
     if Debug {fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem) }
-    if(curr-mem>10){//start compressing...
+    if(curr-mem> SaveMemThreshold){//start compressing...
       kv.mu.Lock(); // Protect px.instances
         curr-=5
         for i:=kv.snapstart;i<curr;i++ {
