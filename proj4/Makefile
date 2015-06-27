@@ -6,19 +6,13 @@
 KEY=$(shell cat api.key)
 SOURCES= src/main/start_server.go src/main/stop_server.go #
 OURLIBS= src/paxos src/kvpaxos src/kvlib
-OTHERS= conf test compile.sh clean.sh Makefile README.md #
+OTHERS= conf compile.sh clean.sh Makefile README.md #
 
 project_4.tar.gz: $(SOURCES) $(OURLIBS)
 	tar czvf $@ $(SOURCES) $(OURLIBS) $(OTHERS)
 
 build:
 	./compile.sh
-
-run:
-	@bin/test 1&
-	@bin/test 2&
-	@bin/test 3&
-	@bin/test -m
 
 test_Paxos:
 	@GOPATH=`pwd` go test paxos -v
