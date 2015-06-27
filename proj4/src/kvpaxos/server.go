@@ -18,7 +18,7 @@ import (
   "stoppableHTTPlistener"
   )
 
-const SaveMemThreshold=10000
+const SaveMemThreshold=10
 const Debug=false
 const StartHTTP=true
 
