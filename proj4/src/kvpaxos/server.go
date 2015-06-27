@@ -18,11 +18,11 @@ import (
   )
 
 
-const Debug=0
+const Debug=false
 const StartHTTP=false
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
-  if Debug > 0 {
+  if Debug {
     log.Printf(format, a...)
   }
   return
@@ -59,12 +59,12 @@ type KVPaxos struct {
 }
 
 func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (Err,string) {//return (Err,value)
-    if Debug==1{
+    if Debug{
         fmt.Printf("P/G Step0, isput:%d\n",isput)
     }
     kv.mu.Lock(); // Protect px.instances
     defer kv.mu.Unlock();
-    if Debug==1 {
+    if Debug {
         println("P/G Step1")
     }
 
@@ -96,7 +96,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (E
         var scale=(kv.me+ID)%3
         time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
     }
-    if Debug==1 {
+    if Debug {
         println("P/G Step2")
     }
     //We got ID!
@@ -196,7 +196,7 @@ func (kv *KVPaxos) housekeeper() {
     time.Sleep(time.Second*2)
     curr:=kv.px.Max()-1
     mem:=kv.snapstart
-    fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem)
+    if Debug {fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem) }
     if(curr-mem>10){//start compressing...
       kv.mu.Lock(); // Protect px.instances
         curr-=5
@@ -217,7 +217,7 @@ func (kv *KVPaxos) housekeeper() {
           kv.snapstart=i+1
         }
       kv.mu.Unlock();  
-      fmt.Printf("done!#%d now: max %d, min %d, snap %d...\n",kv.me,kv.px.Max(),kv.px.Min(),kv.snapstart)    
+      if Debug {fmt.Printf("done!#%d now: max %d, min %d, snap %d...\n",kv.me,kv.px.Max(),kv.px.Min(),kv.snapstart) }   
     }
   }
 	//launched at startup; to call paxos.done()
