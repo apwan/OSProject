@@ -193,6 +193,9 @@ func (kv *KVPaxos) DumpInfo() string {
 
 func (kv *KVPaxos) housekeeper() {
   for true{
+    if kv.dead{
+      return
+    }
     time.Sleep(time.Second*2)
     curr:=kv.px.Max()-1
     mem:=kv.snapstart
