@@ -53,8 +53,8 @@ type KVPaxos struct {
   dead bool // for testing
   unreliable bool // for testing
   px *paxos.Paxos
-  kvsnapshot map[string]string
-  kvsnapstart int
+  snapshot map[string]string
+  snapstart int
   // Your definitions here.
 }
 
@@ -103,7 +103,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (E
     //Step2: trace back for previous value
     var latestVal string
     var latestValFound=false
-    for i:=ID-1;i>=0;i--{ //i>=latest snapshot!
+    for i:=ID-1;i>=kv.snapstart;i--{ //i>=latest snapshot!
         de,op:=kv.px.Status(i)
         for de==false {
             time.Sleep(10*time.Millisecond)
@@ -122,6 +122,16 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (E
             break
         }
     }
+    //new step2.5: check snapshot!
+    if latestValFound==false {
+        v, ok := kv.snapshot[myop.Key];
+        if ok {
+          latestValFound=true
+          latestVal=v
+        }
+    }
+
+
     //returning value...
     if isput{
       return "",latestVal
@@ -182,6 +192,34 @@ func (kv *KVPaxos) DumpInfo() string {
 
 
 func (kv *KVPaxos) housekeeper() {
+  for true{
+    time.Sleep(time.Second*2)
+    curr:=kv.px.Max()-1
+    mem:=kv.snapstart
+    fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem)
+    if(curr-mem>10){//start compressing...
+      kv.mu.Lock(); // Protect px.instances
+        curr-=5
+        for i:=kv.snapstart;i<curr;i++ {
+          de,op:=kv.px.Status(i)
+          if de==false {
+            break
+          }
+          optt,found:=op.(Op)
+          if found==false{
+              println("Housekeeper error! Not Found type .(Op)")
+              break
+          }
+          if optt.IsPut==true{
+              kv.snapshot[optt.Key]=optt.Value
+          }
+          kv.px.Done(i)
+          kv.snapstart=i+1
+        }
+      kv.mu.Unlock();  
+      fmt.Printf("done!#%d now: max %d, min %d, snap %d...\n",kv.me,kv.px.Max(),kv.px.Min(),kv.snapstart)    
+    }
+  }
 	//launched at startup; to call paxos.done()
 	/* int pointer=0, latest=0
 	while(1){
@@ -266,7 +304,10 @@ func StartServer(servers []string, me int) *KVPaxos {
 
   kv := new(KVPaxos)
   kv.me = me
+  kv.snapstart=0
+  kv.snapshot=make(map[string]string)
 
+  go kv.housekeeper()
   // Your initialization code here.
 
   if StartHTTP{
