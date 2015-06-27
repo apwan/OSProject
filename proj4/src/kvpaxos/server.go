@@ -41,10 +41,10 @@ type Op struct {
 }
 
 func DeepCompareOps(a Op, b Op) (bool){
-	return a.IsPut==b.IsPut &&
-	a.Key==b.Key &&
-	a.Value==b.Value &&
-	a.Who==b.Who
+  return a.IsPut==b.IsPut &&
+  a.Key==b.Key &&
+  a.Value==b.Value &&
+  a.Who==b.Who
 }
 
 type KVPaxos struct {
@@ -54,10 +54,13 @@ type KVPaxos struct {
   dead bool // for testing
   unreliable bool // for testing
   px *paxos.Paxos
+
+  px_touchedPTR int
+
   snapshot map[string]string
   snapstart int
+  
   HTTPListener *stoppableHTTPlistener.StoppableListener
-  // Your definitions here.
 }
 
 func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string) (Err,string) {//return (Err,value)
@@ -178,24 +181,24 @@ func (kv *KVPaxos) Kill() {//public wrapper
 }
 
 func (kv *KVPaxos) DumpInfo() string {
-	r:=""
-	r+=fmt.Sprintf("I'm %d\n",kv.me)
-	r+=fmt.Sprintf("Max pxID=%d\n",kv.px.Max())
-	r+=fmt.Sprintf("Min pxID=%d\n",kv.px.Min())
-	ID:=kv.px.Max()
-	for i:=0;i<=ID;i++ {
-		de,op:=kv.px.Status(i)
-		o,_:=op.(Op)
-		if de {
+  r:=""
+  r+=fmt.Sprintf("I'm %d\n",kv.me)
+  r+=fmt.Sprintf("Max pxID=%d\n",kv.px.Max())
+  r+=fmt.Sprintf("Min pxID=%d\n",kv.px.Min())
+  ID:=kv.px.Max()
+  for i:=0;i<=ID;i++ {
+    de,op:=kv.px.Status(i)
+    o,_:=op.(Op)
+    if de {
       tmp := 0
       if o.IsPut {
         tmp = 1
       }
-			r+=fmt.Sprintf("Op[%d] IsPut%d %s=%s by%d  \n",i,tmp,o.Key,o.Value,o.Who)
-		}else{
-			r+=fmt.Sprintf("Op[%d] undecided  \n",i)
-		}
-	}
+      r+=fmt.Sprintf("Op[%d] IsPut%d %s=%s by%d  \n",i,tmp,o.Key,o.Value,o.Who)
+    }else{
+      r+=fmt.Sprintf("Op[%d] undecided  \n",i)
+    }
+  }
   //r+="<meta http-equiv=\"refresh\" content=\"1\">"
   return r
 }
@@ -238,40 +241,40 @@ func (kv *KVPaxos) housekeeper() {
 
 //HTTP handlers generator; to create a closure for kvpaxos instance
 func kvDumpHandlerGC(kv *KVPaxos) http.HandlerFunc{
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "%s",kv.DumpInfo())
-	}
+  return func(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "%s",kv.DumpInfo())
+  }
 }
 func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		key:= r.FormValue("key")
-		value:= r.FormValue("value")
+  return func(w http.ResponseWriter, r *http.Request) {
+    key:= r.FormValue("key")
+    value:= r.FormValue("value")
 
 
-		var args PutArgs = PutArgs{key,value,true,-1,-1}
-		var reply PutReply = PutReply{"",""}
-		err:=kv.Put(&args,&reply)
-		if err!=nil || reply.Err!=""{
-			fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
-			return
-		}
-		fmt.Fprintf(w, "{success:true,value=%s}",reply.PreviousValue)
-	}
+    var args PutArgs = PutArgs{key,value,true,-1,-1}
+    var reply PutReply = PutReply{"",""}
+    err:=kv.Put(&args,&reply)
+    if err!=nil || reply.Err!=""{
+      fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
+      return
+    }
+    fmt.Fprintf(w, "{success:true,value=%s}",reply.PreviousValue)
+  }
 }
 
 func kvGetHandlerGC(kv *KVPaxos) http.HandlerFunc{
-	return func(w http.ResponseWriter, r *http.Request) {
-		key:= r.FormValue("key")
+  return func(w http.ResponseWriter, r *http.Request) {
+    key:= r.FormValue("key")
 
-		var args GetArgs = GetArgs{key,-1,-1}
-		var reply GetReply = GetReply{"",""}
-		err:=kv.Get(&args,&reply)
-		if err!=nil || reply.Err!=""{
-			fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
-			return
-		}
-		fmt.Fprintf(w, "{success:true,value=%s}",reply.Value)
-	}
+    var args GetArgs = GetArgs{key,-1,-1}
+    var reply GetReply = GetReply{"",""}
+    err:=kv.Get(&args,&reply)
+    if err!=nil || reply.Err!=""{
+      fmt.Fprintf(w, "{success:false,msg:%s}",reply.Err)
+      return
+    }
+    fmt.Fprintf(w, "{success:true,value=%s}",reply.Value)
+  }
 }
 //end HTTP handlers
 
@@ -289,6 +292,7 @@ func StartServer(servers []string, me int) *KVPaxos {
 
   kv := new(KVPaxos)
   kv.me = me
+  kv.px_touchedPTR=-1 //0 is untouched!
   kv.snapstart=0
   kv.snapshot=make(map[string]string)
 
@@ -303,23 +307,23 @@ func StartServer(servers []string, me int) *KVPaxos {
 
     serveMux := http.NewServeMux()
 
-  	var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
-  		"dump": kvDumpHandlerGC,
-  		"put": kvPutHandlerGC,
-  		"get": kvGetHandlerGC,
-  	}
+    var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
+      "dump": kvDumpHandlerGC,
+      "put": kvPutHandlerGC,
+      "get": kvGetHandlerGC,
+    }
     for key,val := range kvHandlerGCs{
-  	  serveMux.HandleFunc("/"+key, val(kv))
-  	}
+      serveMux.HandleFunc("/"+key, val(kv))
+    }
 
-  	listenPort:=30000+me //temporary, should read from conf file!!
-  	s := &http.Server{
-  		//Addr: ":"+strconv.Itoa(listenPort),
-  		Handler: serveMux,
-  		ReadTimeout: 1 * time.Second,
-  		WriteTimeout: 30 * time.Second,
-  		MaxHeaderBytes: 1<<20,
-  	}
+    listenPort:=30000+me //temporary, should read from conf file!!
+    s := &http.Server{
+      //Addr: ":"+strconv.Itoa(listenPort),
+      Handler: serveMux,
+      ReadTimeout: 1 * time.Second,
+      WriteTimeout: 30 * time.Second,
+      MaxHeaderBytes: 1<<20,
+    }
 
     originalListener, err := net.Listen("tcp", ":"+strconv.Itoa(listenPort))
     if err!=nil {
@@ -330,11 +334,11 @@ func StartServer(servers []string, me int) *KVPaxos {
       panic(err)
     }
     kv.HTTPListener=sl
-  	go func(){
+    go func(){
       fmt.Printf("Starting HTTP server: %d\n",listenPort)
       s.Serve(sl)
       //will be stopped by housekeeper!
-  	}()
+    }()
 
   }
 
