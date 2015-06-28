@@ -4,8 +4,10 @@ import(
   "net/http"
   "fmt"
   "os"
+  "os/exec"
   "time"
   "log"
+  "bytes"
   "strconv"
   //our lib
   . "kvlib"
@@ -50,10 +52,21 @@ func start_server_Handler(w http.ResponseWriter, r *http.Request) {
 	//res := CmdStartServer(strconv.Itoa(role))
 	fmt.Fprintf(w, "Start Server %d: %s",role, pr)
 }
-func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
+func kill_server_Handler(w http.ResponseWriter, r *http.Request) {
   err := pr.Kill()
 	//res := CmdStopServer(strconv.Itoa(role))
 	fmt.Fprintf(w, "Stop Server %d: %s",role, err)
+}
+func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
+  cmd := exec.Command("bin/stop_server", []string{strconv.Itoa(role)}...)
+  o,e := cmd.Output()
+  var res string
+  if e!=nil || len(o)<=1 {
+    res = "Error"
+  }else{
+    res = string(o[:bytes.IndexByte(o,'\n')])
+  }
+	fmt.Fprintf(w, "Stop Server %d: %s",role, res)
 }
 func shutdown_Handler(w http.ResponseWriter, r *http.Request){
   fmt.Fprintf(w, "Goodbye main tester! Tester %d shutdown!", role)
@@ -120,7 +133,11 @@ func main(){
   		MaxHeaderBytes: 1<<20,
   	}
     http.HandleFunc("/test/start_server", start_server_Handler)
-    http.HandleFunc("/test/stop_server", stop_server_Handler)
+    if conf["stop_by_kill"]=="true"{
+      http.HandleFunc("/test/stop_server", kill_server_Handler)
+    }else{
+      http.HandleFunc("/test/stop_server", stop_server_Handler)
+    }
     http.HandleFunc("/test/shutdown", shutdown_Handler)
     log.Fatal(s.ListenAndServe())
   }
