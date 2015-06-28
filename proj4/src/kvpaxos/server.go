@@ -8,6 +8,7 @@ import (
   "os"
   "syscall"
   "encoding/gob"
+  "encoding/json"
   "math/rand"
   "time"
   "strconv"
@@ -65,6 +66,33 @@ type KVPaxos struct {
   snapstart int
 
   HTTPListener *stoppableHTTPlistener.StoppableListener
+}
+
+
+func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
+    if Debug{
+        fmt.Printf("Paxos STAT!\n")
+    }
+    kv.mu.Lock(); // Protect px.instances
+    defer kv.mu.Unlock();
+    tmp:=make(map[string]string)
+    for k,v:=range kv.snapshot {
+      tmp[k]=v
+    }
+    for i:=kv.snapstart;i<=kv.px_touchedPTR;i++{
+        _,value := kv.px.Status(i)
+        v:=value.(Op)
+        tmp[v.Key]=v.Value
+    }
+    var cnt=0
+    tmp2:=make(map[string]string)
+    for k,v:=range tmp {
+      if v!=""{
+       tmp2[k]=v
+       cnt++
+      }
+    }
+    return cnt,tmp2
 }
 
 func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, who int, opid int) (Err,string) {//return (Err,value)
@@ -403,6 +431,62 @@ func kvGeneralHandlerGC(kv *KVPaxos) http.HandlerFunc{
   }
 }
 
+
+/*
+func kvmanCountkeyHandler(w http.ResponseWriter, r *http.Request) {
+  if check_HTTP_method && r.Method != "GET" {
+    fmt.Fprintf(w, "Bad Method: Please use GET")
+    return
+  }
+  tmp := make(map[string]int)
+  tmp["result"]=db.Count()
+  var str,err=json.Marshal(tmp)
+  if err==nil{
+    fmt.Fprintf(w, "%s",str)
+    return
+  }
+  fmt.Fprintf(w, "DB marshalling error %s",err)
+}
+func kvmanDumpHandler(w http.ResponseWriter, r *http.Request) {
+  if check_HTTP_method && r.Method != "GET" {
+    fmt.Fprintf(w, "Bad Method: Please use GET")
+    return
+  }
+  var str,err=db.MarshalJSON();
+  if err==nil{
+    fmt.Fprintf(w, "%s",str)
+    return
+  }
+  fmt.Fprintf(w, "DB marshalling error %s",err)
+}
+func kvmanShutdownHandler(w http.ResponseWriter, r *http.Request) {*/
+
+
+func kvmanCountKeyHandlerGC(kv *KVPaxos) http.HandlerFunc{
+  return func(w http.ResponseWriter, r *http.Request) {
+    cnt,_:=kv.PaxosStatOp()
+    tmp := make(map[string]int)
+    tmp["result"]=cnt
+    var str,_=json.Marshal(tmp)
+    fmt.Fprintf(w, "%s",str)
+  }
+}
+func kvmanDumpHandlerGC(kv *KVPaxos) http.HandlerFunc{
+  return func(w http.ResponseWriter, r *http.Request) {
+    _,data:=kv.PaxosStatOp()
+    var str,_=json.Marshal(data)
+    fmt.Fprintf(w, "%s",str)
+  }
+}
+func kvmanShutdownHandlerGC(kv *KVPaxos) http.HandlerFunc{
+  return func(w http.ResponseWriter, r *http.Request) {
+    defer func(){
+      time.Sleep(1)
+      kv.Kill()
+    }()
+    fmt.Fprintf(w, "{success:\"true\",message:\"The kvpaxos server will shutdown immediately. Please wait for 10ms before the HTTP server detach (and release the listening port).\"}")
+  }
+}
 //end HTTP handlers
 
 
@@ -440,9 +524,19 @@ func StartServer(servers []string, me int) *KVPaxos {
       "put": kvPutHandlerGC,
       "get": kvGetHandlerGC,
     }
+    var kvmanHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
+      "countkey": kvmanCountKeyHandlerGC,
+      "dump": kvmanDumpHandlerGC,
+      "shutdown": kvmanShutdownHandlerGC,
+    }
+
     for key,val := range kvHandlerGCs{
       serveMux.HandleFunc("/"+key, val(kv))
     }
+    for key,val := range kvmanHandlerGCs{
+      serveMux.HandleFunc("/kvman/"+key, val(kv))
+    }
+
     serveMux.HandleFunc("/kv/", kvGeneralHandlerGC(kv))
 
     confname := "conf/settings.conf"
