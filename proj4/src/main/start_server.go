@@ -15,6 +15,10 @@ import(
 	"kvpaxos"
 )
 
+var (
+	role = kvlib.Det_role()
+)
+
 func RPC_Addr(me int, conf map[string]string) string {
 	id := fmt.Sprintf("n%02d", me+1)
 	ip,ok := conf[id]
@@ -41,7 +45,7 @@ func RPC_Addr(me int, conf map[string]string) string {
 }
 
 func usage(){
-	fmt.Println("Usage: bin/start_server <id>")
+	fmt.Println("Usage: bin/start_server <n01|n02|...>")
 	os.Exit(1)
 }
 
@@ -54,8 +58,6 @@ func main(){
 
 	conf:=kvlib.ReadJson("conf/settings.conf")
 
-
-
 	for i := 0; i < nservers; i++ {
 		kvh[i] = RPC_Addr(i,conf)
 	}
@@ -64,13 +66,12 @@ func main(){
 	signal.Notify(stop, syscall.SIGINT)
 
 	if len(os.Args)>1 {
-		fmt.Printf("single start mode: %s\n",os.Args[0])
 		var kva_me *kvpaxos.KVPaxos
-		if id,e := strconv.Atoi(os.Args[1]); e!=nil{
+		if role<0{
 			usage()
 		}else{
-			kva_me = kvpaxos.StartServer(kvh, id-1)
-			fmt.Printf("Serving HTTP, Server ID: %d\n", id)
+			kva_me = kvpaxos.StartServer(kvh, role-1)
+			fmt.Printf("Serving HTTP, Server ID: %d\n", role)
 		}
 		select {
 			case signal := <-stop:

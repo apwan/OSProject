@@ -1,7 +1,9 @@
 package kvpaxos
 
-import "hash/fnv"
-import "strconv"
+import (
+  "hash/fnv"
+  "strconv"
+)
 const (
   OK = "OK"
   ErrNoKey = "ErrNoKey"

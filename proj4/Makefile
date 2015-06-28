@@ -20,12 +20,11 @@ test_kvPaxos:
 .PHONY: build tester clean
 build:
 	@./compile.sh
-	@GOPATH=`pwd` cd bin && go build $${GOPATH}/test/test.go
 
 tester:
-	@bin/test 1&
-	@bin/test 2&
-	@bin/test 3&
+	@bin/test n01&
+	@bin/test n02&
+	@bin/test n03&
 	@bin/test -m
 
 

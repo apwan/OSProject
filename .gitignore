@@ -28,3 +28,9 @@ proj4/src/kvlib/kvlib_test.go
 proj4/src/kvlib/in.json
 
 proj4/src/kvlib/out.json
+
+proj3/.project
+
+proj3/.settings/com.googlecode.goclipse.core.prefs
+
+proj4/.project

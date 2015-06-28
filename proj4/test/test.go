@@ -21,24 +21,9 @@ func usage(){
   os.Exit(1)
 }
 
-func det_role() int {
-	arg_num := len(os.Args)
-  if arg_num <= 1 {
-    return -1
-  }
-  if os.Args[1]=="-m"{ // for main tester
-    return 0
-  }
-  ret,err := strconv.Atoi(os.Args[1])
-  if(err!=nil){
-    return -1
-  }else{
-    return ret
-  }
-}
 
 var(
-  role = det_role()
+  role = Det_role()
   pr *os.Process = nil
 )
 
@@ -52,7 +37,7 @@ func start_server_Handler(w http.ResponseWriter, r *http.Request) {
         Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
     }
 
-  pr,_ = os.StartProcess("bin/start_server", []string{"bin/starst_server",strconv.Itoa(role)}, attr)
+  pr,_ = os.StartProcess("bin/start_server", []string{"bin/starst_server",fmt.Sprintf("n%02d", role)}, attr)
 	//res := CmdStartServer(strconv.Itoa(role))
 	fmt.Fprintf(w, "Start Server %d: %s",role, pr)
 }
@@ -66,7 +51,7 @@ func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Server %d not started yet",role)
     return
   }
-  cmd := exec.Command("bin/stop_server", []string{strconv.Itoa(role)}...)
+  cmd := exec.Command("bin/stop_server", []string{fmt.Sprintf("n%02d", role)}...)
   o,e := cmd.Output()
   var res string
   if e!=nil || len(o)<=1 {

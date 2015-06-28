@@ -20,10 +20,10 @@ func CmdWaiter(cmd *exec.Cmd, rr *string, flag *int){
   *flag = 0
 }
 
-func CmdStartServer(pb string)string{
+func CmdStartServer(arg string)string{
   flag := 1
   r := ""
-  go CmdWaiter(exec.Command("bin/start_server",pb), &r, &flag)
+  go CmdWaiter(exec.Command("bin/start_server",arg), &r, &flag)
   time.Sleep(500*time.Millisecond)
   if flag == 1{
     r += "Time Exceed"
@@ -33,8 +33,8 @@ func CmdStartServer(pb string)string{
 
 }
 
-func CmdStopServer(pb string)string{
-  cmd := exec.Command("bin/stop_server",pb);
+func CmdStopServer(arg string)string{
+  cmd := exec.Command("bin/stop_server",arg);
   err := cmd.Run()
   if err != nil{
     return "Failed"
