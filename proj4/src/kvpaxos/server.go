@@ -583,10 +583,6 @@ func kvDeleteHandlerGC(kv *KVPaxos) http.HandlerFunc {
     key:= r.FormValue("key")
     value:= ""
     opid:= r.FormValue("id")
-    if value=="" {
-      fmt.Fprintf(w, "%s",kvlib.JsonErr("value not found, please give nonempty string"))
-      return
-    }
     uuid:=globalOpsCnt+kv.me
     globalOpsCnt+=kv.N
     if opid!="" {
