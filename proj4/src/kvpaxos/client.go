@@ -1,10 +1,16 @@
 package kvpaxos
 
-import "net/rpc"
-import "fmt"
+import (
+  "net/rpc"
+  "net/url"
+  "net/http"
+  "fmt"
+  "strconv"
+  "math/rand"
+  "time"
+  "kvlib"
+)
 
-import "math/rand"
-import "time"
 
 type Clerk struct {
   servers []string
@@ -13,6 +19,8 @@ type Clerk struct {
   opCnt int
 }
 var ck_cnt=10
+
+var Use_httpRequest = 0
 
 func MakeClerk(servers []string) *Clerk {
   ck := new(Clerk)
@@ -47,7 +55,7 @@ func MakeClerk(servers []string) *Clerk {
 //
 func call(srv string, rpcname string, args interface{}, reply interface{}) bool {
     nw := "unix"
-    if RPC_Use_TCP==1{
+    if RPC_Use_TCP==1 {
       nw = "tcp"
     }
     c, errx := rpc.Dial(nw, srv)
@@ -64,6 +72,36 @@ func call(srv string, rpcname string, args interface{}, reply interface{}) bool 
   }
 
   fmt.Println(err)
+  return false
+}
+
+func request(srv string, op int, args interface{}, reply interface{})bool{
+  pre := "http://"+srv
+  switch op {
+  case PutOp:
+      nargs,_ := args.(PutArgs)
+      resp,err := http.PostForm(pre + "/kv/insert", url.Values{"key": {nargs.Key},
+        "value": {nargs.Value}, "id":{strconv.Itoa(nargs.OpID)}})
+      if err==nil{
+        fmt.Println(err)
+        return false
+      }
+      res := kvlib.DecodeJson(resp)
+      nreply,_:=reply.(*PutReply)
+      nreply.PreviousValue,_ = res["value"].(string)
+      return true
+
+
+  case GetOp:
+
+
+  case UpdateOp:
+
+
+  case DeleteOp:
+
+  default:
+  }
   return false
 }
 

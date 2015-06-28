@@ -1,7 +1,7 @@
 package kvlib
 
 import(
-  //"os"
+  "os"
   "fmt"
   "strconv"
   //"time"
@@ -53,4 +53,24 @@ func Find_Port(me int, conf map[string]string) (int){
 			panic(err)
 		}
 	return p
+}
+
+func Det_role() int {
+	arg_num := len(os.Args)
+  if arg_num <= 1 {
+    return -1 //invalid role
+  }
+  if os.Args[1]=="-m"{ // for main tester
+    return 0
+  }
+  tmp := []rune(os.Args[1])
+  if len(tmp)!=3 || tmp[0]!='n'{
+    return -1
+  }
+  ret,err := strconv.Atoi(string(tmp[1:]))
+  if(err!=nil){
+    return -1
+  }else{
+    return ret
+  }
 }

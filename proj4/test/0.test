@@ -1,0 +1,22 @@
+Exec start_server 1 
+Exec start_server 2
+Exec start_server 3
+
+Sleep 500
+Switch 1
+Put hello world
+Switch 2
+Get hello
+Switch 3
+Update hello good
+Put shut down
+Switch 1
+Delete hello
+Partition 2
+Switch 3
+Get hello
+Sleep 500
+
+Exec stop_server 1 
+Exec stop_server 2
+Exec stop_server 3
