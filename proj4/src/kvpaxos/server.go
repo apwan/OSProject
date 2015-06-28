@@ -26,8 +26,8 @@ const (
   UpdateOp=3
   DeleteOp=4
   NaivePutOp=5
-  SaveMemThreshold=10
-  Debug=true
+  SaveMemThreshold=200
+  Debug=false
   StartHTTP=true
 )
 var (
@@ -73,6 +73,8 @@ type KVPaxos struct {
 
   snapshot map[string]string
   snapstart int
+
+  results map[int]string//for debug only
 
   HTTPListener *stoppableHTTPlistener.StoppableListener
 }
@@ -272,7 +274,13 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
 
     var latestVal=kv.snapshot[myop.Key]
     var latestSucc=true
-    for i:=kv.snapstart;i<=kv.px_touchedPTR;i++{
+    var beforeVal=""
+
+    var opsVisited=make(map[int]bool)
+    var visitedFirstSucc=make(map[int]bool)
+    var visitedFirstVal=make(map[int]string)
+
+    for i:=kv.snapstart;i<=ID;i++{
       decided,value = kv.px.Status(i)
       if !decided {
         fmt.Printf("PANIC %v %v\n", value, myop);
@@ -286,38 +294,59 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
       if op.Key!=myop.Key{
         continue
       }
-      //this is an op on this key!
+
+      if opsVisited[op.OpID] {
+        continue
+      }
+      opsVisited[op.OpID]=true
+      //do not repeat Ops on unreliable case!
+
+      beforeVal=latestVal
+      //this is an op on this key! will update the value!
       switch op.OpType{
         case GetOp:
           latestSucc=(latestVal!="")
-          continue
+        
         case PutOp:
           if latestVal!=""{
             latestSucc=false
-            continue
+          }else{
+            latestVal=op.Value 
+            latestSucc=true
           }
-          latestVal=op.Value
-          latestSucc=true
-          continue
+
         case NaivePutOp:
           latestVal=op.Value
           latestSucc=true
-          continue
+
         case DeleteOp:
           latestSucc=(latestVal!="")
           latestVal=""
-          continue
+        
         case UpdateOp:
           if latestVal==""{
             latestSucc=false
-            continue
+          }else{
+            latestVal=op.Value
+            latestSucc=true
           }
-          latestVal=op.Value
-          latestSucc=true
-          continue
+      }
+
+      visitedFirstSucc[op.OpID]=latestSucc
+      visitedFirstVal[op.OpID]=latestVal
+      if op.OpType==UpdateOp || op.OpType==DeleteOp || op.OpType==NaivePutOp{
+        visitedFirstVal[op.OpID]=beforeVal
+        //this is always the correct returning result, even for those who return previous value
       }
     }
 
+
+    latestSucc=visitedFirstSucc[myop.OpID]
+    latestVal=visitedFirstVal[myop.OpID]
+    if !latestSucc {
+      latestVal=""
+    }
+    kv.results[ID]=latestVal
     //all ops simluated!
     switch myop.OpType{
       case GetOp: 
@@ -344,11 +373,17 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
 }
 
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
+  _,Value:=kv.PaxosAgreementOp(Op{GetOp,args.Key,"",args.ClientID,args.OpID})
+  reply.Err=""
+  reply.Value=Value
+  return nil
+}
+
+func (kv *KVPaxos) FormalGet(args *GetArgs, reply *GetReply) error {
   e,Value:=kv.PaxosAgreementOp(Op{GetOp,args.Key,"",args.ClientID,args.OpID})
   reply.Err=e
   reply.Value=Value
   return nil
-
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
@@ -363,6 +398,10 @@ func (kv *KVPaxos) FormalPut(args *PutArgs, reply *PutReply) error {
   e,Value:=kv.PaxosAgreementOp(Op{PutOp,args.Key,args.Value,args.ClientID,args.OpID})
   reply.Err=e
   reply.PreviousValue=Value
+  if Value!=""{
+    println(Value)
+    panic("Prev Value not empty for formal PUT?")
+  }
   return nil
   //will fail if the key exists!
 }
@@ -395,7 +434,7 @@ func (kv *KVPaxos) DumpInfo() string {
     de,op:=kv.px.Status(i)
     o,_:=op.(Op)
     if de {
-      r+=fmt.Sprintf("Op[%d] %s %s=%s by%d  opid%d\n",i,OpName[o.OpType],o.Key,o.Value,o.Who,o.OpID)
+      r+=fmt.Sprintf("Op[%d] %s %s=%s by%d  opid%d Result:%s\n",i,OpName[o.OpType],o.Key,o.Value,o.Who,o.OpID,kv.results[i])
     }else{
       r+=fmt.Sprintf("Op[%d] undecided  \n",i)
     }
@@ -418,7 +457,7 @@ func (kv *KVPaxos) housekeeper() {
     if(curr-mem> SaveMemThreshold){//start compressing...
       println("Housekeeper GC starting...");
       kv.mu.Lock(); // Protect px.instances
-        curr-=5
+        curr-=SaveMemThreshold/2
         for i:=kv.snapstart;i<curr;i++ {
           de,op:=kv.px.Status(i)
           if de==false {
@@ -487,7 +526,7 @@ func kvGetHandlerGC(kv *KVPaxos) http.HandlerFunc{
       args.OpID,_=strconv.Atoi(opid)
     }
 
-    err:=kv.Get(&args,&reply)
+    err:=kv.FormalGet(&args,&reply)
     if err!=nil || reply.Err!=""{
       fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
       return
@@ -650,6 +689,7 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.px_touchedPTR=-1 //0 is untouched at the beginning!
   kv.snapstart=0
   kv.snapshot=make(map[string]string)
+  kv.results=make(map[int]string) 
 
   go kv.housekeeper()
   // Your initialization code here.
@@ -717,8 +757,8 @@ func StartServer(servers []string, me int) *KVPaxos {
 
   os.Remove(servers[me])
   var socktype="unix"
-  if RPC_Use_TCP{socktype="tcp"}
-  
+  if RPC_Use_TCP==1{socktype="tcp"}
+
   l, e := net.Listen(socktype, servers[me]);
   if e != nil {
     log.Fatal("listen error: ", e);
