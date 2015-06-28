@@ -20,9 +20,14 @@ import (
   "stoppableHTTPlistener"
   )
 
-const SaveMemThreshold=10
-  const Debug=false
-const StartHTTP=true
+const (
+  PutOpID=1
+  GetOpID=2
+
+  SaveMemThreshold=10
+  Debug=false
+  StartHTTP=true
+)
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
   if Debug {
@@ -75,17 +80,12 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     }
     kv.mu.Lock(); // Protect px.instances
     defer kv.mu.Unlock();
-    
+
     //need to insert a meaningless OP, in order to sync DB!
-    var myop Op
-    myop.IsPut=false
-    myop.Key=""
-    myop.OpID=rand.Int()
-    myop.Who=-1
+    var myop Op = Op{IsPut:false, Key:"", Value:"", OpID:rand.Int(),Who:-1}
     var ID int
     var value interface{}
     var decided bool
-
     //check if there's existing same OP...
     {
       ID=kv.px_touchedPTR+1
@@ -137,9 +137,9 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     return cnt,tmp2
 }
 
-func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, who int, opid int) (Err,string) {//return (Err,value)
+func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     if Debug{
-        fmt.Printf("P/G Step0, isput:%d\n",isput)
+        fmt.Printf("P/G Step0, isput:%d\n",myop.IsPut)
     }
     kv.mu.Lock(); // Protect px.instances
     defer kv.mu.Unlock();
@@ -148,14 +148,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
     }
 
        //step1: get the agreement!
-    var myop Op
-    myop.IsPut=isput
-    myop.Key=opkey
-    myop.OpID=opid
-    if isput{
-      myop.Value=opvalue
-    }
-    myop.Who=who
+
     var ID int
     var value interface{}
     var decided bool
@@ -251,7 +244,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
 
 
     //returning value...
-    if isput{
+    if myop.IsPut{
       return "",latestVal
     }else{
         if latestValFound==false {//equivalently, i<0
@@ -263,7 +256,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
 }
 
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
-  e,Value:=kv.PaxosAgreementOp(false,args.Key,"",args.ClientID,args.OpID)
+  e,Value:=kv.PaxosAgreementOp(Op{false,args.Key,"",args.ClientID,args.OpID})
   reply.Err=e
   reply.Value=Value
   return nil
@@ -271,7 +264,7 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
-  e,Value:=kv.PaxosAgreementOp(true,args.Key,args.Value,args.ClientID,args.OpID)
+  e,Value:=kv.PaxosAgreementOp(Op{true,args.Key,args.Value,args.ClientID,args.OpID})
   reply.Err=e
   reply.PreviousValue=Value
   return nil
@@ -461,7 +454,7 @@ func kvGeneralHandlerGC(kv *KVPaxos) http.HandlerFunc{
 
     var args PutArgs = PutArgs{key,value,true,ID,-1}
     var reply PutReply = PutReply{"",""}
-    
+
     err:=kv.Put(&args,&reply)
 
     if err!=nil || reply.Err!=""{
@@ -531,6 +524,17 @@ func kvmanShutdownHandlerGC(kv *KVPaxos) http.HandlerFunc{
 }
 //end HTTP handlers
 
+var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
+  "dump": kvDumpHandlerGC,
+  "put": kvPutHandlerGC,
+  "get": kvGetHandlerGC,
+}
+var kvmanHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
+  "countkey": kvmanCountKeyHandlerGC,
+  "dump": kvmanDumpHandlerGC,
+  "shutdown": kvmanShutdownHandlerGC,
+}
+
 var RPC_Use_TCP int = 0
 
 //
@@ -565,16 +569,7 @@ func StartServer(servers []string, me int) *KVPaxos {
 
     serveMux := http.NewServeMux()
 
-    var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
-      "dump": kvDumpHandlerGC,
-      "put": kvPutHandlerGC,
-      "get": kvGetHandlerGC,
-    }
-    var kvmanHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
-      "countkey": kvmanCountKeyHandlerGC,
-      "dump": kvmanDumpHandlerGC,
-      "shutdown": kvmanShutdownHandlerGC,
-    }
+
 
     for key,val := range kvHandlerGCs{
       serveMux.HandleFunc("/"+key, val(kv))

@@ -23,6 +23,9 @@ func port(tag string, host int) string {
   s += strconv.Itoa(os.Getpid()) + "-"
   s += tag + "-"
   s += strconv.Itoa(host)
+  if RPC_Use_TCP==1{
+    s = "127.0.0.1:4000"+strconv.Itoa(host+1)
+  }
   return s
 }
 
@@ -355,10 +358,10 @@ func TestUnreliable(t *testing.T) {
   cka[1].Put("a", "aaa")
 
 println(cka[1].Get("a"))
-  
+
 println(cka[2].Get("a"))
   check(t, cka[2], "a", "aaa")
-  
+
 
 println(cka[1].Get("a"))
   check(t, cka[1], "a", "aaa")
@@ -541,7 +544,7 @@ func TestHole(t *testing.T) {
     check(t, ck2, "q", "q")
     ck2.Put("q", "qq")
     check(t, ck2, "q", "qq")
-      
+
     // restore network, wait for all threads to exit.
     part(t, tag, nservers, []int{0,1,2,3,4}, []int{}, []int{})
     done = true
@@ -651,7 +654,7 @@ func TestManyPartition(t *testing.T) {
           if v != last {
             println("Failure!!! Go get your screenshot!!!")
             time.Sleep(time.Second*10)
-            
+
             t.Fatalf("%v: get wrong value, key %v, wanted %v, got %v",
               cli, key, last, v)
           }
