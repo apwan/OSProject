@@ -156,13 +156,11 @@ var RPC_Use_TCP int = 0
 // please do not change this function.
 //
 func call(srv string, name string, args interface{}, reply interface{}) bool {
-  var c *rpc.Client
-  var err error
-  if RPC_Use_TCP == 1{
-    c, err = rpc.Dial("tcp", srv)
-  }else{
-    c, err = rpc.Dial("unix", srv)
+  nw := "unix"
+  if RPC_Use_TCP==1{
+    nw = "tcp"
   }
+  c, err := rpc.Dial(nw, srv)
 
   if err != nil {
     err1 := err.(*net.OpError)
@@ -570,8 +568,14 @@ func Make(peers []string, me int, rpcs *rpc.Server) *Paxos {
 
     // prepare to receive connections from clients.
     // change "unix" to "tcp" to use over a network.
-    os.Remove(peers[me]) // only needed for "unix"
-    l, e := net.Listen("unix", peers[me]);
+    nw := "unix"
+    if RPC_Use_TCP==1{
+      nw = "tcp"
+    }else{
+      os.Remove(peers[me]) // only needed for "unix"
+    }
+
+    l, e := net.Listen(nw, peers[me]);
     if e != nil {
       log.Fatal("listen error: ", e);
     }

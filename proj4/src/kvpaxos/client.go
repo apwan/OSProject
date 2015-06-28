@@ -45,14 +45,19 @@ func MakeClerk(servers []string) *Clerk {
 // please use call() to send all RPCs, in client.go and server.go.
 // please don't change this function.
 //
-func call(srv string, rpcname string,
-          args interface{}, reply interface{}) bool {
-  c, errx := rpc.Dial("unix", srv)
+func call(srv string, rpcname string, args interface{}, reply interface{}) bool {
+    nw := "unix"
+    if RPC_Use_TCP==1{
+      nw = "tcp"
+    }
+    c, errx := rpc.Dial(nw, srv)
+
+
   if errx != nil {
     return false
   }
   defer c.Close()
-    
+
   err := c.Call(rpcname, args, reply)
   if err == nil {
     return true
