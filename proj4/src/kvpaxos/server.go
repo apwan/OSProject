@@ -26,7 +26,7 @@ const (
   UpdateOp=3
   DeleteOp=4
   NaivePutOp=5
-  SaveMemThreshold=200
+  SaveMemThreshold=30
   Debug=false
   StartHTTP=true
 )
@@ -447,14 +447,14 @@ func (kv *KVPaxos) housekeeper() {
       if Debug{println("KVDB dead, housekeeper done") }
       break
     }
-    time.Sleep(time.Second*2)
-    curr:=kv.px.Max()-1
+    time.Sleep(time.Second)
+    curr:=kv.px_touchedPTR-1
     mem:=kv.snapstart
     if Debug {fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem) }
     if(curr-mem> SaveMemThreshold){//start compressing...
       println("Housekeeper GC starting...");
       kv.mu.Lock(); // Protect px.instances
-        curr-=SaveMemThreshold/2
+        curr-=SaveMemThreshold/3
         for i:=kv.snapstart;i<curr;i++ {
           de,op:=kv.px.Status(i)
           if de==false {
