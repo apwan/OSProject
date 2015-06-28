@@ -74,7 +74,7 @@ type KVPaxos struct {
   snapshot map[string]string
   snapstart int
 
-  results map[int]string//for debug only
+  Results map[int]string//for debug only
 
   HTTPListener *stoppableHTTPlistener.StoppableListener
 }
@@ -278,7 +278,8 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
 
     var opsVisited=make(map[int]bool)
 
-    for i:=kv.snapstart;i<=ID;i++{
+    var i int
+    for i=kv.snapstart;i<=ID;i++{
       decided,value = kv.px.Status(i)
       if !decided {
         fmt.Printf("PANIC %v %v\n", value, myop);
@@ -337,10 +338,12 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
          //this result is okay, already
     }
 
-    kv.results[ID]=beforeVal
-    if myop.OpType==GetOp {
-      kv.results[ID]=latestVal
-    }
+    i-=1//should be ID, but may not!
+    kv.Results[i]=beforeVal
+
+//    if myop.OpType==GetOp {
+//      kv.results[ID]=latestVal
+//    }
     //all ops simluated!
     switch myop.OpType{
       case GetOp: 
@@ -428,7 +431,7 @@ func (kv *KVPaxos) DumpInfo() string {
     de,op:=kv.px.Status(i)
     o,_:=op.(Op)
     if de {
-      r+=fmt.Sprintf("Op[%d] %s %s=%s by%d  opid%d Result:%s\n",i,OpName[o.OpType],o.Key,o.Value,o.Who,o.OpID,kv.results[i])
+      r+=fmt.Sprintf("Op[%d] %s %s=%s by%d  opid%d Result:%s\n",i,OpName[o.OpType],o.Key,o.Value,o.Who,o.OpID,kv.Results[i])
     }else{
       r+=fmt.Sprintf("Op[%d] undecided  \n",i)
     }
@@ -683,7 +686,7 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.px_touchedPTR=-1 //0 is untouched at the beginning!
   kv.snapstart=0
   kv.snapshot=make(map[string]string)
-  kv.results=make(map[int]string) 
+  kv.Results=make(map[int]string) 
 
   go kv.housekeeper()
   // Your initialization code here.
