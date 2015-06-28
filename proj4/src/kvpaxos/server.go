@@ -277,8 +277,6 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     var beforeVal=""
 
     var opsVisited=make(map[int]bool)
-    var visitedFirstSucc=make(map[int]bool)
-    var visitedFirstVal=make(map[int]string)
 
     for i:=kv.snapstart;i<=ID;i++{
       decided,value = kv.px.Status(i)
@@ -295,8 +293,9 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
         continue
       }
 
+
       if opsVisited[op.OpID] {
-        continue
+          continue
       }
       opsVisited[op.OpID]=true
       //do not repeat Ops on unreliable case!
@@ -332,21 +331,16 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
           }
       }
 
-      visitedFirstSucc[op.OpID]=latestSucc
-      visitedFirstVal[op.OpID]=latestVal
-      if op.OpType==UpdateOp || op.OpType==DeleteOp || op.OpType==NaivePutOp{
-        visitedFirstVal[op.OpID]=beforeVal
-        //this is always the correct returning result, even for those who return previous value
+      if op.OpID==myop.OpID{
+        break
       }
+         //this result is okay, already
     }
 
-
-    latestSucc=visitedFirstSucc[myop.OpID]
-    latestVal=visitedFirstVal[myop.OpID]
-    if !latestSucc {
-      latestVal=""
+    kv.results[ID]=beforeVal
+    if myop.OpType==GetOp {
+      kv.results[ID]=latestVal
     }
-    kv.results[ID]=latestVal
     //all ops simluated!
     switch myop.OpType{
       case GetOp: 
@@ -368,7 +362,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
         }
       case NaivePutOp:
     }
-    return "",latestVal
+    return "",beforeVal
 
 }
 

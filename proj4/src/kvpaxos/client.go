@@ -77,7 +77,7 @@ func (ck *Clerk) Get(key string) string {
   var args GetArgs
   var reply GetReply
   //args = GetArgs{Key:key, OpID:rand.Int(), ClientID:ck.myID}
-  args = GetArgs{Key:key, OpID:ck.opCnt+ck.myID*10000, ClientID:ck.myID}
+  args = GetArgs{Key:key, OpID:(ck.opCnt+ck.myID*10000)*1000+rand.Int()%1000, ClientID:ck.myID}
   ck.opCnt+=1
   ok := false
   for !ok {
@@ -103,7 +103,7 @@ func (ck *Clerk) PutExt(key string, value string, dohash bool) string {
   var args PutArgs
   var reply PutReply
   //args = PutArgs{Key:key, Value:value, DoHash:dohash, OpID:rand.Int(), ClientID:ck.myID}
-  args = PutArgs{Key:key, Value:value, DoHash:dohash, OpID:ck.opCnt+ck.myID*10000, ClientID:ck.myID}
+  args = PutArgs{Key:key, Value:value, DoHash:dohash, OpID:(ck.opCnt+ck.myID*10000)*1000+rand.Int()%1000, ClientID:ck.myID}
   ck.opCnt+=1
   ok := false
   for !ok {
