@@ -26,7 +26,7 @@ const (
   UpdateOp=3
   DeleteOp=4
   NaivePutOp=5
-  SaveMemThreshold=39
+  SaveMemThreshold=15
   Debug=false
   StartHTTP=true
 )
@@ -337,7 +337,9 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
             latestSucc=true
           }
       }
-      kv.doneOps[op.OpID]=beforeVal
+      lm:=len(beforeVal)
+      if lm>100{lm=100}
+      kv.doneOps[op.OpID]=beforeVal[0:lm]
       if op.OpID==myop.OpID{
         break
       }
@@ -461,7 +463,11 @@ func (kv *KVPaxos) housekeeper() {
     if(curr-mem> SaveMemThreshold){//start compressing...
       println("Housekeeper GC starting...");
       kv.mu.Lock(); // Protect px.instances
-        curr-=SaveMemThreshold*50/100
+        curr-=SaveMemThreshold*10/100+1
+        //curr=mem+10
+        if kv.snapstart==0{
+          kv.snapshot=make(map[string]string)
+        }
         for i:=kv.snapstart;i<curr;i++ {
           de,op:=kv.px.Status(i)
           if de==false {
@@ -470,11 +476,40 @@ func (kv *KVPaxos) housekeeper() {
           optt,found:=op.(Op)
           if found==false{
               println("Housekeeper error! Not Found type .(Op)")
-              break
+              panic("Housekeeper sees undecided op")
           }
-          if optt.OpType==PutOp{
-              kv.snapshot[optt.Key]=optt.Value
+          k:=optt.Key
+          v:=optt.Value
+          bv:=kv.snapshot[k]
+          switch optt.OpType{
+            case GetOp:
+              
+            case PutOp:
+              if bv!=""{
+                //latestSucc=false
+              }else{
+                kv.snapshot[k]=v
+                //latestSucc=true
+              }
+
+            case NaivePutOp:
+              kv.snapshot[k]=v
+              //latestSucc=true
+
+            case DeleteOp:
+              //latestSucc=(latestVal!="")
+              //latestVal=""  
+              kv.snapshot[k]=""
+
+            case UpdateOp:
+              if bv==""{
+                //latestSucc=false
+              }else{
+                kv.snapshot[k]=v
+                //latestSucc=true
+              }
           }
+
           kv.px.Done(i)
           kv.snapstart=i+1
         }
@@ -518,7 +553,7 @@ func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
   }
 }
 //Update&Delete is similar to Put; use PaxosOps directly
-/*
+
 func kvUpdateHandlerGC(kv *KVPaxos) http.HandlerFunc {
   return func(w http.ResponseWriter, r *http.Request) {
     key:= r.FormValue("key")
@@ -528,52 +563,45 @@ func kvUpdateHandlerGC(kv *KVPaxos) http.HandlerFunc {
       fmt.Fprintf(w, "%s",kvlib.JsonErr("value not found, please give nonempty string"))
       return
     }
-    e,Value:=kv.PaxosAgreementOp(Op{PutOp,args.Key,args.Value,args.ClientID,args.OpID})
-  
-
-    var args PutArgs = PutArgs{key,value,true,globalOpsCnt+kv.me,-1}
+    uuid:=globalOpsCnt+kv.me
     globalOpsCnt+=kv.N
-    var reply PutReply = PutReply{"",""}
     if opid!="" {
-      args.OpID,_=strconv.Atoi(opid)
+      uuid,_=strconv.Atoi(opid)
     }
-    err:=kv.FormalPut(&args,&reply)
 
-    if err!=nil || reply.Err!=""{
-      fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
+    e,value:=kv.PaxosAgreementOp(Op{UpdateOp,key,value,-1,uuid})
+  
+    if e!=""{
+      fmt.Fprintf(w, "%s",kvlib.JsonErr(string(e)))
       return
     }
-    fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.PreviousValue))
+    fmt.Fprintf(w, "%s",kvlib.JsonSucc(value))
   }
 }
-func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
+func kvDeleteHandlerGC(kv *KVPaxos) http.HandlerFunc {
   return func(w http.ResponseWriter, r *http.Request) {
     key:= r.FormValue("key")
-    value:= r.FormValue("value")
+    value:= ""
     opid:= r.FormValue("id")
     if value=="" {
       fmt.Fprintf(w, "%s",kvlib.JsonErr("value not found, please give nonempty string"))
       return
     }
-
-
-    var args PutArgs = PutArgs{key,value,true,globalOpsCnt+kv.me,-1}
+    uuid:=globalOpsCnt+kv.me
     globalOpsCnt+=kv.N
-    var reply PutReply = PutReply{"",""}
     if opid!="" {
-      args.OpID,_=strconv.Atoi(opid)
+      uuid,_=strconv.Atoi(opid)
     }
 
-    err:=kv.FormalPut(&args,&reply)
-    if err!=nil || reply.Err!=""{
-      fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
+    e,value:=kv.PaxosAgreementOp(Op{DeleteOp,key,value,-1,uuid})
+  
+    if e!=""{
+      fmt.Fprintf(w, "%s",kvlib.JsonErr(string(e)))
       return
     }
-    fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.PreviousValue))
+    fmt.Fprintf(w, "%s",kvlib.JsonSucc(value))
   }
 }
-*/
-
 
 func kvGetHandlerGC(kv *KVPaxos) http.HandlerFunc{
   return func(w http.ResponseWriter, r *http.Request) {
@@ -626,9 +654,11 @@ func kvmanShutdownHandlerGC(kv *KVPaxos) http.HandlerFunc{
 //end HTTP handlers
 
 var kvHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
-  "dump": kvDumpHandlerGC,
+  "insert": kvPutHandlerGC,
   "put": kvPutHandlerGC,
   "get": kvGetHandlerGC,
+  "delete":kvDeleteHandlerGC,
+  "update":kvUpdateHandlerGC,
 }
 var kvmanHandlerGCs = map[string]func(*KVPaxos)http.HandlerFunc{
   "countkey": kvmanCountKeyHandlerGC,
@@ -658,8 +688,7 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.px_touchedPTR=-1 //0 is untouched at the beginning!
   kv.snapstart=0
   kv.snapshot=make(map[string]string)
-  //kv.Results=make(map[int]string) 
-
+  
   kv.doneOps=make(map[int]string)
 
   go kv.housekeeper()
@@ -676,11 +705,12 @@ func StartServer(servers []string, me int) *KVPaxos {
 
 
     for key,val := range kvHandlerGCs{
-      serveMux.HandleFunc("/"+key, val(kv))
+      serveMux.HandleFunc("/kv/"+key, val(kv))
     }
     for key,val := range kvmanHandlerGCs{
       serveMux.HandleFunc("/kvman/"+key, val(kv))
     }
+    serveMux.HandleFunc("/", kvDumpHandlerGC(kv))  
 
     confname := "conf/settings.conf"
 
