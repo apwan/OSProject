@@ -27,11 +27,11 @@ const (
   DeleteOp=4
   NaivePutOp=5
   SaveMemThreshold=10
-  Debug=false
+  Debug=true
   StartHTTP=true
 )
 var (
-  OpName = []string{"NONE","PUT","GET","UPDATE","DELETE"}
+  OpName = []string{"NONE","PUT","GET","UPDATE","DELETE","NaivePut"}
 )
 func DPrintf(format string, a ...interface{}) (n int, err error) {
   if Debug {
@@ -279,6 +279,10 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
         panic("Not decided, but before touchPTR??")
       }
       var op=value.(Op)
+      if Debug{
+        fmt.Printf("Simluate Step%d: %d %s %s\n", i, op.OpType,op.Key,op.Value);
+      }
+
       if op.Key!=myop.Key{
         continue
       }
@@ -315,7 +319,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     }
 
     //all ops simluated!
-    switch op.OpType{
+    switch myop.OpType{
       case GetOp: 
         if latestVal==""{
           return "Key Not Found",""
@@ -348,10 +352,19 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
+  //This function is to be called by RPC tester client only. Will always succeed.
   e,Value:=kv.PaxosAgreementOp(Op{NaivePutOp,args.Key,args.Value,args.ClientID,args.OpID})
   reply.Err=e
   reply.PreviousValue=Value
   return nil
+}
+
+func (kv *KVPaxos) FormalPut(args *PutArgs, reply *PutReply) error {
+  e,Value:=kv.PaxosAgreementOp(Op{PutOp,args.Key,args.Value,args.ClientID,args.OpID})
+  reply.Err=e
+  reply.PreviousValue=Value
+  return nil
+  //will fail if the key exists!
 }
 
 // tell the server to shut itself down.
@@ -453,7 +466,7 @@ func kvPutHandlerGC(kv *KVPaxos) http.HandlerFunc {
       args.OpID,_=strconv.Atoi(opid)
     }
 
-    err:=kv.Put(&args,&reply)
+    err:=kv.FormalPut(&args,&reply)
     if err!=nil || reply.Err!=""{
       fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
       return
@@ -703,7 +716,10 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.px = paxos.Make(servers, me, rpcs)
 
   os.Remove(servers[me])
-  l, e := net.Listen("unix", servers[me]);
+  var socktype="unix"
+  if RPC_Use_TCP{socktype="tcp"}
+  
+  l, e := net.Listen(socktype, servers[me]);
   if e != nil {
     log.Fatal("listen error: ", e);
   }
