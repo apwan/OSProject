@@ -21,14 +21,18 @@ import (
   )
 
 const (
-  PutOpID=1
-  GetOpID=2
-
+  NoneOp=0
+  PutOp=1
+  GetOp=2
+  UpdateOp=3
+  DeleteOp=4
   SaveMemThreshold=10
   Debug=false
   StartHTTP=true
 )
-
+var (
+  OpName = []string{"NONE","PUT","GET","UPDATE","DELETE"}
+)
 func DPrintf(format string, a ...interface{}) (n int, err error) {
   if Debug {
     log.Printf(format, a...)
@@ -41,7 +45,7 @@ type Op struct {
   // Your definitions here.
   // Field names must start with capital letters,
   // otherwise RPC will break.
-  IsPut bool // type
+  OpType int // type
   Key string
   Value string
   Who int
@@ -49,7 +53,7 @@ type Op struct {
 }
 
 func DeepCompareOps(a Op, b Op) (bool){
-  return a.IsPut==b.IsPut &&
+  return a.OpType==b.OpType &&
   a.Key==b.Key &&
   a.Value==b.Value &&
   a.OpID==b.OpID &&
@@ -82,7 +86,7 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     defer kv.mu.Unlock();
 
     //need to insert a meaningless OP, in order to sync DB!
-    var myop Op = Op{IsPut:false, Key:"", Value:"", OpID:rand.Int(),Who:-1}
+    var myop Op = Op{OpType:NoneOp, Key:"", Value:"", OpID:rand.Int(),Who:-1}
     var ID int
     var value interface{}
     var decided bool
@@ -139,7 +143,7 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
 
 func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     if Debug{
-        fmt.Printf("P/G Step0, isput:%d\n",myop.IsPut)
+        fmt.Printf("P/G Step0, OpType:%s\n",OpName[myop.OpType])
     }
     kv.mu.Lock(); // Protect px.instances
     defer kv.mu.Unlock();
@@ -218,7 +222,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
         if found==false{
             return "Not Found type .(Op)",""
         }
-        if optt.IsPut==false{
+        if optt.OpType!=PutOp{
             continue;
         }
         //if optt.OpID==myop.OpID{
@@ -244,7 +248,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
 
 
     //returning value...
-    if myop.IsPut{
+    if myop.OpType==PutOp{
       return "",latestVal
     }else{
         if latestValFound==false {//equivalently, i<0
@@ -256,7 +260,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
 }
 
 func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
-  e,Value:=kv.PaxosAgreementOp(Op{false,args.Key,"",args.ClientID,args.OpID})
+  e,Value:=kv.PaxosAgreementOp(Op{GetOp,args.Key,"",args.ClientID,args.OpID})
   reply.Err=e
   reply.Value=Value
   return nil
@@ -264,7 +268,21 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
-  e,Value:=kv.PaxosAgreementOp(Op{true,args.Key,args.Value,args.ClientID,args.OpID})
+  e,Value:=kv.PaxosAgreementOp(Op{PutOp,args.Key,args.Value,args.ClientID,args.OpID})
+  reply.Err=e
+  reply.PreviousValue=Value
+  return nil
+}
+// Not finished
+func (kv *KVPaxos) Update(args *PutArgs, reply *PutReply) error {
+  e,Value:=kv.PaxosAgreementOp(Op{UpdateOp,args.Key,args.Value,args.ClientID,args.OpID})
+  reply.Err=e
+  reply.PreviousValue=Value
+  return nil
+}
+// Not finished
+func (kv *KVPaxos) Delete(args *PutArgs, reply *PutReply) error {
+  e,Value:=kv.PaxosAgreementOp(Op{DeleteOp,args.Key,"",args.ClientID,args.OpID})
   reply.Err=e
   reply.PreviousValue=Value
   return nil
@@ -298,11 +316,7 @@ func (kv *KVPaxos) DumpInfo() string {
     de,op:=kv.px.Status(i)
     o,_:=op.(Op)
     if de {
-      tmp := "GET"
-      if o.IsPut {
-        tmp = "PUT"
-      }
-      r+=fmt.Sprintf("Op[%d] %s %s=%s by%d  opid%d\n",i,tmp,o.Key,o.Value,o.Who,o.OpID)
+      r+=fmt.Sprintf("Op[%d] %s %s=%s by%d  opid%d\n",i,OpName[o.OpType],o.Key,o.Value,o.Who,o.OpID)
     }else{
       r+=fmt.Sprintf("Op[%d] undecided  \n",i)
     }
@@ -336,7 +350,7 @@ func (kv *KVPaxos) housekeeper() {
               println("Housekeeper error! Not Found type .(Op)")
               break
           }
-          if optt.IsPut==true{
+          if optt.OpType==PutOp{
               kv.snapshot[optt.Key]=optt.Value
           }
           kv.px.Done(i)

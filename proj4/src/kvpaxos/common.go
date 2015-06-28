@@ -41,3 +41,8 @@ func hash(s string) uint32 {
   h.Write([]byte(s))
   return h.Sum32()
 }
+
+func NextValue(hprev string, val string) string {
+	h := hash(hprev + val)
+	return strconv.Itoa(int(h))
+}

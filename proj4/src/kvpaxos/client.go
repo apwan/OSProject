@@ -127,3 +127,8 @@ func (ck *Clerk) PutReturn(key string, value string) string {
   v := ck.PutExt(key, value, false)
   return v
 }
+
+func (ck *Clerk) PutHash(key string, value string) string {
+  v := ck.PutExt(key, value, true)
+  return v
+}
