@@ -83,6 +83,7 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     myop.OpID=rand.Int()
     myop.Who=-1
     var ID int
+    var value interface{}
     var decided bool
 
     //check if there's existing same OP...
@@ -93,7 +94,7 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
           kv.px.Start(ID,myop)
           time.Sleep(50)
           for true {
-              decided,_ = kv.px.Status(ID)
+              decided,value = kv.px.Status(ID)
               if decided {
                   break;
               }
