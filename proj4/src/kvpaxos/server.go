@@ -83,7 +83,6 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     myop.OpID=rand.Int()
     myop.Who=-1
     var ID int
-    var value interface{}
     var decided bool
 
     //check if there's existing same OP...
@@ -94,7 +93,7 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
           kv.px.Start(ID,myop)
           time.Sleep(50)
           for true {
-              decided,value = kv.px.Status(ID)
+              decided,_ = kv.px.Status(ID)
               if decided {
                   break;
               }
@@ -104,16 +103,17 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
           //    if Debug {fmt.Printf("Saw DCSame! %v %v server%d\n",value,myop,kv.me)}
           //    break;
           //}
-          //if value.(Op).OpID==myop.OpID {//succeeded
+          if value.(Op).OpID==myop.OpID {//succeeded
           //    if Debug {fmt.Printf("Saw OIDSame but DC fail! %v %v\n",value,myop)}
-          //    break;
-          //}
+              break;
+          }
           var scale=(kv.me+ID)%3
           time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
           ID++
       }
       kv.px_touchedPTR=ID
     }
+
 
 
     tmp:=make(map[string]string)
