@@ -16,9 +16,10 @@ import(
 )
 
 func RPC_Addr(me int, conf map[string]string) string {
-	ip,ok := conf["n"+strconv.Itoa(me)]
+	id := fmt.Sprintf("n%02d", me+1)
+	ip,ok := conf[id]
 		if !ok {
-			fmt.Println("Failed to find IP :"+"n"+strconv.Itoa(me));
+			fmt.Println("Failed to find IP :"+id);
 			panic(conf)
 		}
 
@@ -31,9 +32,9 @@ func RPC_Addr(me int, conf map[string]string) string {
 		return ip+":"+strconv.Itoa(p)
 	}
 
-	p,err := strconv.Atoi(conf["RPC_port_n"+strconv.Itoa(me)])
+	p,err := strconv.Atoi(conf["RPC_port_"+id])
 		if err != nil {
-			fmt.Println("Failed to parse :"+"RPC_port_n"+strconv.Itoa(me)+":"+conf["port_n"+strconv.Itoa(me)]);
+			fmt.Printf("Failed to parse : RPC_port_%s : %s\n",id, conf["port_"+id]);
 			panic(err)
 		}
 	return ip+":"+strconv.Itoa(p)

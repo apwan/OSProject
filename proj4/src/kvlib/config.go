@@ -27,7 +27,7 @@ type MsgResponse struct {
     Message string `json:"message"`
 }
 
-func JsonErr(Err string)(string){	
+func JsonErr(Err string)(string){
   enc,_:=json.Marshal(&MsgResponse{"false",Err});
   return string(enc)
 }
@@ -37,6 +37,7 @@ func JsonSucc(Val string)(string){
 }
 
 func Find_Port(me int, conf map[string]string) (int){
+  id := fmt.Sprintf("n%02d", me+1)
 	if conf["use_same_port"] == "true" {
 		p,err := strconv.Atoi(conf["port"])
 		if err != nil {
@@ -46,9 +47,9 @@ func Find_Port(me int, conf map[string]string) (int){
 		return p
 	}
 
-	p,err := strconv.Atoi(conf["port_n"+strconv.Itoa(me)])
+	p,err := strconv.Atoi(conf["port_"+id])
 		if err != nil {
-			fmt.Println("Failed to parse :"+"port_n"+strconv.Itoa(me)+":"+conf["port_n"+strconv.Itoa(me)]);
+			fmt.Printf("Failed to parse :"+"port_%s : %s\n", id, conf["port_"+id]);
 			panic(err)
 		}
 	return p
