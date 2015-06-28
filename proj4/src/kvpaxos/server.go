@@ -344,23 +344,62 @@ func kvGeneralHandlerGC(kv *KVPaxos) http.HandlerFunc{
     key:= r.FormValue("key")
     value:= r.FormValue("value")
     opid:= r.FormValue("id")
+    simulate_method:= r.FormValue("method")
+
+    if key=="" {
+      fmt.Fprintf(w, "Usage: Send GET/PUT/DELETE/UPDATE requests to /kv/?key=..&value=..")
+      return
+    }
+    method := r.Method
+    if method=="GET" && simulate_method!=""{
+      method=simulate_method
+    }
 
     var ID=globalOpsCnt+kv.me
     globalOpsCnt+=kv.N
-    var reply GetReply = GetReply{"",""}
     if opid!="" {
       ID,_=strconv.Atoi(opid)
     }
 
+    //var retVal=""
+    //var succ=false
 
-    //var args GetArgs = GetArgs{key,,-1}
+    switch method {
+      case "GET":
+        var reply GetReply = GetReply{"",""}
+        var args GetArgs = GetArgs{key,ID,-1}
+        err:=kv.Get(&args,&reply)
+        if err!=nil || reply.Err!=""{
+          fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
+        }else{
+          fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.Value))
+        }
+        return
+      case "UPDATE":
+      case "PUT":
+      case "DELETE":
+      default:
+        fmt.Fprintf(w, "Usage: Send GET/PUT/DELETE/UPDATE requests to /kv/?key=..&value=..")
+        return
+    }
 
-    //err:=kv.Get(&args,&reply)
-    //if err!=nil || reply.Err!=""{
-    //  fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
-    //  return
-    //}
-    //fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.Value))
+    if method=="DELETE" {
+      value=""
+    }
+
+    //!! The UPDATE is now incorrect!!
+
+    var args PutArgs = PutArgs{key,value,true,ID,-1}
+    var reply PutReply = PutReply{"",""}
+    
+    err:=kv.Put(&args,&reply)
+
+    if err!=nil || reply.Err!=""{
+      fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
+      return
+    }
+    fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.PreviousValue))
+
   }
 }
 
@@ -404,6 +443,7 @@ func StartServer(servers []string, me int) *KVPaxos {
     for key,val := range kvHandlerGCs{
       serveMux.HandleFunc("/"+key, val(kv))
     }
+    serveMux.HandleFunc("/kv/", kvGeneralHandlerGC(kv))
 
     confname := "conf/settings.conf"
 
