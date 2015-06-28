@@ -19,18 +19,41 @@ func usage(){
   os.Exit(1)
 }
 
+func det_role() int {
+	arg_num := len(os.Args)
+  if arg_num <= 1 {
+    return -1
+  }
+  if os.Args[1]=="-m"{ // for main tester
+    return 0
+  }
+  ret,err := strconv.Atoi(os.Args[1])
+  if(err!=nil){
+    return -1
+  }else{
+    return ret
+  }
+}
+
 var(
-  role = Det_role()
+  role = det_role()
+  pr *os.Process
 )
 
 
 func start_server_Handler(w http.ResponseWriter, r *http.Request) {
-	res := StartServer(strconv.Itoa(role))
-	fmt.Fprintf(w, "Start Server %d: %s",role, res)
+  attr := &os.ProcAttr{
+        Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+    }
+
+  pr,_ = os.StartProcess("bin/start_server", []string{"bin/starst_server",strconv.Itoa(role)}, attr)
+	//res := CmdStartServer(strconv.Itoa(role))
+	fmt.Fprintf(w, "Start Server %d: %s",role, pr)
 }
 func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
-	res := StopServer(strconv.Itoa(role))
-	fmt.Fprintf(w, "Stop Server %d: %s",role, res)
+  err := pr.Kill()
+	//res := CmdStopServer(strconv.Itoa(role))
+	fmt.Fprintf(w, "Stop Server %d: %s",role, err)
 }
 func shutdown_Handler(w http.ResponseWriter, r *http.Request){
   fmt.Fprintf(w, "Goodbye main tester! Tester %d shutdown!", role)
@@ -67,7 +90,16 @@ func main(){
         fmt.Println(DecodeStr(resp))
       }
     }
-    time.Sleep(time.Millisecond * 5000)
+    time.Sleep(time.Millisecond * 3000)
+    for i:=1;i<=3;i++ {
+      resp, err := http.Get("http://" +ips[i]+ ":" + ports[i] + "/test/stop_server")
+      if err != nil{
+        fmt.Println(err)
+      }else{
+        fmt.Println(DecodeStr(resp))
+      }
+    }
+    time.Sleep(time.Millisecond * 3000)
 
     for i:=1;i<=3;i++ {
       resp, err := http.Get("http://" +ips[i]+ ":" + ports[i] + "/test/shutdown")

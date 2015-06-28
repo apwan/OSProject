@@ -36,34 +36,59 @@ func RPC_Addr(me int, conf map[string]string) string {
 			fmt.Println("Failed to parse :"+"RPC_port_n"+strconv.Itoa(me)+":"+conf["port_n"+strconv.Itoa(me)]);
 			panic(err)
 		}
-	return ip+":"+strconv.Itoa(p)	
+	return ip+":"+strconv.Itoa(p)
+}
+
+func usage(){
+	fmt.Println("Usage: bin/start_server <id>")
+	os.Exit(1)
 }
 
 func main(){
-	
+
 	runtime.GOMAXPROCS(4)
 	const nservers = 3
 	var kva []*kvpaxos.KVPaxos = make([]*kvpaxos.KVPaxos, nservers)
 	var kvh []string = make([]string, nservers)
 
 	conf:=kvlib.ReadJson("conf/settings.conf")
+
+
+
 	for i := 0; i < nservers; i++ {
 		kvh[i] = RPC_Addr(i,conf)
-	}
-	for i := 0; i < nservers; i++ {
-		kva[i] = kvpaxos.StartServer(kvh, i)
 	}
 
 	stop := make(chan os.Signal)
 	signal.Notify(stop, syscall.SIGINT)
-	fmt.Printf("Serving HTTP\n")
-	select {
-		case signal := <-stop:
-			fmt.Printf("Got signal:%v\n", signal)
 
+	if len(os.Args)>1 {
+		fmt.Printf("single start mode: %s\n",os.Args[0])
+		var kva_me *kvpaxos.KVPaxos
+		if id,e := strconv.Atoi(os.Args[1]); e!=nil{
+			usage()
+		}else{
+			kva_me = kvpaxos.StartServer(kvh, id-1)
+			fmt.Printf("Serving HTTP, Server ID: %d\n", id)
+		}
+		select {
+			case signal := <-stop:
+				fmt.Printf("Got signal:%v\n", signal)
+				kva_me.Kill()
+		}
+
+	}else{
 		for i := 0; i < nservers; i++ {
-			kva[i].Kill()
+			kva[i] = kvpaxos.StartServer(kvh, i)
+		}
+		fmt.Printf("Serving HTTP\n")
+		select {
+			case signal := <-stop:
+				fmt.Printf("Got signal:%v\n", signal)
+
+			for i := 0; i < nservers; i++ {
+				kva[i].Kill()
+			}
 		}
 	}
-
 }

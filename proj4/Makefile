@@ -9,17 +9,18 @@ OURLIBS= src/paxos src/kvpaxos src/kvlib src/stoppableHTTPlistener #
 OTHERS= conf test compile.sh clean.sh Makefile README.md #
 
 project_4.tar.gz: $(SOURCES) $(OURLIBS)
-	tar czvf $@ $(SOURCES) $(OURLIBS) $(OTHERS)
+	@tar czvf $@ $(SOURCES) $(OURLIBS) $(OTHERS)
 
 test_Paxos:
-	GOPATH=`pwd` go test paxos -v
+	@GOPATH=`pwd` go test paxos -v
 
 test_kvPaxos:
-	GOPATH=`pwd` go test kvpaxos -v
+	@GOPATH=`pwd` go test kvpaxos -v
 
 .PHONY: build tester clean
 build:
-	./compile.sh
+	@./compile.sh
+	@GOPATH=`pwd` cd bin && go build $${GOPATH}/test/test.go
 
 tester:
 	@bin/test 1&
@@ -30,5 +31,6 @@ tester:
 
 
 clean:
-	-rm project_4.tar.gz
+	@-rm project_4.tar.gz
+	@./clean.sh
 	
