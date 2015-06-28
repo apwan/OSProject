@@ -103,7 +103,7 @@ func (kv *KVPaxos) PaxosAgreementOp(isput bool, opkey string, opvalue string, wh
         }
       }else {
         fmt.Printf("PANIC %v %v\n", value, myop);
-        panic("Not decided, but before touchPTR?!!!!!")
+        panic("Not decided, but before touchPTR??")
       }
     }
     if sameID>=0{
@@ -339,8 +339,32 @@ func kvGetHandlerGC(kv *KVPaxos) http.HandlerFunc{
     fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.Value))
   }
 }
+func kvGeneralHandlerGC(kv *KVPaxos) http.HandlerFunc{
+  return func(w http.ResponseWriter, r *http.Request) {
+    key:= r.FormValue("key")
+    value:= r.FormValue("value")
+    opid:= r.FormValue("id")
+
+    var ID=globalOpsCnt+kv.me
+    globalOpsCnt+=kv.N
+    var reply GetReply = GetReply{"",""}
+    if opid!="" {
+      ID,_=strconv.Atoi(opid)
+    }
+
+
+    //var args GetArgs = GetArgs{key,,-1}
+
+    //err:=kv.Get(&args,&reply)
+    //if err!=nil || reply.Err!=""{
+    //  fmt.Fprintf(w, "%s",kvlib.JsonErr(string(reply.Err)))
+    //  return
+    //}
+    //fmt.Fprintf(w, "%s",kvlib.JsonSucc(reply.Value))
+  }
+}
+
 //end HTTP handlers
-// Note: Write document-compatible handlers!!! for DELETE, UPDATE, PUT etc!!!
 
 
 //
