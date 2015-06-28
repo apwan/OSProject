@@ -75,6 +75,47 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     }
     kv.mu.Lock(); // Protect px.instances
     defer kv.mu.Unlock();
+    
+    //need to insert a meaningless OP, in order to sync DB!
+    var myop Op
+    myop.IsPut=false
+    myop.Key=""
+    myop.OpID=rand.Int()
+    myop.Who=-1
+    var ID int
+    var value interface{}
+    var decided bool
+
+    //check if there's existing same OP...
+    {
+      ID=kv.px_touchedPTR+1
+      //ID=0
+      for true {
+          kv.px.Start(ID,myop)
+          time.Sleep(50)
+          for true {
+              decided,value = kv.px.Status(ID)
+              if decided {
+                  break;
+              }
+              time.Sleep(200*time.Millisecond)
+          }
+          //if DeepCompareOps(value.(Op),myop) {//succeeded
+          //    if Debug {fmt.Printf("Saw DCSame! %v %v server%d\n",value,myop,kv.me)}
+          //    break;
+          //}
+          //if value.(Op).OpID==myop.OpID {//succeeded
+          //    if Debug {fmt.Printf("Saw OIDSame but DC fail! %v %v\n",value,myop)}
+          //    break;
+          //}
+          var scale=(kv.me+ID)%3
+          time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
+          ID++
+      }
+      kv.px_touchedPTR=ID
+    }
+
+
     tmp:=make(map[string]string)
     for k,v:=range kv.snapshot {
       tmp[k]=v
