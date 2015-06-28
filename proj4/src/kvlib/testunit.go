@@ -3,7 +3,7 @@ package kvlib
 import (
     "fmt"
     "os"
-    //"os/exec"
+    "os/exec"
     "net/http"
     "net/url"
     "time"
@@ -30,7 +30,8 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
     table := make(map[string]string)
     var tableBlock map[string]int
     var s [4]string
-    var srv_cur int
+    var srv_cur, livingServer int
+    var alive [3]int
     var inBlock, cnt, cins int
     var ch chan int
     var ins chan [4]string
@@ -52,27 +53,23 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
         switch s[0] {
             case "Insert":
                 if inBlock == 1 {
-                    if tableBlock[s[1]] == 1 {
-                        r += fmt.Sprintf("Illegal instruction: key appeared twice in a block.\n")
-                    } else {
-                        tableBlock[s[1]] = 1
-                        cnt++
-                        if _, ok := table[s[1]]; ok == false{
-                            cins++
-                            ins <- s
-                        }
-                        go func(s [4]string) {
-                            resp, err := http.PostForm(addr[srv_cur] + "/kv/insert", url.Values{"key": {s[1]}, "value": {s[2]}})
-                            if err == nil {
-                                res := DecodeJson(resp)
-                                if res["success"] == "true" {
-
-                                }
-                            } else {
+                    tableBlock[s[1]] = 1
+                    cnt++
+                    if _, ok := table[s[1]]; ok == false {
+                        cins++
+                        ins <- s
+                    }
+                    go func(s [4]string) {
+                        resp, err := http.PostForm(addr[srv_cur] + "/kv/insert", url.Values{"key": {s[1]}, "value": {s[2]}})
+                        if err == nil {
+                            res := DecodeJson(resp)
+                            if res["success"] == "true" {
 
                             }
-                        }(s)
-                    }
+                        } else {
+
+                        }
+                    }(s)
                     break
                 }
                 resp, err := http.PostForm(addr[srv_cur] + "/kv/insert", url.Values{"key": {s[1]}, "value": {s[2]}})
@@ -80,10 +77,15 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
                     if res["success"] == "true" {
-
-                        r += fmt.Sprintf("Insertion success.\n")
-
-                    } else  if _, ok := table[s[1]]; ok == false {
+                        if _, ok := table[s[1]]; ok == false {
+                            r += fmt.Sprintf("Insertion success.\n")
+                            table[s[1]] = s[2]
+                        } else {
+                            r += fmt.Sprintf("Unexpected insertion success.\n")
+                            r += fmt.Sprintf("FATAL ERROR!!!\n")
+                            fail = 1
+                        }
+                    } else if _, ok := table[s[1]]; ok == false {
                         r += fmt.Sprintf("Unexpected insertion failure.\n")
                         r += fmt.Sprintf("FATAL ERROR!!!\n")
                         fail = 1
@@ -93,33 +95,26 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                 } else {
                     r += fmt.Sprintf("Error occurred.\n")
                 }
-                if _, ok := table[s[1]]; ok == false{
-                    table[s[1]] = s[2]
-                }
             case "Update":
                 if inBlock == 1 {
-                    if tableBlock[s[1]] == 1 {
-                        r += fmt.Sprintf("Illegal instruction: key appeared twice in a block.\n")
-                    } else {
-                        tableBlock[s[1]] = 1
-                        cnt++
-                        if _, ok := table[s[1]]; ok == true {
-                            cins++
-                            ins <- s
-                        }
-                        go func(s [4]string) {
-                            resp, err := http.PostForm(addr[srv_cur] + "/kv/update", url.Values{"key": {s[1]}, "value": {s[2]}})
-                            if err == nil {
-                                res := DecodeJson(resp)
-                                if res["success"] == "true" {
+                    tableBlock[s[1]] = 1
+                    cnt++
+                    if _, ok := table[s[1]]; ok == true {
+                        cins++
+                        ins <- s
+                    }
+                    go func(s [4]string) {
+                        resp, err := http.PostForm(addr[srv_cur] + "/kv/update", url.Values{"key": {s[1]}, "value": {s[2]}})
+                        if err == nil {
+                            res := DecodeJson(resp)
+                            if res["success"] == "true" {
 
-
-                                }
-                            } else {
 
                             }
-                        }(s)
-                    }
+                        } else {
+
+                        }
+                    }(s)
                     break
                 }
                 resp, err := http.PostForm(addr[srv_cur] + "/kv/update", url.Values{"key": {s[1]}, "value": {s[2]}})
@@ -127,38 +122,43 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
                     if res["success"] == "true" {
-
+                        if _, ok := table[s[1]]; ok == true {
+                            r += fmt.Sprintf("Updating Success.\n")
+                            table[s[1]] = s[2]
+                        } else {
+                            r += fmt.Sprintf("Unexpected updating success.\n")
+                            r += fmt.Sprintf("FATAL ERROR!!!\n")
+                            fail = 1
+                        }
+                    } else if _, ok := table[s[1]]; ok == true {
+                            r += fmt.Sprintf("Expected updating failure.\n")
+                    } else {
+                        r += fmt.Sprintf("Unexpected updating failure.\n")
+                        r += fmt.Sprintf("FATAL ERROR!!!\n")
+                        fail = 1
                     }
                 } else {
                     r += fmt.Sprintf("Error occurred.\n")
-
-                }
-                if _, ok := table[s[1]]; ok == true {
-                    table[s[1]] = s[2]
                 }
             case "Remove":
                 if inBlock == 1 {
-                    if tableBlock[s[1]] == 1 {
-                        r += fmt.Sprintf("Illegal instruction: key appeared twice in a block.\n")
-                    } else {
-                        tableBlock[s[1]] = 1
-                        cnt++
-                        if _, ok := table[s[1]]; ok == true{
-                            cins++
-                            ins <- s
-                        }
-                        go func(s [4]string) {
-                            resp, err := http.PostForm(addr[srv_cur] + "/kv/delete", url.Values{"key": {s[1]}})
-                            if err == nil {
-                                res := DecodeJson(resp)
-                                if res["success"] == "true" {
-
-                                }
-                            } else {
+                    tableBlock[s[1]] = 1
+                    cnt++
+                    if _, ok := table[s[1]]; ok == true{
+                        cins++
+                        ins <- s
+                    }
+                    go func(s [4]string) {
+                        resp, err := http.PostForm(addr[srv_cur] + "/kv/delete", url.Values{"key": {s[1]}})
+                        if err == nil {
+                            res := DecodeJson(resp)
+                            if res["success"] == "true" {
 
                             }
-                        }(s)
-                    }
+                        } else {
+
+                        }
+                    }(s)
                     break
                 }
                 resp, err := http.PostForm(addr[srv_cur] + "/kv/delete", url.Values{"key": {s[1]}})
@@ -166,8 +166,9 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
                     if res["success"] == "true" {
-
+                        if _, ok = table[s[1]]; ok == true {
                             r += fmt.Sprintf("Deleting success.\n")
+                            delete(table, s[1])
                             if res["value"] == table[s[1]] {
                                 r += fmt.Sprintf("Correct value deleted.\n")
                             } else {
@@ -175,8 +176,12 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                                 r += fmt.Sprintf("FATAL ERROR!!!\n")
                                 fail = 1
                             }
-
-                    }else if _, ok := table[s[1]]; ok == true {
+                        } else {
+                            r += fmt.Sprintf("Unexpected deleting success.\n")
+                            r += fmt.Sprintf("FATAL ERROR!!!\n")
+                            fail = 1
+                        }
+                    } else if _, ok := table[s[1]]; ok == true {
                         r += fmt.Sprintf("Unexpected deleting failure.\n")
                         r += fmt.Sprintf("FATAL ERROR!!!\n")
                         fail = 1
@@ -186,39 +191,32 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                 } else {
                     r += fmt.Sprintf("Error occurred.\n")
                 }
-                if _, ok := table[s[1]]; ok == true{
-                    delete(table, s[1])
-                }
             case "Get":
                 if inBlock == 1 {
-                    if tableBlock[s[1]] == 1 {
-                        r += fmt.Sprintf("Illegal instruction: key appeared twice in a block.\n")
-                    } else {
-                        tableBlock[s[1]] = 1
-                        go func(s [4]string) {
-                            resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
-                            if err == nil {
-                                res := DecodeJson(resp)
-                                if res["success"] == "true" {
-                                    if _, ok := table[s[1]]; ok == false {
-                                        ch <- 1
-                                    } else {
-                                        if res["value"] == table[s[1]] {
-                                            ch <- 0
-                                        } else {
-                                            ch <- 1
-                                        }
-                                    }
-                                } else if _, ok := table[s[1]]; ok == true {
+                    tableBlock[s[1]] = 1
+                    go func(s [4]string) {
+                        resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
+                        if err == nil {
+                            res := DecodeJson(resp)
+                            if res["success"] == "true" {
+                                if _, ok := table[s[1]]; ok == false {
                                     ch <- 1
                                 } else {
-                                    ch <- 0
+                                    if res["value"] == table[s[1]] {
+                                        ch <- 0
+                                    } else {
+                                        ch <- 1
+                                    }
                                 }
+                            } else if _, ok := table[s[1]]; ok == true {
+                                ch <- 1
                             } else {
-
+                                ch <- 0
                             }
-                        }(s)
-                    }
+                        } else {
+
+                        }
+                    }(s)
                     break
                 }
                 resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
@@ -249,12 +247,14 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                 } else {
                     r += fmt.Sprintf("Error occurred.\n")
                 }
+            /*
             case "Exec":
                 if inBlock == 0 {
 
                 } else {
                     r += fmt.Sprintf("Illegal instruction: Exec in a block.\n")
                 }
+            */
             case "Sleep":
                 if inBlock == 0 {
                     t, _ := strconv.Atoi(s[1])
@@ -291,10 +291,23 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                 }
                 inBlock = 0
             case "Switch":
-                tmp,_ := strconv.Atoi(s[1])
-                srv_cur = tmp-1
+                tmp, _ := strconv.Atoi(s[1])
+                srv_cur = tmp - 1
                 r += fmt.Sprintf("Switch to Server: %d\n", srv_cur)
-
+            case "Start":
+                t, _ := strconv.Atoi(s[1])
+                if alive[t - 1] == 0 {
+                    livingServer++
+                    alive[t - 1] = 1
+                    exec.Run(exec.Command("bin/start_server", fmt.Sprintf("%v", t)))
+                }
+            case "Stop":
+                t, _ := strconv.Atoi(s[1])
+                if alive[t - 1] == 1 {
+                    livingServer--
+                    alive[t - 1] = 0
+                    exec.Run(exec.Command("bin/stop_server", fmt.Sprintf("%v", t)))
+                }
             default:
                 r += fmt.Sprintf("Unrecognised instruction.\n")
         }
