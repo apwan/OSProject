@@ -21,11 +21,11 @@ import (
   )
 
 const (
-  NoneOp=0
   PutOp=1
   GetOp=2
   UpdateOp=3
   DeleteOp=4
+  NaivePutOp=5
   SaveMemThreshold=10
   Debug=false
   StartHTTP=true
@@ -86,7 +86,7 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     defer kv.mu.Unlock();
 
     //need to insert a meaningless OP, in order to sync DB!
-    var myop Op = Op{OpType:NoneOp, Key:"", Value:"", OpID:rand.Int(),Who:-1}
+    var myop Op = Op{OpType:GetOp, Key:"", Value:"", OpID:rand.Int(),Who:-1}
     var ID int
     var value interface{}
     var decided bool
@@ -208,10 +208,13 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     if Debug {
         println("P/G Step2")
     }
+    /*
     //We got ID!
     //Step2: trace back for previous value
     var latestVal string
     var latestValFound=false
+    var useTmpUpValue=false
+    var TmpUpValue string
     for i:=ID-1;i>=kv.snapstart;i--{ //i>=latest snapshot!
         de,op:=kv.px.Status(i)
         for de==false {
@@ -222,7 +225,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
         if found==false{
             return "Not Found type .(Op)",""
         }
-        if optt.OpType!=PutOp{
+        if optt.OpType!=PutOp && optt.OpType!=UpdateOp && optt.OpType!=DeleteOp{
             continue;
         }
         //if optt.OpID==myop.OpID{
@@ -232,9 +235,30 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
         //}
         if optt.Key==myop.Key{
           if optt.OpID==myop.OpID{continue;}
+
+          if optt.OpType==PutOp{  
+            //might be just justification!!
+
             latestVal=optt.Value
             latestValFound=true
             break
+          }
+
+          if optt.OpType==UpdateOp{  
+            if useTmpUpValue{continue} //not the first Update Op!
+            latestVal=optt.Value
+            latestValFound=true
+            continue
+          }
+
+          if optt.OpType==DeleteOp{  
+            if useTmpUpValue{continue} //not the first Update Op!
+            latestVal=optt.Value
+            latestValFound=true
+            continue
+          }
+          println(optt.OpType)
+          panic("Unknown processing Op except Put/Update!")
         }
     }
     //new step2.5: check snapshot!
@@ -244,18 +268,74 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
           latestValFound=true
           latestVal=v
         }
+    }*/
+
+    var latestVal=kv.snapshot[myop.Key]
+    var latestSucc=true
+    for i:=kv.snapstart;i<=kv.px_touchedPTR;i++{
+      decided,value = kv.px.Status(i)
+      if !decided {
+        fmt.Printf("PANIC %v %v\n", value, myop);
+        panic("Not decided, but before touchPTR??")
+      }
+      var op=value.(Op)
+      if op.Key!=myop.Key{
+        continue
+      }
+      //this is an op on this key!
+      switch op.OpType{
+        case GetOp:
+          latestSucc=(latestVal!="")
+          continue
+        case PutOp:
+          if latestVal!=""{
+            latestSucc=false
+            continue
+          }
+          latestVal=op.Value
+          latestSucc=true
+          continue
+        case NaivePutOp:
+          latestVal=op.Value
+          latestSucc=true
+          continue
+        case DeleteOp:
+          latestSucc=(latestVal!="")
+          latestVal=""
+          continue
+        case UpdateOp:
+          if latestVal==""{
+            latestSucc=false
+            continue
+          }
+          latestVal=op.Value
+          latestSucc=true
+          continue
+      }
     }
 
-
-    //returning value...
-    if myop.OpType==PutOp{
-      return "",latestVal
-    }else{
-        if latestValFound==false {//equivalently, i<0
-            return "Key Not Found",""
+    //all ops simluated!
+    switch op.OpType{
+      case GetOp: 
+        if latestVal==""{
+          return "Key Not Found",""
         }
         return "",latestVal
+      case PutOp:
+        if !latestSucc{
+          return "Put/Insert: key exist?",""
+        }
+      case DeleteOp:
+        if !latestSucc{
+          return "Delete: key not exist?",""
+        }
+      case UpdateOp:
+        if !latestSucc{
+          return "Update: key not exist?",""
+        }
+      case NaivePutOp:
     }
+    return "",latestVal
 
 }
 
@@ -268,21 +348,7 @@ func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
 }
 
 func (kv *KVPaxos) Put(args *PutArgs, reply *PutReply) error {
-  e,Value:=kv.PaxosAgreementOp(Op{PutOp,args.Key,args.Value,args.ClientID,args.OpID})
-  reply.Err=e
-  reply.PreviousValue=Value
-  return nil
-}
-// Not finished
-func (kv *KVPaxos) Update(args *PutArgs, reply *PutReply) error {
-  e,Value:=kv.PaxosAgreementOp(Op{UpdateOp,args.Key,args.Value,args.ClientID,args.OpID})
-  reply.Err=e
-  reply.PreviousValue=Value
-  return nil
-}
-// Not finished
-func (kv *KVPaxos) Delete(args *PutArgs, reply *PutReply) error {
-  e,Value:=kv.PaxosAgreementOp(Op{DeleteOp,args.Key,"",args.ClientID,args.OpID})
+  e,Value:=kv.PaxosAgreementOp(Op{NaivePutOp,args.Key,args.Value,args.ClientID,args.OpID})
   reply.Err=e
   reply.PreviousValue=Value
   return nil
