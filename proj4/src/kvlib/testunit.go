@@ -3,7 +3,7 @@ package kvlib
 import (
     "fmt"
     "os"
-    "os/exec"
+    //"os/exec"
     "net/http"
     "net/url"
     "time"
@@ -25,19 +25,26 @@ func checkDump(t map[string]string, d map[string]interface{}) int {
     return 0
 }
 
-func TestUnit(addr [3]string, fn string) (r string, fail int) {
+func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail int) {
     f, _ := os.Open(fn)
+    defer f.Close()
     table := make(map[string]string)
     var tableBlock map[string]int
     var s [4]string
     var srv_cur, livingServer int
     var alive [3]int
     var inBlock, cnt, cins int
+    inBlock = 0
     var ch chan int
     var ins chan [4]string
     r += fmt.Sprintf("Testing %s..\n\n", fn)
+    fmt.Println(r)
     for {
         l, _ := fmt.Fscanln(f, &s[0], &s[1], &s[2], &s[3])
+        if l==0{
+          r += fmt.Sprintf("\nTerminating.\n")
+          return
+        }
 
         for i := 0; i < l; i++ {
             if i != 0 {
@@ -51,7 +58,8 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
         }
         r += fmt.Sprintf("\nResult: ")
         switch s[0] {
-            case "Insert":
+        case "Put":
+          fmt.Println("PUT")
                 if inBlock == 1 {
                     tableBlock[s[1]] = 1
                     cnt++
@@ -96,6 +104,7 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                     r += fmt.Sprintf("Error occurred.\n")
                 }
             case "Update":
+              fmt.Println("Update")
                 if inBlock == 1 {
                     tableBlock[s[1]] = 1
                     cnt++
@@ -140,7 +149,8 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                 } else {
                     r += fmt.Sprintf("Error occurred.\n")
                 }
-            case "Remove":
+            case "Delete":
+              fmt.Println("DELETE")
                 if inBlock == 1 {
                     tableBlock[s[1]] = 1
                     cnt++
@@ -166,32 +176,33 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
                     if res["success"] == "true" {
-                        if _, ok = table[s[1]]; ok == true {
+                        if _, ok := table[s[1]]; ok == true {
                             r += fmt.Sprintf("Deleting success.\n")
                             delete(table, s[1])
                             if res["value"] == table[s[1]] {
                                 r += fmt.Sprintf("Correct value deleted.\n")
                             } else {
-                                r += fmt.Sprintf("Incorrect value deleted.\n")
-                                r += fmt.Sprintf("FATAL ERROR!!!\n")
+                                r += "Incorrect value deleted.\n"+
+                                     "FATAL ERROR!!!\n"
                                 fail = 1
                             }
                         } else {
-                            r += fmt.Sprintf("Unexpected deleting success.\n")
-                            r += fmt.Sprintf("FATAL ERROR!!!\n")
+                            r += "Unexpected deleting success.\n"+
+                                 "FATAL ERROR!!!\n"
                             fail = 1
                         }
                     } else if _, ok := table[s[1]]; ok == true {
-                        r += fmt.Sprintf("Unexpected deleting failure.\n")
-                        r += fmt.Sprintf("FATAL ERROR!!!\n")
+                        r += "Unexpected deleting failure.\n"+
+                             "FATAL ERROR!!!\n"
                         fail = 1
                     } else {
-                        r += fmt.Sprintf("Expected deleting failure.\n")
+                        r += "Expected deleting failure.\n"
                     }
                 } else {
                     r += fmt.Sprintf("Error occurred.\n")
                 }
             case "Get":
+              fmt.Println("GET")
                 if inBlock == 1 {
                     tableBlock[s[1]] = 1
                     go func(s [4]string) {
@@ -218,35 +229,39 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                         }
                     }(s)
                     break
-                }
+                }else{
+
+
                 resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
-                if err == nil {
+                if err != nil {
+                    r += "Error occurred.\n"
+                }else{
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
+                    fmt.Println("Decode Json")
                     if res["success"] == "true" {
                         if _, ok := table[s[1]]; ok == false {
-                            r += fmt.Sprintf("Unexpected getting success.\n")
+                            r += "Unexpected getting success.\n"
                             fail = 1
                         } else {
-                            r += fmt.Sprintf("Getting success.\n")
+                            r += "Getting success.\n"
                             if res["value"] == table[s[1]] {
-                                r += fmt.Sprintf("Got correct value.\n")
+                                r += "Got correct value.\n"
                             } else {
-                                r += fmt.Sprintf("Got incorrect value.\n")
-                                r += fmt.Sprintf("FATAL ERROR!!!\n")
+                                r += "Got incorrect value.\n"+
+                                     "FATAL ERROR!!!\n"
                                 fail = 1
                             }
                         }
                     } else if _, ok := table[s[1]]; ok == true {
-                        r += fmt.Sprintf("Unexpected getting failure.\n")
-                        r += fmt.Sprintf("FATAL ERROR!!!\n")
+                        r += "Unexpected getting failure.\n"+
+                             "FATAL ERROR!!!\n"
                         fail = 1
                     } else {
-                        r += fmt.Sprintf("Expected getting failure.\n")
+                        r += "Expected getting failure.\n"
                     }
-                } else {
-                    r += fmt.Sprintf("Error occurred.\n")
                 }
+              }
             /*
             case "Exec":
                 if inBlock == 0 {
@@ -256,12 +271,13 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                 }
             */
             case "Sleep":
+              fmt.Println("Sleep")
                 if inBlock == 0 {
                     t, _ := strconv.Atoi(s[1])
                     time.Sleep(time.Duration(t) * time.Millisecond)
                     r += fmt.Sprintf("Slept for %v milliseconds.\n", t)
                 } else {
-                    r += fmt.Sprintf("Illegal instruction: Sleep in a block.\n")
+                    r += "Illegal instruction: Sleep in a block.\n"
                 }
             case "Block":
                 inBlock = 1
@@ -270,13 +286,13 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                 ins = make(chan [4]string, 10000)
                 cnt = 0
                 cins = 0
-                r += fmt.Sprintf("Entering a block.\n")
+                r += "Entering a block.\n"
             case "Endblock":
                 r += fmt.Sprintf("Leaving a block of %v legal instructions.\n", cnt)
                 for i := 0; i < cnt; i++ {
                     if v := <-ch; v != 0 {
-                        r += fmt.Sprintf("Something went wrong in the block.\n")
-                        r += fmt.Sprintf("FATAL ERROR!!!\n")
+                        r += "Something went wrong in the block.\n"+
+                             "FATAL ERROR!!!\n"
                         fail = 1
                     }
                 }
@@ -291,25 +307,38 @@ func TestUnit(addr [3]string, fn string) (r string, fail int) {
                 }
                 inBlock = 0
             case "Switch":
+              fmt.Println("Switch")
                 tmp, _ := strconv.Atoi(s[1])
                 srv_cur = tmp - 1
                 r += fmt.Sprintf("Switch to Server: %d\n", srv_cur)
-            case "Start":
+            case "start_server":
                 t, _ := strconv.Atoi(s[1])
                 if alive[t - 1] == 0 {
                     livingServer++
                     alive[t - 1] = 1
-                    exec.Run(exec.Command("bin/start_server", fmt.Sprintf("%v", t)))
+                    resp, err := http.Get(tester_addr[t-1] + "/test/start_server")
+                    if err != nil{
+                      fmt.Println(err)
+                    }else{
+                      fmt.Println(DecodeStr(resp))
+                    }
+                    //exec.Run(exec.Command("bin/start_server", fmt.Sprintf("%v", t)))
                 }
-            case "Stop":
+            case "stop_server":
                 t, _ := strconv.Atoi(s[1])
                 if alive[t - 1] == 1 {
                     livingServer--
                     alive[t - 1] = 0
-                    exec.Run(exec.Command("bin/stop_server", fmt.Sprintf("%v", t)))
+                    resp, err := http.Get(tester_addr[t-1] + "/test/stop_server")
+                    if err != nil{
+                      fmt.Println(err)
+                    }else{
+                      fmt.Println(DecodeStr(resp))
+                    }
+                    //exec.Run(exec.Command("bin/stop_server", fmt.Sprintf("%v", t)))
                 }
             default:
-                r += fmt.Sprintf("Unrecognised instruction.\n")
+                r += "Unrecognised instruction.\n"
         }
     }
 }

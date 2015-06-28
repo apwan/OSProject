@@ -80,10 +80,15 @@ func StartTest(conf map[string]string) string{
   res := ""
   ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
   ports := []string{conf["port"],conf["port_n01"],conf["port_n02"],conf["port_n03"]}
+  tester_ports := []string{conf["test_port00"],conf["test_port01"],conf["test_port02"],conf["test_port03"]}
+  // may need to check using the same port
+
   res += fmt.Sprintf("config: \n\t srv01:%s\n\t srv02:%s\n\t srv03:%s\n",ips[1],ips[2],ips[3])
   var addr_pre [3]string
+  var tester_addr [3]string
   for i:=0;i<3;i++{
     addr_pre[i] = fmt.Sprintf("http://%s:%s",ips[i+1],ports[i+1])
+    tester_addr[i] = fmt.Sprintf("http://%s:%s", ips[i+1], tester_ports[i+1])
   }
   tot,_ := strconv.Atoi(conf["test_total"])
   cnt := tot
@@ -93,7 +98,7 @@ func StartTest(conf map[string]string) string{
     if conf["fmt"] != "true"{ //no need to specify each test case name
       testname = conf["pre"]+conf[strconv.Itoa(i)]
     }
-      res, fail := TestUnit(addr_pre, testname)
+      res, fail := TestUnit(addr_pre, tester_addr, testname)
       if conf["with_err_msg"]=="true"{
         fmt.Printf("%s", res)
         if fail == 0 {
