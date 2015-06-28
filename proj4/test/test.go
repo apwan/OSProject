@@ -91,13 +91,44 @@ func shutdown_Handler(w http.ResponseWriter, r *http.Request){
 }
 
 // run on main tester
-func testUnit(conf map[string]string, test_name string) string{
+func StartTest(conf map[string]string) string{
   res := ""
   ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
-  res += fmt.Sprintf("start test case: %s\n",test_name)
+  ports := []string{conf["port"],conf["port_n01"],conf["port_n02"],conf["port_n03"]}
   res += fmt.Sprintf("config: \n\t srv01:%s\n\t srv02:%s\n\t srv03:%s\n",ips[1],ips[2],ips[3])
+  var addr_pre [3]string
+  for i:=0;i<3;i++{
+    addr_pre[i] = fmt.Sprintf("http://%s:%s",ips[i+1],ports[i+1])
+  }
+  tot,_ := strconv.Atoi(conf["test_total"])
+  cnt := tot
 
-  res+="Success"
+  for i := 0; i < tot; i++ {
+    testname := conf["pre"]+strconv.Itoa(i)+".test"
+    if conf["fmt"] != "true"{ //no need to specify each test case name
+      testname = conf["pre"]+conf[strconv.Itoa(i)]
+    }
+      res, fail := TestUnit(addr_pre, testname)
+      if conf["with_err_msg"]=="true"{
+        fmt.Printf("%s", res)
+        if fail == 0 {
+            fmt.Printf("\nTest case %d: success!\n\n", i)
+        } else {
+            fmt.Printf("\nTest case %d: failed!\n\n", i)
+        }
+
+
+      }
+      cnt -= fail
+
+  }
+
+  if cnt == tot {
+    res+="Success"
+  } else {
+    res+="Fail"
+  }
+
   return res
 }
 
@@ -137,9 +168,7 @@ func main(){
     /* run test cases here !  */
 
 
-
-
-    fmt.Println(testUnit(conf,"Not-implemented"))
+    fmt.Println(StartTest(conf))
 
 
 
