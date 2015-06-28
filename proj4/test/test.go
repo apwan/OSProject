@@ -39,11 +39,15 @@ func det_role() int {
 
 var(
   role = det_role()
-  pr *os.Process
+  pr *os.Process = nil
 )
 
 
 func start_server_Handler(w http.ResponseWriter, r *http.Request) {
+  if pr != nil{
+    fmt.Fprintf(w, "Server %d Already Started: %s",role, pr)
+    return
+  }
   attr := &os.ProcAttr{
         Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
     }
@@ -58,6 +62,10 @@ func kill_server_Handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Stop Server %d: %s",role, err)
 }
 func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
+  if pr==nil {
+    fmt.Fprintf(w, "Server %d not started yet",role)
+    return
+  }
   cmd := exec.Command("bin/stop_server", []string{strconv.Itoa(role)}...)
   o,e := cmd.Output()
   var res string
@@ -65,11 +73,15 @@ func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
     res = "Error"
   }else{
     res = string(o[:bytes.IndexByte(o,'\n')])
+    pr = nil
   }
 	fmt.Fprintf(w, "Stop Server %d: %s",role, res)
 }
 func shutdown_Handler(w http.ResponseWriter, r *http.Request){
   fmt.Fprintf(w, "Goodbye main tester! Tester %d shutdown!", role)
+  if pr!=nil{
+    pr.Kill()
+  }
   fmt.Printf("Tester %d shutdown!\n", role)
   go func(){
     time.Sleep(time.Millisecond*500) //sleep epsilon
@@ -77,6 +89,23 @@ func shutdown_Handler(w http.ResponseWriter, r *http.Request){
   }()
 
 }
+
+// run on main tester
+func testUnit(conf map[string]string, test_name string) string{
+  res := ""
+  ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
+  res += fmt.Sprintf("start test case: %s\n",test_name)
+  res += fmt.Sprintf("config: \n\t srv01:%s\n\t srv02:%s\n\t srv03:%s\n",ips[1],ips[2],ips[3])
+
+  res+="Success"
+  return res
+}
+
+
+
+
+
+
 
 func main(){
   if role < 0{
@@ -103,7 +132,24 @@ func main(){
         fmt.Println(DecodeStr(resp))
       }
     }
+
     time.Sleep(time.Millisecond * 3000)
+    /* run test cases here !  */
+
+
+
+
+    fmt.Println(testUnit(conf,"Not-implemented"))
+
+
+
+
+
+
+
+
+    /* all test cases finished ! */
+
     for i:=1;i<=3;i++ {
       resp, err := http.Get("http://" +ips[i]+ ":" + ports[i] + "/test/stop_server")
       if err != nil{
