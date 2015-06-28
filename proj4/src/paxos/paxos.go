@@ -33,6 +33,8 @@ import (
 
   )
 
+
+
 const (
   REJECT = "reject"
   ACCEPT = "accept"
@@ -135,6 +137,8 @@ func (px *Paxos) MakePaxosInstance(seq int) {
   }
 }
 
+
+var RPC_Use_TCP int = 0
 //
 // call() sends an RPC to the rpcname handler on server srv
 // with arguments args, waits for the reply, and leaves the
@@ -152,7 +156,14 @@ func (px *Paxos) MakePaxosInstance(seq int) {
 // please do not change this function.
 //
 func call(srv string, name string, args interface{}, reply interface{}) bool {
-  c, err := rpc.Dial("unix", srv)
+  var c *rpc.Client
+  var err error
+  if RPC_Use_TCP == 1{
+    c, err = rpc.Dial("tcp", srv)
+  }else{
+    c, err = rpc.Dial("unix", srv)
+  }
+
   if err != nil {
     err1 := err.(*net.OpError)
     if err1.Err != syscall.ENOENT && err1.Err != syscall.ECONNREFUSED {

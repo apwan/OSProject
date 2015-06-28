@@ -531,6 +531,7 @@ func kvmanShutdownHandlerGC(kv *KVPaxos) http.HandlerFunc{
 }
 //end HTTP handlers
 
+var RPC_Use_TCP int = 0
 
 //
 // servers[] contains the ports of the set of
@@ -539,6 +540,9 @@ func kvmanShutdownHandlerGC(kv *KVPaxos) http.HandlerFunc{
 // me is the index of the current server in servers[].
 //
 func StartServer(servers []string, me int) *KVPaxos {
+  if RPC_Use_TCP == 1{
+    paxos.RPC_Use_TCP = 1
+  }
   // call gob.Register on structures you want
   // Go's RPC library to marshall/unmarshall.
   gob.Register(Op{})

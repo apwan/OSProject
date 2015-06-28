@@ -46,7 +46,7 @@ func usage(){
 }
 
 func main(){
-
+  kvpaxos.RPC_Use_TCP = 1
 	runtime.GOMAXPROCS(4)
 	const nservers = 3
 	var kva []*kvpaxos.KVPaxos = make([]*kvpaxos.KVPaxos, nservers)
