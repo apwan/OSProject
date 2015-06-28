@@ -155,7 +155,8 @@ func TestDone(t *testing.T) {
       key := strconv.Itoa(i)
       value := make([]byte, sz)
       for j := 0; j < len(value); j++ {
-        value[j] = byte((rand.Int() % 100) + 1)
+        //value[j] = byte((rand.Int() % 100) + 1)
+        value[j] = byte((rand.Int() % 26) + 65)
       }
       ck.Put(key, string(value))
       check(t, cka[i % nservers], key, string(value))
@@ -185,6 +186,7 @@ func TestDone(t *testing.T) {
   if m1.Alloc > allowed {
     t.Fatalf("Memory use did not shrink enough (Used: %v, allowed: %v).\n", m1.Alloc, allowed)
   }
+    fmt.Printf("Memory shrink success (Used: %v, allowed: %v).\n", m1.Alloc, allowed)
 
   fmt.Printf("  ... Passed\n")
 }
@@ -392,29 +394,44 @@ println(ck.Get("a"))
         //ov := myck.PutHash(key, "0")
         ov := myck.PutReturn(key, "0")
         if ov != pv {
-          t.Fatalf("wrong value; expected %s but got %s", pv, ov)
+          println("Failure! go get your screenshot!")
+          time.Sleep(time.Second*5)
+
+          t.Fatalf("wrong value; expected %s but got %s; key %s", pv, ov, key)
         }
         //ov = myck.PutHash(key, "1")
         ov = myck.PutReturn(key, "1")
         //pv = NextValue(pv, "0")
         pv = "0"
         if ov != pv {
-          t.Fatalf("wrong value; expected %s but got %s", pv, ov)
+          println("Failure! go get your screenshot!")
+          time.Sleep(time.Second*5)
+          
+          t.Fatalf("wrong value; expected %s but got %s; key %s", pv, ov, key)
         }
         //ov = myck.PutHash(key, "2")
         ov = myck.PutReturn(key, "2")
         //pv = NextValue(pv, "1")
         pv = "1"
         if ov != pv {
-          t.Fatalf("wrong value; expected %s", pv)
+          println("Failure! go get your screenshot!")
+          time.Sleep(time.Second*5)
+          
+          t.Fatalf("wrong value; expected %s but got %s; key %s", pv, ov, key)
         }
         //nv := NextValue(pv, "2")
         nv := "2"
         time.Sleep(100 * time.Millisecond)
         if myck.Get(key) != nv {
+          println("Failure! go get your screenshot!")
+          time.Sleep(time.Second*5)
+
           t.Fatalf("wrong value")
         }
         if myck.Get(key) != nv {
+          println("Failure! go get your screenshot!")
+          time.Sleep(time.Second*5)
+
           t.Fatalf("wrong value")
         }
         ok = true
@@ -500,6 +517,7 @@ func TestHole(t *testing.T) {
 
     ck2 := MakeClerk([]string{port(tag, 2)})
     ck2.Put("q", "q")
+    ck2.Put("DELIMETER#round", strconv.Itoa(iters))
 
     done := false
     const nclients = 10
@@ -525,6 +543,9 @@ func TestHole(t *testing.T) {
           } else {
             v := cka[ci].Get(key)
             if v != last {
+              println("Failure! go get your screenshot!")
+              time.Sleep(time.Second*2)
+
               t.Fatalf("%v: wrong value, key %v, wanted %v, got %v",
                 cli, key, last, v)
             }
