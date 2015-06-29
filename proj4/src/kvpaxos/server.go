@@ -206,7 +206,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
                   break;
               }
               time.Sleep(time.Millisecond*backoff)
-              if backoff<500{backoff*=2}
+              if backoff<120{backoff*=2}
           }
           if DeepCompareOps(value.(Op),myop) {//succeeded
               if Debug {fmt.Printf("Saw DCSame! %v %v server%d\n",value,myop,kv.me)}
@@ -217,8 +217,8 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
               break;
           }
           var offs uint=uint(ID-kv.px_touchedPTR)
-          if offs>5 {offs=5}
-          var scale=((kv.me+ID)%3)*(2<<offs)
+          if offs>4 {offs=4}
+          var scale=((kv.me+ID)%3)*(1<<offs)
           time.Sleep(time.Duration(rand.Intn(scale*int(time.Millisecond)+1)))
           ID++
       }
