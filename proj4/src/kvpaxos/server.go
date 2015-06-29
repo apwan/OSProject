@@ -105,13 +105,13 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
       //ID=0
       for true {
           kv.px.Start(ID,myop)
-          time.Sleep(50)
+          time.Sleep(1)
           for true {
               decided,value = kv.px.Status(ID)
               if decided {
                   break;
               }
-              time.Sleep(200*time.Millisecond)
+              time.Sleep(50*time.Millisecond)
           }
           if value.(Op).OpID==myop.OpID {//succeeded
           //    if Debug {fmt.Printf("Saw OIDSame but DC fail! %v %v\n",value,myop)}
@@ -198,13 +198,15 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
       //ID=0
       for true {
           kv.px.Start(ID,myop)
-          time.Sleep(50)
+          time.Sleep(1)
+          var backoff time.Duration=10
           for true {
               decided,value = kv.px.Status(ID)
               if decided {
                   break;
               }
-              time.Sleep(200*time.Millisecond)
+              time.Sleep(time.Millisecond*backoff)
+              if backoff<500{backoff*=2}
           }
           if DeepCompareOps(value.(Op),myop) {//succeeded
               if Debug {fmt.Printf("Saw DCSame! %v %v server%d\n",value,myop,kv.me)}
@@ -214,8 +216,10 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
               if Debug {fmt.Printf("Saw OIDSame but DC fail! %v %v\n",value,myop)}
               break;
           }
-          var scale=(kv.me+ID)%3
-          time.Sleep(time.Duration(rand.Intn(10)*scale*int(time.Millisecond)))
+          var offs uint=uint(ID-kv.px_touchedPTR)
+          if offs>5 {offs=5}
+          var scale=((kv.me+ID)%3)*(2<<offs)
+          time.Sleep(time.Duration(rand.Intn(scale*int(time.Millisecond)+1)))
           ID++
       }
       kv.px_touchedPTR=ID
