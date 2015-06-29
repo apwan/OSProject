@@ -78,7 +78,6 @@ type KVPaxos struct {
 
   snapshot map[string]string
   snapstart int
-  newOp chan int
 
   doneOps map[int]bool
   latestClientOpResult map[int]ID_Ret_Pair
@@ -95,7 +94,6 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     }
     kv.mu.Lock(); // Protect px.instances
     defer kv.mu.Unlock();
-    defer func(){kv.newOp<-1;}();
 
     //need to insert a meaningless OP, in order to sync DB!
     var myop Op = Op{OpType:GetOp, Key:"", Value:"", OpID:rand.Int(),Who:-1}
@@ -168,7 +166,6 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
 
     kv.mu.Lock(); // Protect px.instances
     defer kv.mu.Unlock();
-    defer func(){kv.newOp<-1;}();
     if Debug {
         println("P/G Step1")
     }
@@ -423,10 +420,7 @@ func (kv *KVPaxos) housekeeper() {
       if Debug{println("KVDB dead, housekeeper done") }
       break
     }
-    //time.Sleep(time.Millisecond*100)
-    select{
-      case <-kv.newOp:
-    }
+    time.Sleep(time.Millisecond*100)
     curr:=kv.px_touchedPTR-1
     mem:=kv.snapstart
     if Debug {fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem) }
@@ -658,7 +652,6 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.doneOps=make(map[int]bool)
   kv.latestClientOpResult=make(map[int]ID_Ret_Pair)
   kv.Death=make(chan int,2)
-  kv.newOp=make(chan int,100)
 
   go kv.housekeeper()
   // Your initialization code here.
