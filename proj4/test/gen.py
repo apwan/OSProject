@@ -34,6 +34,8 @@ def gen(gap, numOp, keyRange, valueRange, name):
 
         print >> f, 'Sleep %d' % (gap)
         print >> f, 'Switch %d' % (1)
+        
+        sd = randint(numOp / 3, numOp / 3 * 2)
 
         for i in range(numOp):
             '''
@@ -48,6 +50,9 @@ def gen(gap, numOp, keyRange, valueRange, name):
                 print >> f, 'Sleep %d' % (gap)
                 backup ^= 1
             '''
+            if i == sd:
+                print >> f, 'stop_server %d' % (randint(1, 3))
+
             if randint(1, 20) == 1:
                 print >> f, 'Switch %d' % (randint(1, 3))
             if randint(1, 20) == 1: # enter/leave a block with probability %5
@@ -76,4 +81,4 @@ def gen(gap, numOp, keyRange, valueRange, name):
 
 # seed(42)
 for i in range(2, 10):
-    gen(500, 100, 100, 100, str(i) + '.test')
+    gen(500, 100, 30, 100, str(i) + '.test')

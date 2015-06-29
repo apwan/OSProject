@@ -1,113 +1,121 @@
 Sleep 500
 Switch 1
-Get 14
-Get 12
-Put 50 100
+Get 26
+Update 5 90
+Delete 1
+Get 11
+Get 15
+Put 25 95
+Delete 10
+Delete 29
+Update 29 77
+Delete 30
+Update 28 97
+Update 21 42
+Update 16 53
 Block
-Update 32 57
-Get 7
-Delete 61
-Update 64 7
-Delete 76
-Get 80
-Delete 11
-Delete 77
-Get 37
-Put 31 96
-Get 53
-Put 33 16
-Delete 58
-Update 52 17
-Update 92 100
-Put 59 10
-Put 8 71
-Delete 90
-Delete 77
-Put 29 5
-Put 10 50
-Delete 61
-Put 89 93
-Put 75 55
-Update 54 97
-Delete 89
-Put 94 39
-Put 100 85
-Get 45
-Put 36 20
-Update 81 68
-Update 46 18
-Put 49 16
-Delete 14
-Delete 40
-Get 39
-Get 28
-Put 61 36
-Update 54 38
-Put 32 65
+Update 9 81
+Get 18
+Put 15 10
+Delete 26
+Get 20
+Put 9 46
+Switch 2
+Delete 29
+Get 17
+Put 11 70
+Update 20 60
+Get 4
+Delete 9
+Update 17 97
+Put 5 67
+Put 21 64
 Endblock
 Sleep 500
-Put 63 41
-Put 93 52
-Put 50 17
-Put 32 66
-Put 30 3
-Block
-Get 90
-Put 90 62
-Get 2
-Get 74
-Get 13
-Delete 41
-Endblock
-Sleep 500
-Put 26 49
-Get 21
-Delete 12
-Put 7 30
-Get 71
-Update 48 57
-Get 88
-Delete 86
-Update 91 70
-Switch 2
-Update 73 94
-Delete 81
-Switch 2
-Get 74
-Get 82
-Delete 8
-Update 93 73
-Delete 76
-Put 53 55
-Get 90
-Delete 69
-Get 80
-Update 47 3
-Put 18 67
+Get 11
+Update 19 70
+Get 17
 Switch 3
-Put 11 48
-Get 25
-Put 80 15
-Get 41
-Get 38
-Put 4 4
-Delete 79
-Delete 68
-Put 50 27
-Update 11 90
-Put 6 65
-Put 77 17
-Delete 40
-Put 68 8
-Get 62
-Put 13 25
-Get 57
-Update 90 25
-Delete 88
-Delete 60
-Update 41 82
-Get 51
-Update 14 96
-Switch 2
-Update 73 55
+Delete 15
+Update 4 54
+Delete 11
+Update 21 97
+Update 11 12
+Block
+Update 11 85
+Switch 1
+Get 12
+Get 30
+Update 2 79
+Switch 3
+Get 23
+Put 9 42
+Get 6
+Put 7 80
+Get 28
+Update 10 38
+Get 11
+Update 30 30
+Update 11 23
+Put 14 8
+Delete 14
+Put 10 70
+Put 28 43
+Update 18 47
+Put 18 98
+Put 21 24
+Put 11 28
+Get 11
+Get 18
+Endblock
+Sleep 500
+Update 11 9
+Block
+Update 9 36
+Update 7 4
+Update 12 1
+stop_server 1
+Get 6
+Put 21 93
+Put 20 95
+Update 20 10
+Update 12 10
+Put 22 6
+Update 13 11
+Update 12 33
+Delete 20
+Get 29
+Put 4 12
+Delete 5
+Update 10 5
+Endblock
+Sleep 500
+Update 15 86
+Update 22 30
+Get 8
+Delete 25
+Delete 3
+Delete 2
+Update 28 90
+Get 24
+Put 12 89
+Put 30 11
+Get 14
+Get 19
+Get 16
+Get 4
+Get 13
+Get 30
+Get 9
+Get 6
+Put 30 23
+Block
+Get 18
+Delete 6
+Delete 17
+Switch 1
+Update 27 17
+Put 5 80
+Endblock
+Sleep 500
 Sleep 500

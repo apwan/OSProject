@@ -395,6 +395,9 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                             }
                         }
                     }
+                    if _, ok := table[k]; succ == 0 && ok == true {
+                        delete(table, k)
+                    }
                 }
                 /*
                 for i := 0; i < cnt; i++ {
