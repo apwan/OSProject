@@ -71,7 +71,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     */
                     go func(s [4]string) {
                         resp, err := http.PostForm(addr[srv_cur] + "/kv/insert", url.Values{"key": {s[1]}, "value": {s[2]}})
-                        /*
+
                         if err == nil {
                             res := DecodeJson(resp)
                             if res["success"] == "true" {
@@ -80,7 +80,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
-                        */
+
                     }(s)
                     break
                 }
@@ -188,7 +188,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     */
                     go func(s [4]string) {
                         resp, err := http.PostForm(addr[srv_cur] + "/kv/delete", url.Values{"key": {s[1]}})
-                        /*
+
                         if err == nil {
                             res := DecodeJson(resp)
                             if res["success"] == "true" {
@@ -197,7 +197,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
-                        */
+
                     }(s)
                     break
                 }
@@ -247,7 +247,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     ent <- s[1]
                     go func(s [4]string) {
                         resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
-                        /*
+
                         if err == nil {
                             res := DecodeJson(resp)
                             if res["success"] == "true" {
@@ -268,7 +268,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
-                        */
+                        
                     }(s)
                     break
                 }else{
@@ -357,14 +357,14 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                                     if succ == -1 {
                                         r += fmt.Sprintf("Getting success.\n")
                                         succ = 1
-                                        res = t["value"]
+                                        res = t["value"].(string)
                                         table[k] = res
                                     } else if succ == 0 {
                                         r += fmt.Sprintf("Inconsistent getting success.\n")
                                         r += fmt.Sprintf("FATAL ERROR!!!\n")
                                         fail = 1
                                     } else {
-                                        if t["value"] == res {
+                                        if t["value"].(string) == res {
                                             r += fmt.Sprintf("Consistent value.\n")
                                         } else {
                                             r += fmt.Sprintf("Inconsistent values.\n")
