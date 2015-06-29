@@ -35,34 +35,35 @@ func check_alive_Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func start_server_Handler(w http.ResponseWriter, r *http.Request) {
-  /*
   if pr != nil{
-    pr.Kill()
     fmt.Fprintf(w, "Server %d Already Started: %s",role, pr)
     return
   }
-  */
   attr := &os.ProcAttr{
         Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
     }
-  pr,_ = os.StartProcess("bin/start_server", []string{"bin/starst_server",fmt.Sprintf("n%02d", role)}, attr)
+    id := fmt.Sprintf("n%02d", role)
+  pr,_ = os.StartProcess("bin/start_server", []string{"bin/starst_server",id}, attr)
 	//res := CmdStartServer(strconv.Itoa(role))
 	fmt.Fprintf(w, "Start Server %d: %s",role, pr)
 }
 func kill_server_Handler(w http.ResponseWriter, r *http.Request) {
+  fmt.Println("kill handler")
   if pr==nil{
     fmt.Fprintf(w, "No server %d process to kill", role)
     return
   }
   err := pr.Kill()
-	//res := CmdStopServer(strconv.Itoa(role))
   if err!=nil{
     fmt.Fprintf(w, "Kill Server %d Failed: %s", role, err)
+    pr.Kill()
   }else{
     fmt.Fprintf(w, "Kill Server %d Success!", role)
   }
+  pr = nil
 }
 func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
+  fmt.Println("stop handler")
   var res string
   id := fmt.Sprintf("n%02d", role)
   cmd := exec.Command("bin/stop_server", []string{id}...)
@@ -220,7 +221,7 @@ func All_request(addr []string, req string){
 var auxTesterHandlers map[string]http.HandlerFunc = map[string]http.HandlerFunc{
     "/test":check_alive_Handler,
     "/test/start_server":start_server_Handler,
-    "/test/stop_server":stop_server_Handler,
+    "/test/stop_server":kill_server_Handler,
     "/test/shutdown":shutdown_Handler,
 }
 
@@ -250,9 +251,8 @@ func main(){
   if role == 0{
     fmt.Println("Launch main tester")
   }else{
-    fmt.Printf("Launch   tester %d\n",role)
+    fmt.Printf("Launch tester %d\n",role)
   }
-
   conf := ReadJson("conf/test.conf")
   ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
   ports := []string{conf["port"],conf["port_n01"],conf["port_n02"],conf["port_n03"]}
@@ -262,8 +262,8 @@ func main(){
   tester_ports := []string{conf["test_port00"],conf["test_port01"],conf["test_port02"],conf["test_port03"]}
 
   for i:=1;i<=3;i++{
-    Tester_addr[i-1] = "http://" +ips[i]+ ":" + tester_ports[i]
-    Server_addr[i-1] = "http://" +ips[i]+":"+ ports[i-1]
+    Tester_addr[i-1] = fmt.Sprintf("http://%s:%s" ,ips[i],tester_ports[i])
+    Server_addr[i-1] = fmt.Sprintf("http://%s:%s" ,ips[i], ports[i])
   }
 
   if role == 0{
@@ -312,6 +312,9 @@ func main(){
   		WriteTimeout: 10 * time.Second,
   		MaxHeaderBytes: 1<<20,
   	}
+    if conf["stop_by_kill"]!="true"{
+      auxTesterHandlers["/test/stop_server"] = stop_server_Handler
+    }
 
     for key,val := range auxTesterHandlers{
       http.HandleFunc(key,val)
