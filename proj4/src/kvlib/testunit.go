@@ -72,6 +72,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     */
                     go func(s [4]string) {
                         resp, err := http.PostForm(addr[srv_cur] + "/kv/insert", url.Values{"key": {s[1]}, "value": {s[2]}})
+                        /*
 
                         if err == nil {
                             res := DecodeJson(resp)
@@ -81,6 +82,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
+                        */
 
                     }(s)
                     break
@@ -131,6 +133,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     go func(s [4]string) {
                         resp, err := http.PostForm(addr[srv_cur] + "/kv/update", url.Values{"key": {s[1]}, "value": {s[2]}})
 
+                        /*
                         if err == nil {
                             res := DecodeJson(resp)
                             if res["success"] == "true" {
@@ -140,6 +143,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
+                        */
 
                     }(s)
                     break
@@ -190,6 +194,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     go func(s [4]string) {
                         resp, err := http.PostForm(addr[srv_cur] + "/kv/delete", url.Values{"key": {s[1]}})
 
+                        /*
                         if err == nil {
                             res := DecodeJson(resp)
                             if res["success"] == "true" {
@@ -198,6 +203,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
+                        */
 
                     }(s)
                     break
@@ -218,7 +224,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     if res["success"] == "true" {
                         if _, ok := table[s[1]]; ok == true {
                             r += fmt.Sprintf("Deleting success.\n")
-                            delete(table, s[1])
                             if res["value"] == table[s[1]] {
                                 r += fmt.Sprintf("Correct value deleted.\n")
                             } else {
@@ -226,6 +231,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                                      "FATAL ERROR!!!\n"
                                 fail = 1
                             }
+                            delete(table, s[1])
                         } else {
                             r += "Unexpected deleting success.\n"+
                                  "FATAL ERROR!!!\n"
@@ -249,6 +255,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     go func(s [4]string) {
                         resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
 
+                        /*
                         if err == nil {
                             res := DecodeJson(resp)
                             if res["success"] == "true" {
@@ -269,6 +276,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
+                        */
 
                     }(s)
                     break
