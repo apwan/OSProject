@@ -430,7 +430,6 @@ func TestUnit(addr []string, tester_addr []string, fn string, auto_restart bool)
                 */
                 inBlock = 0
             case "Switch":
-              fmt.Println("start_server")
                 tmp, _ := strconv.Atoi(s[1])
                 srv_cur = tmp - 1
                 r += fmt.Sprintf("Switch to Server: %d\n", srv_cur)
