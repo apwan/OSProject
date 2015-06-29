@@ -32,7 +32,8 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
     // var tableBlock map[string]int
     var s [4]string
     var srv_cur, livingServer int
-    var alive [3]int
+    livingServer = 3
+    var alive [3]int = [3]int{1,1,1}
     var inBlock, cnt /*, cins */ int
     inBlock = 0
     // var ch chan int
@@ -139,7 +140,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
-                        
+
                     }(s)
                     break
                 }
