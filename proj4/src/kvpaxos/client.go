@@ -2,13 +2,13 @@ package kvpaxos
 
 import (
   "net/rpc"
-  "net/url"
-  "net/http"
+  //"net/url"
+  //"net/http"
   "fmt"
-  "strconv"
+  //"strconv"
   "math/rand"
   "time"
-  "kvlib"
+  //"kvlib"
 )
 
 
@@ -74,7 +74,8 @@ func call(srv string, rpcname string, args interface{}, reply interface{}) bool 
   fmt.Println(err)
   return false
 }
-
+// no need, implemented in kvlib/testunit.go
+/*
 func request(srv string, op int, args interface{}, reply interface{})bool{
   pre := "http://"+srv
   switch op {
@@ -90,20 +91,14 @@ func request(srv string, op int, args interface{}, reply interface{})bool{
       nreply,_:=reply.(*PutReply)
       nreply.PreviousValue,_ = res["value"].(string)
       return true
-
-
   case GetOp:
-
-
   case UpdateOp:
-
-
   case DeleteOp:
-
   default:
   }
   return false
 }
+*/
 
 //
 // fetch the current value for a key.

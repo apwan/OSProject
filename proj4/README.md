@@ -1,5 +1,7 @@
 Project 4: Paxos-based Key-Value Service
 ====
+Chen Xiaoqi, Ku Lok Sun, Wu Yijie, Zhang Hanrui
+
 
 # Design
 
@@ -43,13 +45,13 @@ The old value will be returned.
 
 The parameter is provided in `key` and `value` field.
 
-#### Delete `/kv/delete` 
+#### Delete `/kv/delete`
 Delete key in the database; will succeed only if it's an existing key.
 The old value will be returned.
 
 The parameter is provided in `key`  field.
 
-#### Get `/kv/get` 
+#### Get `/kv/get`
 Look up a key in the database; will succeed only if it's an existing key.
 The value will be returned.
 
@@ -58,43 +60,35 @@ The parameter is provided in `key`  field.
 Note: Each HTTP request is treated as independent requests, since the HTTP protocol is stateless; if consistency in unreliable network is desired, the client should provide a unique operation ID in `opid` field, and the server will not repeat multiple requests with the same ID.
 
 ### Management service
-#### CountKey `/kvman/countkey` 
-Returns the number of distinct, existing keys in the database. 
+#### CountKey `/kvman/countkey`
+Returns the number of distinct, existing keys in the database.
 
 This operation will succeed only if the server can obtain an agreement (i.e. not partitioned into minority) such that the data is up to date.
 
-#### Dump `/kvman/dump` 
-Returns a list of existing key-value pairs in the database. 
+#### Dump `/kvman/dump`
+Returns a list of existing key-value pairs in the database.
 
 This operation will succeed only if the server can obtain an agreement (i.e. not partitioned into minority) such that the data is up to date.
 
-#### Shutdown `/kvman/shutdown` 
+#### Shutdown `/kvman/shutdown`
 Kills the server and release the listening ports.
 
 Note: this operation may require at most 10 milliseconds timeout, before the ports are released and a new instance can be started. Listening to the port immediately after shutdown may cause an error. This issue is handled in our server initialization process, by waiting 10ms before starting any port; however it may affect a subsequent group's project if projects of many groups is tested in batch automatically.
 
 
-## Tester
+# Build, Run and Test
 
-This project uses a similar tester in previous project, which initializes HTTP requests to different servers and send different requests according to test case files; the result of each request is automatically deduced from previous request sequence and compared with actual result. The test will pass only if all result matched.
+## Command
+The files `compile.sh`, `bin/start_server` , `bin/stop_server`, `bin/test` are as required in Project 3/4.
 
-Normally, the servers are started before each case and shut after the test finishes. Optionally, a test case can choose to shut down one or more servers during the testing process. In this case the correct results are also automatically deduced using the majority consensus requirement. Due to aforementioned difficulty, the test case does not implement partition.
-
-To help testing on multiple servers, we implementd auxiliary test helpers, who runs on different machines and help main tester to start and stop kvpaxos instances.
-
-# Build and Run
-
-Use `compile.sh`, `bin/start_server` and `bin/stop_server`.
-
-
-#Test
-Using the same config files (`settings.conf` and `test.conf`), in each server, run the corresponding remote tester:
+For remote testing, use the same config files (`conf/settings.conf` and `conf/test.conf`), in each server, run the corresponding auxiliary tester
 ```
-bin/test 1 &
+bin/test < n01|n02|n03 > &
 
-bin/test 2 &
-
-bin/test 3 &
+```
+or
+```
+bin/test < 1 | 2 | 3 > &
 ```
 
 Then in any machine, run the main tester:
@@ -102,7 +96,28 @@ Then in any machine, run the main tester:
 bin/test -m
 ```
 
+For single-machine testing, run `make test_Paxos` and `make test_kvPaxos` (the original go test) or `make tester` using our tester and test cases in the directory `test/`.
 
-Note: 
-  1. We assume all the ports in settings are available and do not check that. In case the specified ports are already occupied (partly due to previous failed run), the program may crash.
-  2. We also assume all the conf file and `.test` file are well-format and do not check that. So please follow the strict format if you try to modify these files, otherwise the program may also crash.
+
+## Tester Description
+
+In this project we use a similar tester as in previous Project 3, which initializes HTTP requests to different servers and send different requests according to test case files; the result of each request is automatically deduced from previous request sequence and compared with actual result. The test will pass only if all result matched.
+
+Normally, the servers are started before each case and shut after the test finishes. Optionally, a test case can choose to shut down one or more servers during the testing process. In this case the correct results are also automatically deduced using the majority consensus requirement. Due to aforementioned difficulty, the test case does not implement partition.
+
+To help testing on multiple servers, we implementd auxiliary testers, who runs on different machines and help main tester to start and stop kvpaxos instances. The main tester will wait for all the three auxiliary tester to be alive, then start testing.
+Each test case is specified by the `*.test` file under `test/` as in Project 3. After each case finished, the result as well as the ellaped time will be printed on the screen if the `with_err_mesg` flag is `true` (set in `test.conf`).
+
+The number of test cases (`test_total`) is also set in `test.conf`. If you wait too long you can call `http://127.0.0.1:3086/main?op=finish&forced=< true | false | report >`(modify to the ip of main tester and the port `test_port00` in `test.conf`):
+ - `forced=report` will allow the tester to finish the current round and report the infomation;  
+ - `forced=true` will immediately shutdown all testers;
+ - `forced=false` will set timeout and might allow the current test case to finish without reporting.) This hack is helpful in case the tester stuck since we do not time out all the serial request.  
+
+We have also carried out the real remote testing on three machines (one in Beijing, one in Tsinghua and one in USA). It took about one and a half hours to pass all the ten cases. (While it takes only 5~6 minutes for the same-machine test using out tester.)
+
+
+
+Note:
+
+  1. We assume the ports in `settings.conf` are available and do not check for that. In case the specified ports are already occupied (partly due to previous failed run), the program may crash.
+  2. We also assume all the conf file and `.test` file are well-format and do not check for that. So please follow the format if you try to modify these files, otherwise the program may also crash/panic.

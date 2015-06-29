@@ -26,6 +26,7 @@ var(
   role = Det_role()
   pr *os.Process = nil // keep the kv server process for killing
   remaining = 0
+  not_forced_to_quit = true
 )
 
 func check_alive_Handler(w http.ResponseWriter, r *http.Request) {
@@ -97,20 +98,28 @@ func main_Handler(w http.ResponseWriter, r *http.Request){
   case "finish":
     val := r.FormValue("forced")
     if val=="true"{
-      All_request(Tester_addr, "stop_server")
-      All_request(Tester_addr, "shutdown")
       fmt.Fprintf(w,"Forced to finish!")
       go func(){
+        All_request(Tester_addr, "stop_server")
+        All_request(Tester_addr, "shutdown")
         time.Sleep(time.Millisecond * 1000)
         os.Exit(0)
       }()
+      return
+    }else if val == "report"{
+      not_forced_to_quit = false
+      fmt.Fprintf(w, "Remain: %d. Report after current test case!", remaining)
+      return
     }else{
       pre_remain := remaining
+      count := 30
       flag := 0
-      fmt.Fprintf(w, "Will finish after current test case!")
+      fmt.Fprintf(w, "Remain: %d. Will finish after current test case!", pre_remain)
       go func(){
-        for pre_remain>=remaining{
-          time.Sleep(time.Millisecond * 2000)
+        for pre_remain<=remaining && count>0{
+          time.Sleep(time.Millisecond * 5000)
+          fmt.Println(count,"\tWait for current case to finish!\n")
+          count--
         }
         All_request(Tester_addr, "stop_server")
         All_request(Tester_addr, "shutdown")
@@ -119,7 +128,7 @@ func main_Handler(w http.ResponseWriter, r *http.Request){
 
       go func(){
         for flag==0 {
-          time.Sleep(time.Millisecond * 5000)
+          time.Sleep(time.Millisecond * 10000)
         }
         os.Exit(0)
       }()
@@ -140,10 +149,13 @@ func StartTest(conf map[string]string) string{
   res := ""
   ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
   ports := []string{conf["port"],conf["port_n01"],conf["port_n02"],conf["port_n03"]}
+  if conf["use_different_port"]!="true"{
+    ports[1],ports[2],ports[3] = ports[0],ports[0],ports[0]
+  }
   tester_ports := []string{conf["test_port00"],conf["test_port01"],conf["test_port02"],conf["test_port03"]}
   // may need to check using the same port
 
-  res += fmt.Sprintf("config: \n\t srv01:%s\n\t srv02:%s\n\t srv03:%s\n",ips[1],ips[2],ips[3])
+  res += fmt.Sprintf("config: \n\t srv01: %s\n\t srv02: %s\n\t srv03: %s\n",ips[1],ips[2],ips[3])
   var addr_pre [3]string
   var tester_addr [3]string
   for i:=0;i<3;i++{
@@ -154,7 +166,8 @@ func StartTest(conf map[string]string) string{
   cnt := tot
   remaining = tot
   fmt.Println("********************* Start Testing *****************************")
-  for i := 0; i < tot; i++ {
+  var dura_total time.Duration
+  for i := 0; i < tot && not_forced_to_quit ; i++ {
     testname := conf["pre"]+strconv.Itoa(i)+".test"
     if conf["fmt"] != "true"{ //no need to specify each test case name
       testname = conf["pre"]+conf[strconv.Itoa(i)]
@@ -172,6 +185,7 @@ func StartTest(conf map[string]string) string{
       res, fail := TestUnit(addr_pre, tester_addr, testname, auto_restart)
       end_time :=time.Now()
       var dura time.Duration = end_time.Sub(start_time)
+      dura_total += dura
       if conf["auto_restart_server"]=="true"{
         time.Sleep(time.Millisecond * 1500)
         All_request(tester_addr[:], "stop_server")
@@ -193,10 +207,11 @@ func StartTest(conf map[string]string) string{
   fmt.Println("********************* Finish Testing *****************************")
 
   if cnt == tot {
-    res+="Success"
+    res+="\nSuccess\n"
   } else {
-    res+="Fail"
+    res+="\nFail\n"
   }
+  res+= fmt.Sprintf("Total Time: %f mins\n\n", dura_total.Minutes())
 
   fmt.Println(res)
 
