@@ -27,21 +27,23 @@ func RPC_Addr(me int, conf map[string]string) string {
 			panic(conf)
 		}
 
-	if conf["use_same_port"] == "true" {
-		p,err := strconv.Atoi(conf["RPCport"])
-		if err != nil {
-			println("Failed to parse conf[port]")
-			panic(err)
-		}
-		return ip+":"+strconv.Itoa(p)
-	}
+	if conf["use_different_port"] == "true" {
 
-	p,err := strconv.Atoi(conf["RPC_port_"+id])
-		if err != nil {
-			fmt.Printf("Failed to parse : RPC_port_%s : %s\n",id, conf["port_"+id]);
-			panic(err)
-		}
+		p,err := strconv.Atoi(conf["RPC_port_"+id])
+			if err != nil {
+				fmt.Printf("Failed to parse : RPC_port_%s : %s\n",id, conf["port_"+id]);
+				panic(err)
+			}
+		return ip+":"+strconv.Itoa(p)
+
+	}
+	p,err := strconv.Atoi(conf["RPCport"])
+	if err != nil {
+		println("Failed to parse conf[port]")
+		panic(err)
+	}
 	return ip+":"+strconv.Itoa(p)
+
 }
 
 func usage(){

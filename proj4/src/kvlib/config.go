@@ -38,21 +38,22 @@ func JsonSucc(Val string)(string){
 
 func Find_Port(me int, conf map[string]string) (int){
   id := fmt.Sprintf("n%02d", me+1)
-	if conf["use_same_port"] == "true" {
-		p,err := strconv.Atoi(conf["port"])
-		if err != nil {
-			println("Failed to parse conf[port]")
-			panic(err)
-		}
-		return p
+	if conf["use_different_port"] == "true" {
+    p,err := strconv.Atoi(conf["port_"+id])
+  		if err != nil {
+  			fmt.Printf("Failed to parse :"+"port_%s : %s\n", id, conf["port_"+id]);
+  			panic(err)
+  		}
+  	return p	
 	}
+  p,err := strconv.Atoi(conf["port"])
+  if err != nil {
+    println("Failed to parse conf[port]")
+    panic(err)
+  }
+  return p
 
-	p,err := strconv.Atoi(conf["port_"+id])
-		if err != nil {
-			fmt.Printf("Failed to parse :"+"port_%s : %s\n", id, conf["port_"+id]);
-			panic(err)
-		}
-	return p
+
 }
 
 func Det_role() int {

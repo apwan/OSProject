@@ -1,3 +1,6 @@
+start_server 1
+start_server 2
+start_server 3
 Sleep 500
 Switch 1
 Put hello world
@@ -11,3 +14,6 @@ Get shut
 Switch 3
 Get hello
 Sleep 500
+stop_server 1
+stop_server 2
+stop_server 3
