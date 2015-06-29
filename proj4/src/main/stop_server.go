@@ -7,6 +7,7 @@ import(
   "os/exec"
   "strconv"
   "bytes"
+  "net/http"
 
   // our lib
   . "kvlib"
@@ -20,20 +21,36 @@ var (
 
 func usage(){
   fmt.Println("Usage: bin/stop_server <n01|n02|...>")
-  os.Exit(1)
 }
 
 func main(){
-  conf := ReadJson("conf/settings.conf")
-
   if role<0 {
     usage()
-  }else{
+    return
+  }
+  conf := ReadJson("conf/settings.conf")
+  ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
+  ports := []string{conf["port"],conf["port_n01"],conf["port_n02"],conf["port_n03"]}
+  if conf["use_different_port"]!="true"{
+    ports[1],ports[2],ports[3] = ports[0],ports[0],ports[0]
+  }
 
       fmt.Printf("Stop Server %d\n", role)
-      port := Find_Port(role-1, conf)
+      addr := fmt.Sprintf("http://%s:%s/kvman/shutdown", ips[role], ports[role])
+
+      if conf["stop_by_kill"]=="false"{
+        resp,err := http.Get(addr)
+        if err!=nil{
+          fmt.Println(err)
+        }else{
+          res:=DecodeStr(resp)
+          fmt.Println(res)
+        }
+        return
+      }
+
       // lsof -t -i:[port]
-      cmd := exec.Command("lsof",[]string{"-t", "-i:"+strconv.Itoa(port)}...);
+      cmd := exec.Command("lsof",[]string{"-t", "-i:"+ports[role]}...);
       o,_ := cmd.Output()
       if len(o)<=1 {
         fmt.Println("Fail to get pid")
@@ -53,7 +70,6 @@ func main(){
         os.Exit(1)
       }
 
-  }
 
 
 }

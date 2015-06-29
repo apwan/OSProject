@@ -7,7 +7,7 @@ import(
   "os/exec"
   "time"
   "log"
-  "bytes"
+  "strings"
   "strconv"
   //our lib
   . "kvlib"
@@ -35,10 +35,13 @@ func check_alive_Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func start_server_Handler(w http.ResponseWriter, r *http.Request) {
+  /*
   if pr != nil{
+    pr.Kill()
     fmt.Fprintf(w, "Server %d Already Started: %s",role, pr)
     return
   }
+  */
   attr := &os.ProcAttr{
         Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
     }
@@ -60,19 +63,15 @@ func kill_server_Handler(w http.ResponseWriter, r *http.Request) {
   }
 }
 func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
-  
-  cmd := exec.Command("bin/stop_server", []string{fmt.Sprintf("n%02d", role)}...)
-  o,e := cmd.Output()
   var res string
+  id := fmt.Sprintf("n%02d", role)
+  cmd := exec.Command("bin/stop_server", []string{id}...)
+  o,e := cmd.Output()
+
   if e!=nil || len(o)<=1 {
     res = "Error"
   }else{
-    ed := bytes.IndexByte(o,'\n')
-    if ed<1{
-      ed = len(o)-1
-    }
-    res = string(o[:ed])
-
+    res = strings.Replace(string(o[:]),"\n"," ",-1)
   }
   pr = nil
 	fmt.Fprintf(w, "Tester %d Stop Server: %s",role, res)
@@ -98,8 +97,8 @@ func main_Handler(w http.ResponseWriter, r *http.Request){
     if val=="true"{
       fmt.Fprintf(w,"Forced to finish!")
       go func(){
-        All_request(Tester_addr, "stop_server")
-        All_request(Tester_addr, "shutdown")
+        All_request(Server_addr, "/kvman/shutdown")
+        All_request(Tester_addr, "/test/shutdown")
         time.Sleep(time.Millisecond * 1000)
         os.Exit(0)
       }()
@@ -119,8 +118,8 @@ func main_Handler(w http.ResponseWriter, r *http.Request){
           fmt.Println(count,"\tWait for current case to finish!\n")
           count--
         }
-        All_request(Tester_addr, "stop_server")
-        All_request(Tester_addr, "shutdown")
+        All_request(Server_addr, "/kvman/shutdown")
+        All_request(Tester_addr, "/test/shutdown")
         flag = 1
       }()
 
@@ -145,21 +144,11 @@ func main_Handler(w http.ResponseWriter, r *http.Request){
 // run on main tester
 func StartTest(conf map[string]string) string{
   res := ""
-  ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
-  ports := []string{conf["port"],conf["port_n01"],conf["port_n02"],conf["port_n03"]}
-  if conf["use_different_port"]!="true"{
-    ports[1],ports[2],ports[3] = ports[0],ports[0],ports[0]
-  }
-  tester_ports := []string{conf["test_port00"],conf["test_port01"],conf["test_port02"],conf["test_port03"]}
   // may need to check using the same port
 
-  res += fmt.Sprintf("config: \n\t srv01: %s\n\t srv02: %s\n\t srv03: %s\n",ips[1],ips[2],ips[3])
-  var addr_pre [3]string
-  var tester_addr [3]string
-  for i:=0;i<3;i++{
-    addr_pre[i] = fmt.Sprintf("http://%s:%s",ips[i+1],ports[i+1])
-    tester_addr[i] = fmt.Sprintf("http://%s:%s", ips[i+1], tester_ports[i+1])
-  }
+  res += fmt.Sprintf("config: \n\t srv01: %s\n\t srv02: %s\n\t srv03: %s\n",
+    Server_addr[0],Server_addr[1],Server_addr[2])
+
   tot,_ := strconv.Atoi(conf["test_total"])
   cnt := tot
   remaining = tot
@@ -172,7 +161,7 @@ func StartTest(conf map[string]string) string{
     }
     auto_restart := false
     if conf["auto_restart_server"]=="true"{
-      All_request(tester_addr[:], "start_server")
+      All_request(Tester_addr, "/test/start_server")
       auto_restart = true
       time.Sleep(time.Millisecond * 1500)
     }
@@ -180,13 +169,13 @@ func StartTest(conf map[string]string) string{
 
 
       start_time := time.Now()
-      res, fail := TestUnit(addr_pre, tester_addr, testname, auto_restart)
+      res, fail := TestUnit(Server_addr, Tester_addr, testname, auto_restart)
       end_time :=time.Now()
       var dura time.Duration = end_time.Sub(start_time)
       dura_total += dura
       if conf["auto_restart_server"]=="true"{
-        time.Sleep(time.Millisecond * 1500)
-        All_request(tester_addr[:], "stop_server")
+        All_request(Tester_addr, "/test/stop_server")
+        time.Sleep(time.Millisecond * 500)
       }
       if conf["with_err_msg"]=="true"{
         fmt.Printf("%s", res)
@@ -219,7 +208,7 @@ func StartTest(conf map[string]string) string{
 
 func All_request(addr []string, req string){
   for i:=0;i<len(addr);i++ {
-    resp, err := http.Get(addr[i] + "/test/"+req)
+    resp, err := http.Get(addr[i] +req)
     if err != nil{
       fmt.Println(err)
     }else{
@@ -236,6 +225,7 @@ var auxTesterHandlers map[string]http.HandlerFunc = map[string]http.HandlerFunc{
 }
 
 var Tester_addr []string = make([]string, 3)
+var Server_addr []string = make([]string, 3)
 
 func mainTesterCheck(addr []string)bool{
     count := 0
@@ -260,15 +250,20 @@ func main(){
   if role == 0{
     fmt.Println("Launch main tester")
   }else{
-    fmt.Printf("Launch tester %d\n",role)
+    fmt.Printf("Launch   tester %d\n",role)
   }
 
   conf := ReadJson("conf/test.conf")
   ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
+  ports := []string{conf["port"],conf["port_n01"],conf["port_n02"],conf["port_n03"]}
+  if conf["use_different_port"]!="true"{
+    ports[1],ports[2],ports[3] = ports[0],ports[0],ports[0]
+  }
   tester_ports := []string{conf["test_port00"],conf["test_port01"],conf["test_port02"],conf["test_port03"]}
 
   for i:=1;i<=3;i++{
     Tester_addr[i-1] = "http://" +ips[i]+ ":" + tester_ports[i]
+    Server_addr[i-1] = "http://" +ips[i]+":"+ ports[i-1]
   }
 
   if role == 0{
@@ -283,7 +278,7 @@ func main(){
         time.Sleep(time.Millisecond * 2000)
       }
     }
-    defer All_request(Tester_addr, "shutdown") //remember to shutdown remote testers
+    defer All_request(Tester_addr, "/test/shutdown") //remember to shutdown remote testers
 
     s := &http.Server{
   		Addr: ":"+tester_ports[role],
@@ -317,9 +312,7 @@ func main(){
   		WriteTimeout: 10 * time.Second,
   		MaxHeaderBytes: 1<<20,
   	}
-    if conf["stop_by_kill"]=="true"{
-      auxTesterHandlers["/test/stop_server"]=kill_server_Handler
-    }
+
     for key,val := range auxTesterHandlers{
       http.HandleFunc(key,val)
     }

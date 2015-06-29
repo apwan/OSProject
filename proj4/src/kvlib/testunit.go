@@ -25,18 +25,21 @@ func checkDump(t map[string]string, d map[string]interface{}) int {
     return 0
 }
 
-func TestUnit(addr [3]string, tester_addr [3]string, fn string, auto_restart bool) (r string, fail int) {
+func TestUnit(addr []string, tester_addr []string, fn string, auto_restart bool) (r string, fail int) {
     f, _ := os.Open(fn)
     defer f.Close()
     table := make(map[string]string)
     // var tableBlock map[string]int
     var s [4]string
+    nservers := len(addr)
     var srv_cur, livingServer int
     livingServer = 0
     var alive [3]int = [3]int{0,0,0}
     if auto_restart{
-      livingServer = 3
-      alive[0],alive[1],alive[2] = 1,1,1
+      livingServer = nservers
+      for i:=0;i<3;i++ {
+        alive[i] = 1
+      }
       fmt.Println("auto_restart server!")
     }
     var inBlock, cnt /*, cins */ int
@@ -283,6 +286,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string, auto_restart boo
                     }(s)
                     break
                 }else{
+                  fmt.Println("Get")
 
 
                 resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
@@ -426,13 +430,14 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string, auto_restart boo
                 */
                 inBlock = 0
             case "Switch":
+              fmt.Println("start_server")
                 tmp, _ := strconv.Atoi(s[1])
                 srv_cur = tmp - 1
                 r += fmt.Sprintf("Switch to Server: %d\n", srv_cur)
             case "start_server":
+              fmt.Println("start_server")
                 t, _ := strconv.Atoi(s[1])
                 if alive[t - 1] == 0 {
-
 
                     resp, err := http.Get(tester_addr[t-1] + "/test/start_server")
                     if err != nil{
@@ -448,10 +453,12 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string, auto_restart boo
                     //exec.Run(exec.Command("bin/start_server", fmt.Sprintf("%v", t)))
                 }
             case "stop_server":
+              fmt.Println("stop_server")
                 t, _ := strconv.Atoi(s[1])
                 if alive[t - 1] == 1 {
-                    time.Sleep(time.Millisecond*500)
+                  //time.Sleep(time.Millisecond*1500)
                     resp, err := http.Get(tester_addr[t-1] + "/test/stop_server")
+
                     if err != nil{
                       fmt.Println(err)
                       r += "Error occured.\n"
