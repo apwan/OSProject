@@ -456,7 +456,7 @@ func TestUnit(addr []string, tester_addr []string, fn string, auto_restart bool)
                 t, _ := strconv.Atoi(s[1])
                 if alive[t - 1] == 1 {
                   //time.Sleep(time.Millisecond*1500)
-                    resp, err := http.Get(tester_addr[t-1] + "/test/stop_server ")
+                    resp, err := http.Get(tester_addr[t-1] + "/test/stop_server")
 
                     if err != nil{
                       fmt.Println(err)

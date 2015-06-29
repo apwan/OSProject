@@ -221,7 +221,7 @@ func All_request(addr []string, req string){
 var auxTesterHandlers map[string]http.HandlerFunc = map[string]http.HandlerFunc{
     "/test":check_alive_Handler,
     "/test/start_server":start_server_Handler,
-    "/test/stop_server":stop_server_Handler,
+    "/test/stop_server":kill_server_Handler,
     "/test/shutdown":shutdown_Handler,
 }
 
@@ -312,9 +312,8 @@ func main(){
   		WriteTimeout: 10 * time.Second,
   		MaxHeaderBytes: 1<<20,
   	}
-    if conf["stop_by_kill"]=="true"{
-      fmt.Println("stop by kill")
-      auxTesterHandlers["stop_server"] = kill_server_Handler
+    if conf["stop_by_kill"]!="true"{
+      auxTesterHandlers["/test/stop_server"] = stop_server_Handler
     }
 
     for key,val := range auxTesterHandlers{
