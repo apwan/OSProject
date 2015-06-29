@@ -79,6 +79,10 @@ func main(){
 			case signal := <-stop:
 				fmt.Printf("Got signal:%v\n", signal)
 				kva_me.Kill()
+				return
+			case <-kva_me.Death:
+				fmt.Printf("DB killed by other.")
+				return
 		}
 
 	}else{
@@ -86,12 +90,24 @@ func main(){
 			kva[i] = kvpaxos.StartServer(kvh, i)
 		}
 		fmt.Printf("Serving HTTP\n")
-		select {
-			case signal := <-stop:
-				fmt.Printf("Got signal:%v\n", signal)
 
-			for i := 0; i < nservers; i++ {
-				kva[i].Kill()
+		agg_death:=make(chan int)
+		for i := 0; i < nservers; i++ {
+			go func(id int){
+				select{
+					case <-kva[id].Death:
+						agg_death<-id
+				}
+			}(i)
+		}
+		for i := 0; i < nservers; i++ {
+			select {
+				case signal := <-stop:
+					fmt.Printf("Got signal:%v\n", signal)
+					for i := 0; i < nservers; i++ {kva[i].Kill()}
+					return
+				case id:=<-agg_death:
+					fmt.Printf("DB#%d killed by other.",id)
 			}
 		}
 	}

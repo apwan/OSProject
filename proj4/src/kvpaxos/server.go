@@ -84,6 +84,7 @@ type KVPaxos struct {
   //Results map[int]string//for debug only
 
   HTTPListener *stoppableHTTPlistener.StoppableListener
+  Death chan int
 }
 
 
@@ -384,6 +385,7 @@ func (kv *KVPaxos) kill() {
     kv.HTTPListener.Stop()
     println("HTTP stopped.")
   }
+  kv.Death<-1
 }
 func (kv *KVPaxos) Kill() {//public wrapper
   kv.kill()
@@ -649,6 +651,7 @@ func StartServer(servers []string, me int) *KVPaxos {
   
   kv.doneOps=make(map[int]bool)
   kv.latestClientOpResult=make(map[int]ID_Ret_Pair)
+  kv.Death=make(chan int,2)
 
   go kv.housekeeper()
   // Your initialization code here.
