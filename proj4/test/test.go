@@ -60,10 +60,7 @@ func kill_server_Handler(w http.ResponseWriter, r *http.Request) {
   }
 }
 func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
-  if pr==nil {
-    fmt.Fprintf(w, "Server %d not started yet",role)
-    return
-  }
+  
   cmd := exec.Command("bin/stop_server", []string{fmt.Sprintf("n%02d", role)}...)
   o,e := cmd.Output()
   var res string
@@ -75,9 +72,10 @@ func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
       ed = len(o)-1
     }
     res = string(o[:ed])
-    pr = nil
+
   }
-	fmt.Fprintf(w, "Success: Tester %d %s",role, res)
+  pr = nil
+	fmt.Fprintf(w, "Tester %d Stop Server: %s",role, res)
 }
 func shutdown_Handler(w http.ResponseWriter, r *http.Request){
   fmt.Fprintf(w, "Goodbye main tester! Tester %d shutdown!", role)
@@ -245,7 +243,7 @@ func mainTesterCheck(addr []string)bool{
       _,err := http.Get(addr[i]+"/test")
       if err != nil{
         fmt.Println(err)
-        fmt.Println("Remote tester %d not alive!", i+1)
+        fmt.Printf("Remote tester %d not alive!\n", i+1)
       }else{
         count ++
       }
@@ -281,7 +279,7 @@ func main(){
         fmt.Println("Main tester start testing!")
         break
       }else{
-        fmt.Println("Main terter wait for another check")
+        fmt.Println("Main tester wait for another check")
         time.Sleep(time.Millisecond * 2000)
       }
     }
