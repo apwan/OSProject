@@ -129,7 +129,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     */
                     go func(s [4]string) {
                         resp, err := http.PostForm(addr[srv_cur] + "/kv/update", url.Values{"key": {s[1]}, "value": {s[2]}})
-                        /*
+
                         if err == nil {
                             res := DecodeJson(resp)
                             if res["success"] == "true" {
@@ -139,7 +139,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
-                        */
+                        
                     }(s)
                     break
                 }
@@ -252,23 +252,23 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                             res := DecodeJson(resp)
                             if res["success"] == "true" {
                                 if _, ok := table[s[1]]; ok == false {
-                                    ch <- 1
+                                    //ch <- 1
                                 } else {
                                     if res["value"] == table[s[1]] {
-                                        ch <- 0
+                                        //ch <- 0
                                     } else {
-                                        ch <- 1
+                                        //ch <- 1
                                     }
                                 }
                             } else if _, ok := table[s[1]]; ok == true {
-                                ch <- 1
+                                //ch <- 1
                             } else {
-                                ch <- 0
+                                //ch <- 0
                             }
                         } else {
 
                         }
-                        
+
                     }(s)
                     break
                 }else{
