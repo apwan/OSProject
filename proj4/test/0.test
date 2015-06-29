@@ -1,0 +1,13 @@
+Sleep 500
+Switch 1
+Put hello world
+Switch 2
+Get hello
+Switch 3
+Put hello good
+Put shut down
+Switch 1
+Get shut
+Switch 3
+Get hello
+Sleep 500

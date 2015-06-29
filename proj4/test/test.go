@@ -24,9 +24,13 @@ func usage(){
 
 var(
   role = Det_role()
-  pr *os.Process = nil
+  pr *os.Process = nil // keep the kv server process for killing
 )
 
+func check_alive_Handler(w http.ResponseWriter, r *http.Request) {
+  fmt.Fprintf(w, "I am alive!")
+  return
+}
 
 func start_server_Handler(w http.ResponseWriter, r *http.Request) {
   if pr != nil{
@@ -36,15 +40,22 @@ func start_server_Handler(w http.ResponseWriter, r *http.Request) {
   attr := &os.ProcAttr{
         Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
     }
-
   pr,_ = os.StartProcess("bin/start_server", []string{"bin/starst_server",fmt.Sprintf("n%02d", role)}, attr)
 	//res := CmdStartServer(strconv.Itoa(role))
 	fmt.Fprintf(w, "Start Server %d: %s",role, pr)
 }
 func kill_server_Handler(w http.ResponseWriter, r *http.Request) {
+  if pr==nil{
+    fmt.Fprintf(w, "No server %d process to kill", role)
+    return
+  }
   err := pr.Kill()
 	//res := CmdStopServer(strconv.Itoa(role))
-	fmt.Fprintf(w, "Stop Server %d: %s",role, err)
+  if err!=nil{
+    fmt.Fprintf(w, "Kill Server %d Failed: %s", role, err)
+  }else{
+    fmt.Fprintf(w, "Kill Server %d Success!", role)
+  }
 }
 func stop_server_Handler(w http.ResponseWriter, r *http.Request) {
   if pr==nil {
@@ -92,7 +103,7 @@ func StartTest(conf map[string]string) string{
   }
   tot,_ := strconv.Atoi(conf["test_total"])
   cnt := tot
-
+  fmt.Println("********************* Start Testing *****************************")
   for i := 0; i < tot; i++ {
     testname := conf["pre"]+strconv.Itoa(i)+".test"
     if conf["fmt"] != "true"{ //no need to specify each test case name
@@ -112,6 +123,7 @@ func StartTest(conf map[string]string) string{
       cnt -= fail
 
   }
+  fmt.Println("********************* Finish Testing *****************************")
 
   if cnt == tot {
     res+="Success"
@@ -119,13 +131,43 @@ func StartTest(conf map[string]string) string{
     res+="Fail"
   }
 
+  fmt.Println(res)
+
   return res
 }
 
 
+func All_request(addr []string, req string){
+  for i:=0;i<len(addr);i++ {
+    resp, err := http.Get(addr[i] + "/test/"+req)
+    if err != nil{
+      fmt.Println(err)
+    }else{
+      fmt.Println(DecodeStr(resp))
+    }
+  }
+}
 
+var auxTesterHandlers map[string]http.HandlerFunc = map[string]http.HandlerFunc{
+    "/test":check_alive_Handler,
+    "/test/start_server":start_server_Handler,
+    "/test/stop_server":stop_server_Handler,
+    "/test/shutdown":shutdown_Handler,
+}
 
-
+func mainTesterCheck(addr []string)bool{
+    count := 0
+    for i:=0;i<len(addr);i++{
+      _,err := http.Get(addr[i]+"/test")
+      if err != nil{
+        fmt.Println(err)
+        fmt.Println("Remote tester %d not alive!", i+1)
+      }else{
+        count ++
+      }
+    }
+    return count >= len(addr)
+}
 
 
 func main(){
@@ -141,69 +183,59 @@ func main(){
 
   conf := ReadJson("conf/test.conf")
   ips := []string{"127.0.0.1",conf["n01"],conf["n02"],conf["n03"]}
-  ports := []string{conf["test_port00"],conf["test_port01"],conf["test_port02"],conf["test_port03"]}
+  tester_ports := []string{conf["test_port00"],conf["test_port01"],conf["test_port02"],conf["test_port03"]}
+  var tester_addr []string = make([]string, 3)
+  for i:=1;i<=3;i++{
+    tester_addr[i-1] = "http://" +ips[i]+ ":" + tester_ports[i]
+  }
 
   if role == 0{
     // check connections with remote testers
-    for i:=1;i<=3;i++ {
-      resp, err := http.Get("http://" +ips[i]+ ":" + ports[i] + "/test/start_server")
-      if err != nil{
-        fmt.Println(err)
+    for i:=0;i<30;i++{
+      if mainTesterCheck(tester_addr){
+        fmt.Println("All remote testers alive!")
+        fmt.Println("Main tester start testing!")
+        break
       }else{
-        fmt.Println(DecodeStr(resp))
+        fmt.Println("Main terter wait for another check")
+        time.Sleep(time.Millisecond * 2000)
       }
     }
+    defer All_request(tester_addr, "shutdown") //remember to shutdown remote testers
 
-    time.Sleep(time.Millisecond * 3000)
+
+    All_request(tester_addr, "start_server")
+    time.Sleep(time.Millisecond * 2000)
     /* run test cases here !  */
 
 
-    fmt.Println(StartTest(conf))
-
-
-
-
-
-
+    StartTest(conf)
 
 
     /* all test cases finished ! */
+    time.Sleep(time.Millisecond * 2000)
+    All_request(tester_addr, "stop_server")
 
-    for i:=1;i<=3;i++ {
-      resp, err := http.Get("http://" +ips[i]+ ":" + ports[i] + "/test/stop_server")
-      if err != nil{
-        fmt.Println(err)
-      }else{
-        fmt.Println(DecodeStr(resp))
-      }
-    }
-    time.Sleep(time.Millisecond * 3000)
+    time.Sleep(time.Millisecond * 2000)
 
-    for i:=1;i<=3;i++ {
-      resp, err := http.Get("http://" +ips[i]+ ":" + ports[i] + "/test/shutdown")
-      if err != nil{
-        fmt.Println(err)
-      }else{
-        fmt.Println(DecodeStr(resp))
-      }
-    }
     fmt.Println("Main tester finished!\n")
 
   }else{
     s := &http.Server{
-  		Addr: ":"+ports[role],
+  		Addr: ":"+tester_ports[role],
   		Handler: nil,
   		ReadTimeout: 10 * time.Second,
   		WriteTimeout: 10 * time.Second,
   		MaxHeaderBytes: 1<<20,
   	}
-    http.HandleFunc("/test/start_server", start_server_Handler)
     if conf["stop_by_kill"]=="true"{
-      http.HandleFunc("/test/stop_server", kill_server_Handler)
-    }else{
-      http.HandleFunc("/test/stop_server", stop_server_Handler)
+      auxTesterHandlers["/test/stop_server"]=kill_server_Handler
     }
-    http.HandleFunc("/test/shutdown", shutdown_Handler)
+    for key,val := range auxTesterHandlers{
+      http.HandleFunc(key,val)
+    }
+
+
     log.Fatal(s.ListenAndServe())
   }
 }

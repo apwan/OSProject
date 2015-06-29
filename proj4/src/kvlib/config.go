@@ -65,7 +65,12 @@ func Det_role() int {
   }
   tmp := []rune(os.Args[1])
   if len(tmp)!=3 || tmp[0]!='n'{
-    return -1
+    a,e := strconv.Atoi(os.Args[1])
+    if e==nil{
+      return a
+    }else{
+      return -1
+    }
   }
   ret,err := strconv.Atoi(string(tmp[1:]))
   if(err!=nil){

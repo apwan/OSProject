@@ -39,7 +39,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
     // var ins chan [4]string
     var ent chan string
     r += fmt.Sprintf("Testing %s..\n\n", fn)
-    fmt.Println(r)
     for {
         l, _ := fmt.Fscanln(f, &s[0], &s[1], &s[2], &s[3])
         if l==0{
@@ -60,7 +59,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
         r += fmt.Sprintf("\nResult: ")
         switch s[0] {
         case "Put":
-          fmt.Println("PUT")
                 if inBlock == 1 {
                     // tableBlock[s[1]] = 1
                     cnt++
@@ -119,7 +117,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     r += fmt.Sprintf("Error occurred.\n")
                 }
             case "Update":
-              fmt.Println("Update")
                 if inBlock == 1 {
                     // tableBlock[s[1]] = 1
                     cnt++
@@ -179,7 +176,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     r += fmt.Sprintf("Error occurred.\n")
                 }
             case "Delete":
-              fmt.Println("DELETE")
                 if inBlock == 1 {
                     // tableBlock[s[1]] = 1
                     cnt++
@@ -245,7 +241,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     r += fmt.Sprintf("Error occurred.\n")
                 }
             case "Get":
-              fmt.Println("GET")
                 if inBlock == 1 {
                     // tableBlock[s[1]] = 1
                     cnt++
@@ -294,7 +289,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                 }else{
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
-                    fmt.Println("Decode Json")
                     if res["success"] == "true" {
                         if _, ok := table[s[1]]; ok == false {
                             r += "Unexpected getting success.\n"
@@ -327,7 +321,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                 }
             */
             case "Sleep":
-              fmt.Println("Sleep")
                 if inBlock == 0 {
                     t, _ := strconv.Atoi(s[1])
                     time.Sleep(time.Duration(t) * time.Millisecond)
@@ -415,7 +408,6 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                 */
                 inBlock = 0
             case "Switch":
-              fmt.Println("Switch")
                 tmp, _ := strconv.Atoi(s[1])
                 srv_cur = tmp - 1
                 r += fmt.Sprintf("Switch to Server: %d\n", srv_cur)
@@ -446,6 +438,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     //exec.Run(exec.Command("bin/stop_server", fmt.Sprintf("%v", t)))
                 }
             default:
+                fmt.Println("For Debug: Unrecognised instruction.")
                 r += "Unrecognised instruction.\n"
         }
     }
