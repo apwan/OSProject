@@ -3,7 +3,6 @@ package main
 import(
   //"net/http"
   "fmt"
-  "os"
   "os/exec"
   "strconv"
   "bytes"
@@ -38,38 +37,38 @@ func main(){
       fmt.Printf("Stop Server %d\n", role)
       addr := fmt.Sprintf("http://%s:%s/kvman/shutdown", ips[role], ports[role])
 
-      if conf["stop_by_kill"]=="false"{
         resp,err := http.Get(addr)
-        if err!=nil{
-          fmt.Println(err)
-        }else{
+        if err==nil{
           res:=DecodeStr(resp)
           fmt.Println(res)
+          return
         }
-        return
-      }
-
-      // lsof -t -i:[port]
-      cmd := exec.Command("lsof",[]string{"-t", "-i:"+ports[role]}...);
-      o,_ := cmd.Output()
-      if len(o)<=1 {
-        fmt.Println("Fail to get pid")
-        os.Exit(1)
-      }
-      pid := string(o[:bytes.IndexByte(o,'\n')])
-      fmt.Printf("Server PID: %s\n", pid)
-      _,e := strconv.Atoi(pid)
-      if e!=nil {
-        fmt.Printf("Fail to parse PID: %s\n", e)
-        os.Exit(1)
-      }
-      cmd = exec.Command("kill",[]string{pid}...)
-      e = cmd.Run()
-      if e!=nil {
-        fmt.Printf("Stop Server Failed: %s\n",e)
-        os.Exit(1)
-      }
-
+          resp,err=http.Get(addr)
+          if err==nil{
+            res:=DecodeStr(resp)
+            fmt.Println(res)
+            return
+          }
+           // forced // lsof -t -i:[port]
+            cmd := exec.Command("lsof",[]string{"-t", "-i:"+ports[role]}...);
+            o,_ := cmd.Output()
+            if len(o)<=1 {
+              fmt.Println("Fail to get pid")
+              return
+            }
+            pid := string(o[:bytes.IndexByte(o,'\n')])
+            fmt.Printf("Server PID: %s\n", pid)
+            _,e := strconv.Atoi(pid)
+            if e!=nil {
+              fmt.Printf("Fail to parse PID: %s\n", e)
+              return
+            }
+            cmd = exec.Command("kill",[]string{pid}...)
+            e = cmd.Run()
+            if e!=nil {
+              fmt.Printf("Stop Server Failed: %s\n",e)
+              return
+            }
 
 
 }
