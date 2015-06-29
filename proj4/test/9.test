@@ -1,0 +1,117 @@
+Sleep 500
+Switch 1
+Update 39 74
+Update 90 61
+Switch 2
+Delete 81
+Block
+Update 25 5
+Put 10 36
+Delete 32
+Put 31 62
+Put 81 76
+Get 11
+Endblock
+Sleep 500
+Delete 2
+Delete 56
+Block
+Update 15 1
+Switch 3
+Get 37
+Put 69 72
+Update 14 34
+Delete 99
+Delete 95
+Put 94 15
+Put 62 37
+Put 68 73
+Update 59 92
+Put 37 82
+Put 10 91
+Update 9 20
+Update 57 32
+Get 26
+Put 13 24
+Put 44 51
+Get 2
+Put 53 44
+Get 39
+Delete 93
+Delete 64
+Delete 80
+Switch 2
+Put 63 93
+Get 24
+Delete 6
+Put 56 42
+Put 75 14
+Get 67
+Delete 58
+Get 100
+Delete 50
+Get 8
+Get 3
+Update 84 5
+Update 38 9
+Update 60 33
+Update 89 32
+Delete 26
+Delete 31
+Get 85
+Get 68
+Get 11
+Put 67 58
+Delete 79
+Get 15
+Update 95 19
+Put 12 18
+Delete 87
+Get 56
+Put 76 24
+Put 40 20
+Delete 71
+Update 38 61
+Endblock
+Sleep 500
+Update 80 91
+Switch 2
+Update 91 58
+Get 4
+Put 80 10
+Update 91 93
+Update 28 42
+Delete 78
+Update 37 92
+Get 16
+Put 86 82
+Delete 59
+Get 16
+Delete 73
+Update 32 8
+Update 28 39
+Delete 51
+Put 63 2
+Delete 92
+Delete 50
+Update 45 38
+Delete 42
+Switch 2
+Put 28 42
+Update 2 33
+Delete 40
+Update 99 40
+Put 79 91
+Put 78 29
+Update 67 48
+Block
+Get 79
+Get 71
+Delete 45
+Delete 94
+Delete 53
+Update 18 76
+Get 7
+Endblock
+Sleep 500
+Sleep 500

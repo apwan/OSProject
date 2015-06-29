@@ -36,7 +36,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
     var alive [3]int = [3]int{1,1,1}
     var inBlock, cnt /*, cins */ int
     inBlock = 0
-    // var ch chan int
+    var ch chan int
     // var ins chan [4]string
     var ent chan string
     r += fmt.Sprintf("Testing %s..\n\n", fn)
@@ -59,7 +59,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
         }
         r += fmt.Sprintf("\nResult: ")
         switch s[0] {
-        case "Put":
+            case "Put":
                 if inBlock == 1 {
                     // tableBlock[s[1]] = 1
                     cnt++
@@ -81,6 +81,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
+                        ch <- 0
 
                     }(s)
                     break
@@ -140,6 +141,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
+                        ch <- 0
 
                     }(s)
                     break
@@ -166,7 +168,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                             r += fmt.Sprintf("FATAL ERROR!!!\n")
                             fail = 1
                         }
-                    } else if _, ok := table[s[1]]; ok == true {
+                    } else if _, ok := table[s[1]]; ok == false {
                             r += fmt.Sprintf("Expected updating failure.\n")
                     } else {
                         r += fmt.Sprintf("Unexpected updating failure.\n")
@@ -198,6 +200,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
+                        ch <- 0
 
                     }(s)
                     break
@@ -269,6 +272,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                         } else {
 
                         }
+                        ch <- 0
 
                     }(s)
                     break
@@ -332,7 +336,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
             case "Block":
                 inBlock = 1
                 // tableBlock = make(map[string]int)
-                // ch = make(chan int, 10000)
+                ch = make(chan int, 10000)
                 // ins = make(chan [4]string, 10000)
                 ent = make(chan string, 10000)
                 cnt = 0
@@ -340,6 +344,9 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                 r += "Entering a block.\n"
             case "Endblock":
                 r += fmt.Sprintf("Leaving a block of %v legal instructions.\n", cnt)
+                for i := 0; i < cnt; i++ {
+                    <-ch
+                }
                 for i := 0; i < cnt; i++ {
                     k := <-ent
                     res := "SOMETHINGYOUDONTUSEASAVALUE" // Well, you may safely use it as a value, whatever.
