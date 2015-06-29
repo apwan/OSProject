@@ -420,7 +420,7 @@ func (kv *KVPaxos) housekeeper() {
       if Debug{println("KVDB dead, housekeeper done") }
       break
     }
-    time.Sleep(time.Millisecond*100)
+    time.Sleep(time.Millisecond*10)
     curr:=kv.px_touchedPTR-1
     mem:=kv.snapstart
     if Debug {fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem) }
