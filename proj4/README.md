@@ -55,7 +55,7 @@ The value will be returned.
 
 The parameter is provided in `key`  field.
 
-Note: Each HTTP request is treated as independent requests, since the HTTP protocol is stateless; if consistency in unreliable network is desired, the client should provide a unique operation ID in `opid` field, and the server will not repeat multiple requests with the same ID.
+Note: Each HTTP request is treated as independent requests, since the HTTP protocol is stateless; if consistency in unreliable network is desired, the client should provide a unique increasing operation ID in `opid` field, and the server will not repeat multiple requests with the same ID or an older ID.
 
 ### Management service
 #### CountKey `/kvman/countkey` 
