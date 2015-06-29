@@ -196,13 +196,20 @@ func (px *Paxos) Start(seq int, v interface{}) {
     if seq >= px.Min(){
       // Create if not exist
       px.MakePaxosInstance(seq)
-
+      var round uint 
+      round=0
       for !px.dead {
+        round+=1
+        if round>3{
+          round=3
+        }
         // Generate Paxos Number
         px.mu.Lock() // protect px.instances[seq].maxPrepareNum
-        paxosNum := px.instances[seq].maxPrepareNum + rand.Intn(len(px.peers)) + 1
+        //paxosNum := px.instances[seq].maxPrepareNum + rand.Intn(len(px.peers)) + 1
+        paxosNum := px.instances[seq].maxPrepareNum + 1 + rand.Intn((px.me+seq)%len(px.peers)* (1<<round)+1) //random backoff time! different for peers, round robin, and longer if more round crashed!
         px.mu.Unlock()
 
+        if round>1{time.Sleep(time.Duration(rand.Intn((px.me+seq)%len(px.peers)*1+1)-1))} //random backoff sleep, if the system is congested!
         // Prepare phase
         isAccept, replyProposal := px.sendPrepare(seq, paxosNum)
 

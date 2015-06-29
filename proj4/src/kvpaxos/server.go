@@ -107,10 +107,6 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
               }
               time.Sleep(200*time.Millisecond)
           }
-          //if DeepCompareOps(value.(Op),myop) {//succeeded
-          //    if Debug {fmt.Printf("Saw DCSame! %v %v server%d\n",value,myop,kv.me)}
-          //    break;
-          //}
           if value.(Op).OpID==myop.OpID {//succeeded
           //    if Debug {fmt.Printf("Saw OIDSame but DC fail! %v %v\n",value,myop)}
               break;
@@ -216,67 +212,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     if Debug {
         println("P/G Step2")
     }
-    /*
-    //We got ID!
-    //Step2: trace back for previous value
-    var latestVal string
-    var latestValFound=false
-    var useTmpUpValue=false
-    var TmpUpValue string
-    for i:=ID-1;i>=kv.snapstart;i--{ //i>=latest snapshot!
-        de,op:=kv.px.Status(i)
-        for de==false {
-            time.Sleep(10*time.Millisecond)
-            de,op=kv.px.Status(i)
-        }
-        optt,found:=op.(Op)
-        if found==false{
-            return "Not Found type .(Op)",""
-        }
-        if optt.OpType!=PutOp && optt.OpType!=UpdateOp && optt.OpType!=DeleteOp{
-            continue;
-        }
-        //if optt.OpID==myop.OpID{
-         //   fmt.Printf("Saw same OpID %d who %d %d val %s %s \n",myop.OpID,myop.Who,optt.Who,myop.Value,optt.Value);
-        //    fmt.Printf("Saw key %s %s \n",myop.Key,optt.Key);
-        //    continue;
-        //}
-        if optt.Key==myop.Key{
-          if optt.OpID==myop.OpID{continue;}
-
-          if optt.OpType==PutOp{  
-            //might be just justification!!
-
-            latestVal=optt.Value
-            latestValFound=true
-            break
-          }
-
-          if optt.OpType==UpdateOp{  
-            if useTmpUpValue{continue} //not the first Update Op!
-            latestVal=optt.Value
-            latestValFound=true
-            continue
-          }
-
-          if optt.OpType==DeleteOp{  
-            if useTmpUpValue{continue} //not the first Update Op!
-            latestVal=optt.Value
-            latestValFound=true
-            continue
-          }
-          println(optt.OpType)
-          panic("Unknown processing Op except Put/Update!")
-        }
-    }
-    //new step2.5: check snapshot!
-    if latestValFound==false {
-        v, ok := kv.snapshot[myop.Key];
-        if ok {
-          latestValFound=true
-          latestVal=v
-        }
-    }*/
+   
 
     var latestVal=kv.snapshot[myop.Key]
     var latestSucc=true
@@ -752,7 +688,7 @@ func StartServer(servers []string, me int) *KVPaxos {
 
   os.Remove(servers[me])
   var socktype="unix"
-  if RPC_Use_TCP==1{socktype="tcp"}
+  if RPC_Use_TCP==1{socktype="tcp"} // This is to help running servers between different machines!
 
   l, e := net.Listen(socktype, servers[me]);
   if e != nil {
