@@ -60,6 +60,11 @@ func DeepCompareOps(a Op, b Op) (bool){
   a.Who==b.Who
 }
 
+type ID_Ret_Pair struct {
+  OpID int
+  Ret string
+}
+
 type KVPaxos struct {
   mu sync.Mutex
   l net.Listener
@@ -74,7 +79,8 @@ type KVPaxos struct {
   snapshot map[string]string
   snapstart int
 
-  doneOps map[int]string
+  doneOps map[int]bool
+  latestClientOpResult map[int]ID_Ret_Pair
   //Results map[int]string//for debug only
 
   HTTPListener *stoppableHTTPlistener.StoppableListener
@@ -144,9 +150,17 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     if Debug{
         fmt.Printf("P/G Step0, OpType:%s\n",OpName[myop.OpType])
     }
-    if kv.doneOps[myop.OpID]!=""{
-      //repeat process??
-      return "",kv.doneOps[myop.OpID]
+    if kv.doneOps[myop.OpID] {
+      // Might be the latest op repeated, or an even older one
+      lop,found:=kv.latestClientOpResult[myop.Who]
+      if found {
+        lid:=lop.OpID
+        lr:=lop.Ret
+        if lid==myop.OpID {
+          return "",lr
+        }
+      }
+      return "Error: repeated, old request...","" //should not provide error message, to fall through erroneous ops??  
     }
 
     kv.mu.Lock(); // Protect px.instances
@@ -275,7 +289,14 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
       }
       lm:=len(beforeVal)
       if lm>100{lm=100}
-      kv.doneOps[op.OpID]=beforeVal[0:lm]
+      kv.doneOps[op.OpID]=true;//beforeVal[0:lm]
+
+      l,found:=kv.latestClientOpResult[op.Who]
+      if !found || op.OpID>l.OpID { //newer, or not found
+        kv.latestClientOpResult[op.Who]=ID_Ret_Pair{op.OpID, beforeVal}
+      }
+      // should remember the result  if it's the new latest
+
       if op.OpID==myop.OpID{
         break
       }
@@ -397,7 +418,7 @@ func (kv *KVPaxos) housekeeper() {
     mem:=kv.snapstart
     if Debug {fmt.Printf("hosekeeper #%d, max %d, snap %d... \n",kv.me,curr,mem) }
     if(curr-mem> SaveMemThreshold){//start compressing...
-      println("Housekeeper GC starting...");
+      fmt.Printf("Housekeeper GC#%d starting... %d->%d\n",kv.me,mem,curr);
       kv.mu.Lock(); // Protect px.instances
         curr-=SaveMemThreshold*10/100+1
         //curr=mem+10
@@ -621,7 +642,8 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.snapstart=0
   kv.snapshot=make(map[string]string)
   
-  kv.doneOps=make(map[int]string)
+  kv.doneOps=make(map[int]bool)
+  kv.latestClientOpResult=make(map[int]ID_Ret_Pair)
 
   go kv.housekeeper()
   // Your initialization code here.
