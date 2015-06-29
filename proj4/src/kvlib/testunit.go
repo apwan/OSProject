@@ -87,6 +87,15 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     break
                 }
                 resp, err := http.PostForm(addr[srv_cur] + "/kv/insert", url.Values{"key": {s[1]}, "value": {s[2]}})
+                if alive[srv_cur] == 0 {
+                    if err == nil {
+                        r += fmt.Sprintf("A dead server replying. What the hell?\n")
+                        fail = 1
+                    } else {
+                        r += fmt.Sprintf("Expected error.\n")
+                    }
+                    break
+                }
                 if err == nil {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
@@ -138,6 +147,15 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     break
                 }
                 resp, err := http.PostForm(addr[srv_cur] + "/kv/update", url.Values{"key": {s[1]}, "value": {s[2]}})
+                if alive[srv_cur] == 0 {
+                    if err == nil {
+                        r += fmt.Sprintf("A dead server replying. What the hell?\n")
+                        fail = 1
+                    } else {
+                        r += fmt.Sprintf("Expected error.\n")
+                    }
+                    break
+                }
                 if err == nil {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
@@ -188,6 +206,15 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                     break
                 }
                 resp, err := http.PostForm(addr[srv_cur] + "/kv/delete", url.Values{"key": {s[1]}})
+                if alive[srv_cur] == 0 {
+                    if err == nil {
+                        r += fmt.Sprintf("A dead server replying. What the hell?\n")
+                        fail = 1
+                    } else {
+                        r += fmt.Sprintf("Expected error.\n")
+                    }
+                    break
+                }
                 if err == nil {
                     res := DecodeJson(resp)
                     r += fmt.Sprintf("%v\n", res)
@@ -253,6 +280,15 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
 
 
                 resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
+                if alive[srv_cur] == 0 {
+                    if err == nil {
+                        r += fmt.Sprintf("A dead server replying. What the hell?\n")
+                        fail = 1
+                    } else {
+                        r += fmt.Sprintf("Expected error.\n")
+                    }
+                    break
+                }
                 if err != nil {
                     r += "Error occurred.\n"
                 }else{
@@ -312,7 +348,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
                 r += fmt.Sprintf("Leaving a block of %v legal instructions.\n", cnt)
                 for i := 0; i < cnt; i++ {
                     k := <-ent
-                    res := "SOMETHINGYOUDONTUSEASAVALUE"
+                    res := "SOMETHINGYOUDONTUSEASAVALUE" // Well, you may safely use it as a value, whatever.
                     succ := -1
                     for j := 0; j < 3; j++ {
                         if alive[j] == 1 {
