@@ -286,9 +286,6 @@ func TestUnit(addr []string, tester_addr []string, fn string, auto_restart bool)
                     }(s)
                     break
                 }else{
-                  fmt.Println("Get")
-
-
                 resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
 
                 if alive[srv_cur] == 0 {
