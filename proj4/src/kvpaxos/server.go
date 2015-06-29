@@ -103,10 +103,10 @@ func (kv *KVPaxos) PaxosStatOp() (int,map[string]string) {
     {
       ID=kv.px_touchedPTR+1
       //ID=0
-      for true {
+      for !kv.dead {
           kv.px.Start(ID,myop)
           time.Sleep(1)
-          for true {
+          for !kv.dead {
               decided,value = kv.px.Status(ID)
               if decided {
                   break;
@@ -196,11 +196,11 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     }else{
       ID=kv.px_touchedPTR+1
       //ID=0
-      for true {
+      for !kv.dead {
           kv.px.Start(ID,myop)
           time.Sleep(1)
           var backoff time.Duration=10
-          for true {
+          for !kv.dead {
               decided,value = kv.px.Status(ID)
               if decided {
                   break;
@@ -382,6 +382,7 @@ func (kv *KVPaxos) kill() {
   if StartHTTP{
     println("Stopping HTTP...")
     kv.HTTPListener.Stop()
+    println("HTTP stopped.")
   }
 }
 func (kv *KVPaxos) Kill() {//public wrapper
