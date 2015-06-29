@@ -31,7 +31,7 @@ func RPC_Addr(me int, conf map[string]string) string {
 
 		p,err := strconv.Atoi(conf["RPC_port_"+id])
 			if err != nil {
-				fmt.Printf("Failed to parse : RPC_port_%s : %s\n",id, conf["port_"+id]);
+				fmt.Printf("Failed to parse : RPC_port_%s : %s\n",id, conf["RPC_port_"+id]);
 				panic(err)
 			}
 		return ip+":"+strconv.Itoa(p)
