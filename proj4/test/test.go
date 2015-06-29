@@ -109,6 +109,8 @@ func StartTest(conf map[string]string) string{
     if conf["fmt"] != "true"{ //no need to specify each test case name
       testname = conf["pre"]+conf[strconv.Itoa(i)]
     }
+      All_request(tester_addr[:], "start_server")
+      time.Sleep(time.Millisecond * 2000)
       res, fail := TestUnit(addr_pre, tester_addr, testname)
       if conf["with_err_msg"]=="true"{
         fmt.Printf("%s", res)
@@ -118,8 +120,10 @@ func StartTest(conf map[string]string) string{
             fmt.Printf("\nTest case %d: failed!\n\n", i)
         }
 
-
       }
+      time.Sleep(time.Millisecond * 2000)
+      All_request(tester_addr[:], "stop_server")
+
       cnt -= fail
 
   }
@@ -204,8 +208,7 @@ func main(){
     defer All_request(tester_addr, "shutdown") //remember to shutdown remote testers
 
 
-    All_request(tester_addr, "start_server")
-    time.Sleep(time.Millisecond * 2000)
+
     /* run test cases here !  */
 
 
@@ -213,8 +216,6 @@ func main(){
 
 
     /* all test cases finished ! */
-    time.Sleep(time.Millisecond * 2000)
-    All_request(tester_addr, "stop_server")
 
     time.Sleep(time.Millisecond * 2000)
 
