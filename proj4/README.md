@@ -11,7 +11,7 @@ Three servers in library `kvpaxos` runs with underlying `paxos` library.
 
 The `paxos` library will create paxos instances, which will try to decide an operation for each slot. The decision will contain the data (key/value)  and operation type (Put, Update, etc.) and is consistent for majority.
 
-This library has been fully tested using the original paxos test.
+Note: This library has been fully tested using the original paxos test. Use `make test_Paxos` to run the original test.
 
 ## KVPaxos
 
@@ -23,11 +23,11 @@ The client may optionally provide an operation ID, and the server will not repea
 
 Each server will periodically create snapshots of database log (and let paxos forget old decisions), to help reduce memory comsumption and improve performance (of scanning the log). The threshold to trigger snapshot update can be modified in the configuration. Note that in order to pass the original memory consumption test, the threshold muss be less than 50 (since there's only about 50 operations in the test).
 
-This library has been fully tested using the original kvpaxos client/server test, before migrating to the new RPC platform.
+Note: This library has been fully tested using the original kvpaxos client/server test, before migrating to the tcp-based RPC platform. Use `make test_kvPaxos` to run the test (using Unix socket); the test has been modified since `PutHash` operation is not included in this project. 
 
 ## RPC Interface
 
-To comply with the multi-machine scenario, we changed the communication between different paxos instances to TCP-based (from Unix-socket based). This does not affect the normal working of paxos, since the RPC and the network transportation is fully layered; however, now we cannot control the partition in test cases.
+To comply with the multi-machine scenario, we changed the communication between different paxos instances to TCP-based (from Unix-socket based). This does not affect the normal working of paxos, since the RPC and the network transportation is fully layered; however, now we cannot control the partition in our new test cases.
 
 ## HTTP Interface
 
@@ -49,13 +49,13 @@ The parameter is provided in `key` and `value` field.
 Delete key in the database; will succeed only if it's an existing key.
 The old value will be returned.
 
-The parameter is provided in `key`  field.
+The parameter is provided in `key` field.
 
 #### Get `/kv/get`
 Look up a key in the database; will succeed only if it's an existing key.
 The value will be returned.
 
-The parameter is provided in `key`  field.
+The parameter is provided in `key` field.
 
 Note: Each HTTP request is treated as independent requests, since the HTTP protocol is stateless; if consistency in unreliable network is desired, the client should provide a unique increasing operation ID in `opid` field, and the server will not repeat multiple requests with the same ID or an older ID.
 
@@ -63,12 +63,12 @@ Note: Each HTTP request is treated as independent requests, since the HTTP proto
 #### CountKey `/kvman/countkey`
 Returns the number of distinct, existing keys in the database.
 
-This operation will succeed only if the server can obtain an agreement (i.e. not partitioned into minority) such that the data is up to date.
+This operation will succeed only if the server can obtain an agreement (i.e. not partitioned into minority) such that the data is guaranteed to be up to date.
 
 #### Dump `/kvman/dump`
 Returns a list of existing key-value pairs in the database.
 
-This operation will succeed only if the server can obtain an agreement (i.e. not partitioned into minority) such that the data is up to date.
+This operation will succeed only if the server can obtain an agreement (i.e. not partitioned into minority) such that the data is guaranteed to be  up to date.
 
 #### Shutdown `/kvman/shutdown`
 Kills the server and release the listening ports.
