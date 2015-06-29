@@ -76,6 +76,12 @@ Kills the server and release the listening ports.
 Note: We may have to wait at most 10 milliseconds, before the ports are released and a new instance can be started. Listening to the port immediately after shutdown may cause an error. This issue is handled in our server initialization process, by waiting 10ms before starting any port; however it may affect a subsequent group's project if projects of many groups is tested in batch automatically.
 
 
+# Performance
+
+By using appropriate random timeout settings similar to CDMA/CD, we improved the performance of `kvpaxos` in various test cases by approximately 10x faster, compared with simple random timeout implementation. Currently, the server cluster can response requests within approximately 80ms (without partitioning).
+
+The delay and timeout parameters are set primarily for ethernet or same-machine testing, which is similar to the actual enviroment between different machines in one data centers; the performance may suffer, if the delay between machines are larger than design limits. Therefore, if the test is performed in high-latency network (e.g. cross-pacific), the performance might become suboptimal.
+
 # Build, Run and Test
 
 ## Command
