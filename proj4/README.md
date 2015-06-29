@@ -9,19 +9,19 @@ Three servers in library `kvpaxos` runs with underlying `paxos` library.
 
 ## Paxos
 
-The `paxos` library will create paxos instances, which will try to decide an operation for each slot. The decision will contain the data (key/value)  and operation type (Put, Update, etc.) and is consistent for majority.
+The `paxos` library will create paxos instances, which decide operations for every slot. The decision will contain the data (key/value)  and operation type (Put, Update, etc.) and is consistent for majority.
 
 Note: This library has been fully tested using the original paxos test. Use `make test_Paxos` to run the original test.
 
 ## KVPaxos
 
-The `kvpaxos` library will use its underlying `paxos` instance to achieve consistent database service. Upon each request (including both KV service and KVMAN service), one decision slot is obtained and the operation logged into paxos history. All data queries will be recovered from the database log.
+The `kvpaxos` library will use its underlying `paxos` instance to achieve consistent database service. For each request (including both KV service and KVMAN service), one decision slot is obtained and the operation is logged into paxos history. All data queries can be recovered from the database log.
 
 In order to improve performance, we used a random-backoff scheme (similar to that in CSMA/CD) and optimized the inter-arrival time of paxos decision queue, such that each decision can be quickly made even if the system is under high load pressure.
 
-The client may optionally provide an operation ID, and the server will not repeat an operation with the same ID appeared before. This will ensure database consistency in the case of server temporary partition and client/server unreliable communication.
+The client provide an operation ID optionally, and the server will not repeat operations with the same ID. This will ensure database consistency in the case of server temporary partition and client/server unreliable communication.
 
-Each server will periodically create snapshots of database log (and let paxos forget old decisions), to help reduce memory comsumption and improve performance (of scanning the log). The threshold to trigger snapshot update can be modified in the configuration. Note that in order to pass the original memory consumption test, the threshold muss be less than 50 (since there's only about 50 operations in the test).
+Each server will periodically create snapshots of database log (and let paxos forget old decisions), to reduce memory comsumption and improve performance (of scanning the log). The threshold to trigger snapshot update can be modified in the configuration. In order to pass the original memory consumption test, the threshold must be less than 50 (because there's only about 50 operations in the test).
 
 Note: This library has been fully tested using the original kvpaxos client/server test, before migrating to the tcp-based RPC platform. Use `make test_kvPaxos` to run the test (using Unix socket). (The test has been modified since `PutHash` operation is not included in this project; also, since `Put` operation here has different semantic from `insert` of project 3, it is recorded as `Naive_PUT` rather than `PUT` in the database journal)
 
@@ -57,7 +57,7 @@ The value will be returned.
 
 The parameter is provided in `key` field.
 
-Note: Each HTTP request is treated as independent requests, since the HTTP protocol is stateless; if consistency in unreliable network is desired, the client should provide a unique increasing operation ID in `opid` field, and the server will not repeat multiple requests with the same ID or an older ID.
+Note: Each HTTP request is treated as independent requests, since the HTTP protocol is stateless; if consistency in unreliable network is desired, the client should provide a unique increasing operation ID in `opid` field, and the server will not repeat requests with the same ID or an smaller ID.
 
 ### Management service
 #### CountKey `/kvman/countkey`
@@ -73,7 +73,7 @@ This operation will succeed only if the server can obtain an agreement (i.e. not
 #### Shutdown `/kvman/shutdown`
 Kills the server and release the listening ports.
 
-Note: this operation may require at most 10 milliseconds timeout, before the ports are released and a new instance can be started. Listening to the port immediately after shutdown may cause an error. This issue is handled in our server initialization process, by waiting 10ms before starting any port; however it may affect a subsequent group's project if projects of many groups is tested in batch automatically.
+Note: We may have to wait at most 10 milliseconds, before the ports are released and a new instance can be started. Listening to the port immediately after shutdown may cause an error. This issue is handled in our server initialization process, by waiting 10ms before starting any port; however it may affect a subsequent group's project if projects of many groups is tested in batch automatically.
 
 
 # Build, Run and Test
@@ -101,11 +101,11 @@ For single-machine testing, run `make test_Paxos` and `make test_kvPaxos` (the o
 
 ## Tester Description
 
-In this project we use a similar tester as in previous Project 3, which initializes HTTP requests to different servers and send different requests according to test case files; the result of each request is automatically deduced from previous request sequence and compared with actual result. The test will pass only if all result matched.
+In this project we use a similar tester as in previous Project 3, which initializes HTTP requests to different servers and send different requests according to test case files; the result of each request is automatically deduced from previous request sequence and compared with actual result. The test will be passed only if all results matched.
 
-Normally, the servers are started before each case and shut after the test finishes. Optionally, a test case can choose to shut down one or more servers during the testing process. In this case the correct results are also automatically deduced using the majority consensus requirement. Due to aforementioned difficulty, the test case does not implement partition.
+Normally, the servers are started before each case and shut after the test finishes. Optionally, a test case can  shut down one or more servers during the test. In this case the correct results are also automatically deduced using the majority consensus requirement. Due to aforementioned difficulty, the test case does not implement partition.
 
-To help testing on multiple servers, we implementd auxiliary testers, who runs on different machines and help main tester to start and stop kvpaxos instances. The main tester will wait for all the three auxiliary tester to be alive, then start testing.
+To help testing on multiple servers, we implementd auxiliary testers, who runs on different machines and help main tester to start and stop kvpaxos instances. The main tester will wait for all three auxiliary testers until they are alive, and then start testing.
 
 Each test case is specified by the `*.test` file under `test/` as in Project 3. After each case finished, the result as well as the ellaped time will be printed on the screen if the `with_err_mesg` flag is `true` (set in `test.conf`).
 
@@ -121,6 +121,6 @@ We have also carried out the real remote testing on three machines (one in Beiji
 Note:
 
   1. We assume the ports in `settings.conf` are available and do not check for that. In case the specified ports are already occupied (partly due to previous failed run), the program may crash.
-  2. We also assume all the conf file and `.test` file are well-format and do not check for that. So please follow the format if you try to modify these files, otherwise the program may also crash/panic. 
-  Some existing test cases are generated by some python script.
+  2. We also assume all the conf file and `.test` file are well-format and do not check for that. So please follow the format if you try to modify these files, otherwise the program may crash or panic. 
+  Some existing test cases are generated by python script.
   3. As long as the client HTTP operations are the same, this tester can be used to test against other group's program.
