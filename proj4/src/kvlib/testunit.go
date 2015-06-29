@@ -25,21 +25,27 @@ func checkDump(t map[string]string, d map[string]interface{}) int {
     return 0
 }
 
-func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail int) {
+func TestUnit(addr [3]string, tester_addr [3]string, fn string, auto_restart bool) (r string, fail int) {
     f, _ := os.Open(fn)
     defer f.Close()
     table := make(map[string]string)
     // var tableBlock map[string]int
     var s [4]string
     var srv_cur, livingServer int
-    livingServer = 3
-    var alive [3]int = [3]int{1,1,1}
+    livingServer = 0
+    var alive [3]int = [3]int{0,0,0}
+    if auto_restart{
+      livingServer = 3
+      alive[0],alive[1],alive[2] = 1,1,1
+      fmt.Println("auto_restart server!")
+    }
     var inBlock, cnt /*, cins */ int
     inBlock = 0
     var ch chan int
     // var ins chan [4]string
     var ent chan string
     r += fmt.Sprintf("Testing %s..\n\n", fn)
+
     for {
         l, _ := fmt.Fscanln(f, &s[0], &s[1], &s[2], &s[3])
         if l==0{
@@ -280,6 +286,7 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
 
 
                 resp, err := http.Get(addr[srv_cur] + "/kv/get?key=" + s[1])
+
                 if alive[srv_cur] == 0 {
                     if err == nil {
                         r += fmt.Sprintf("A dead server replying. What the hell?\n")
@@ -425,28 +432,37 @@ func TestUnit(addr [3]string, tester_addr [3]string, fn string) (r string, fail 
             case "start_server":
                 t, _ := strconv.Atoi(s[1])
                 if alive[t - 1] == 0 {
-                    livingServer++
-                    alive[t - 1] = 1
+
+
                     resp, err := http.Get(tester_addr[t-1] + "/test/start_server")
                     if err != nil{
                       fmt.Println(err)
+                      r += "Error occured.\n"
                     }else{
-                      fmt.Println(DecodeStr(resp))
+                      r += fmt.Sprintf("%s\n",DecodeStr(resp))
+                      time.Sleep(time.Millisecond*500)
+                      livingServer++
+                      alive[t - 1] = 1
                     }
+
                     //exec.Run(exec.Command("bin/start_server", fmt.Sprintf("%v", t)))
                 }
             case "stop_server":
                 t, _ := strconv.Atoi(s[1])
                 if alive[t - 1] == 1 {
-                    livingServer--
-                    alive[t - 1] = 0
+                    time.Sleep(time.Millisecond*500)
                     resp, err := http.Get(tester_addr[t-1] + "/test/stop_server")
                     if err != nil{
                       fmt.Println(err)
+                      r += "Error occured.\n"
                     }else{
-                      fmt.Println(DecodeStr(resp))
+                      r += fmt.Sprintf("%s\n",DecodeStr(resp))
+                      livingServer--
+                      alive[t - 1] = 0
                     }
                     //exec.Run(exec.Command("bin/stop_server", fmt.Sprintf("%v", t)))
+                }else{
+                  r += "Not started yet!\n"
                 }
             default:
                 fmt.Println("For Debug: Unrecognised instruction.")

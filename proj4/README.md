@@ -101,3 +101,8 @@ Then in any machine, run the main tester:
 ```
 bin/test -m
 ```
+
+
+Note: 
+  1. We assume all the ports in settings are available and do not check that. In case the specified ports are already occupied (partly due to previous failed run), the program may crash.
+  2. We also assume all the conf file and `.test` file are well-format and do not check that. So please follow the strict format if you try to modify these files, otherwise the program may also crash.
