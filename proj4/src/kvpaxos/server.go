@@ -161,7 +161,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
           return "",lr
         }
       }
-      return "Error: repeated, old request...","" //should not provide error message, to fall through erroneous ops??  
+      return "Error: repeated, old request...","" //should not provide error message, to fall through erroneous ops??
     }
 
     kv.mu.Lock(); // Protect px.instances
@@ -231,7 +231,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
     if Debug {
         println("P/G Step2")
     }
-   
+
 
     var latestVal=kv.snapshot[myop.Key]
     var latestSucc=true
@@ -267,12 +267,12 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
       switch op.OpType{
         case GetOp:
           latestSucc=(latestVal!="")
-        
+
         case PutOp:
           if latestVal!=""{
             latestSucc=false
           }else{
-            latestVal=op.Value 
+            latestVal=op.Value
             latestSucc=true
           }
 
@@ -283,7 +283,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
         case DeleteOp:
           latestSucc=(latestVal!="")
           latestVal=""
-        
+
         case UpdateOp:
           if latestVal==""{
             latestSucc=false
@@ -316,7 +316,7 @@ func (kv *KVPaxos) PaxosAgreementOp(myop Op) (Err,string) {//return (Err,value)
 //    }
     //all ops simluated!
     switch myop.OpType{
-      case GetOp: 
+      case GetOp:
         if latestVal==""{
           return "Key Not Found",""
         }
@@ -447,7 +447,7 @@ func (kv *KVPaxos) housekeeper() {
           bv:=kv.snapshot[k]
           switch optt.OpType{
             case GetOp:
-              
+
             case PutOp:
               if bv!=""{
                 //latestSucc=false
@@ -462,7 +462,7 @@ func (kv *KVPaxos) housekeeper() {
 
             case DeleteOp:
               //latestSucc=(latestVal!="")
-              //latestVal=""  
+              //latestVal=""
               kv.snapshot[k]=""
 
             case UpdateOp:
@@ -534,7 +534,7 @@ func kvUpdateHandlerGC(kv *KVPaxos) http.HandlerFunc {
     }
 
     e,value:=kv.PaxosAgreementOp(Op{UpdateOp,key,value,-1,uuid})
-  
+
     if e!=""{
       fmt.Fprintf(w, "%s",kvlib.JsonErr(string(e)))
       return
@@ -554,7 +554,7 @@ func kvDeleteHandlerGC(kv *KVPaxos) http.HandlerFunc {
     }
 
     e,value:=kv.PaxosAgreementOp(Op{DeleteOp,key,value,-1,uuid})
-  
+
     if e!=""{
       fmt.Fprintf(w, "%s",kvlib.JsonErr(string(e)))
       return
@@ -648,7 +648,7 @@ func StartServer(servers []string, me int) *KVPaxos {
   kv.px_touchedPTR=-1 //0 is untouched at the beginning!
   kv.snapstart=0
   kv.snapshot=make(map[string]string)
-  
+
   kv.doneOps=make(map[int]bool)
   kv.latestClientOpResult=make(map[int]ID_Ret_Pair)
   kv.Death=make(chan int,2)
@@ -672,7 +672,7 @@ func StartServer(servers []string, me int) *KVPaxos {
     for key,val := range kvmanHandlerGCs{
       serveMux.HandleFunc("/kvman/"+key, val(kv))
     }
-    serveMux.HandleFunc("/", kvDumpHandlerGC(kv))  
+    serveMux.HandleFunc("/", kvDumpHandlerGC(kv))
 
     confname := "conf/settings.conf"
 
@@ -715,7 +715,7 @@ func StartServer(servers []string, me int) *KVPaxos {
   rpcs.Register(kv)
 
   kv.px = paxos.Make(servers, me, rpcs)
-
+  fmt.Println("len is:", len(servers))
   os.Remove(servers[me])
   var socktype="unix"
   if RPC_Use_TCP==1{socktype="tcp"} // This is to help running servers between different machines!

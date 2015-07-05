@@ -54,11 +54,16 @@ func usage(){
 func main(){
   kvpaxos.RPC_Use_TCP = 1
 	runtime.GOMAXPROCS(4)
-	const nservers = 3
+	conf:=kvlib.ReadJson("conf/settings.conf")
+	nservers,err := strconv.Atoi(conf["nservers"])
+	if err!=nil{
+		fmt.Println("Failed to parse nservers, use default 3")
+		nservers = 3
+	}
 	var kva []*kvpaxos.KVPaxos = make([]*kvpaxos.KVPaxos, nservers)
 	var kvh []string = make([]string, nservers)
 
-	conf:=kvlib.ReadJson("conf/settings.conf")
+
 
 	for i := 0; i < nservers; i++ {
 		kvh[i] = RPC_Addr(i,conf)
